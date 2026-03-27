@@ -1,0 +1,194 @@
+"use client";
+
+import React, { useState } from "react";
+import { Link, usePathname, useRouter } from "@/i18n/routing";
+import { useParams } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useTheme } from "next-themes";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Wallet,
+  Settings,
+  Menu,
+  X,
+  Dna,
+  Sun,
+  Moon,
+  Languages,
+  Stethoscope,
+  LogOut,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { logoutAction } from "@/app/[locale]/auth/logoutAction";
+
+export function Sidebar() {
+  const t = useTranslations("Sidebar");
+
+  const NAV_LINKS = [
+    { name: t("dashboard"), href: "/", icon: LayoutDashboard },
+    { name: t("patients"), href: "/patients", icon: Users },
+    { name: t("clinical"), href: "/clinical", icon: Stethoscope },
+    { name: t("appointments"), href: "/calendar", icon: Calendar },
+    { name: t("finance"), href: "/billing", icon: Wallet },
+    { name: t("settings"), href: "/settings", icon: Settings },
+  ] as const;
+
+  const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
+  const { theme, setTheme } = useTheme();
+  const params = useParams();
+  const direction = locale === "ar" ? "rtl" : "ltr";
+
+  const [mounted, setMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleSidebar = () => setIsOpen(!isOpen);
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const toggleLocale = () => {
+    const nextLocale = locale === "ar" ? "en" : "ar";
+    // @ts-expect-error -- Generic layout doesn't have page-specific params for next-intl strict typing
+    router.replace({ pathname, params }, { locale: nextLocale });
+  };
+
+  return (
+    <>
+      {/* Mobile Top Header */}
+      <div className="md:hidden sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="flex items-center gap-2">
+          <Dna className="h-6 w-6 text-blue-600" />
+          <span className="font-bold text-slate-900 dark:text-white">
+            SmileCraft
+          </span>
+        </div>
+        <button
+          onClick={toggleSidebar}
+          className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={toggleSidebar}
+            className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Main Sidebar (Desktop fixed, Mobile animated) */}
+      <motion.aside
+        className={cn(
+          "fixed inset-y-0 z-50 flex w-72 flex-col justify-between border-slate-200 glass md:sticky md:top-0 md:h-screen transition-all duration-300 ease-in-out md:translate-x-0",
+          direction === "rtl" ? "right-0 border-l" : "left-0 border-r",
+          isOpen
+            ? "translate-x-0"
+            : direction === "rtl"
+              ? "translate-x-full"
+              : "-translate-x-full",
+        )}
+      >
+        <div>
+          {/* Logo Area */}
+          <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-800/50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30">
+              <Dna className="h-6 w-6" />
+            </div>
+            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              SmileCraft CMS
+            </span>
+          </div>
+
+          <div className="flex w-full flex-col gap-2 px-3 py-4">
+            {NAV_LINKS.map((link) => {
+              const isActive =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all overflow-hidden",
+                    isActive
+                      ? "text-blue-700 dark:text-blue-400"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white",
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="active-indicator"
+                      className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                  <link.icon className="relative z-10 h-5 w-5" />
+                  <span className="relative z-10">{link.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* User Profile / Logout Area snippet */}
+        <div className="p-4 space-y-4">
+          
+          {/* Quick Actions (Theme & Language) */}
+          {mounted && (
+            <div className="flex gap-2">
+              <button
+                onClick={toggleTheme}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl border bg-slate-50 p-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={toggleLocale}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl border bg-slate-50 p-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <Languages className="h-4 w-4" />
+                <span className="uppercase font-bold">{locale === "ar" ? "EN" : "عربي"}</span>
+              </button>
+            </div>
+          )}
+
+          {/* User Profile */}
+          <div className="flex items-center gap-3 rounded-2xl border bg-slate-50 p-3 dark:bg-slate-900">
+            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                {t("drName")}
+              </span>
+              <span className="text-xs text-slate-500">{t("drTitle")}</span>
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <form action={logoutAction} className="w-full">
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+            >
+              <LogOut className="h-4 w-4" />
+              تسجيل الخروج
+            </button>
+          </form>
+        </div>
+      </motion.aside>
+    </>
+  );
+}

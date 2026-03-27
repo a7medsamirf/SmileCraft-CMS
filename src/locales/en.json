@@ -1,0 +1,395 @@
+{
+  "Button": {
+    "GetStarted": "Get Started",
+    "ContactUs": "Contact Us",
+    "BookaDemo": "Book a Demo",
+    "RequestDemo": "Request Demo",
+    "WatchVideo": "Watch Video",
+    "Join": "Join",
+    "ShopNow": "Shop Now",
+    "Login": "Login"
+  },
+  "common": {
+     "exploreMore": "Explore More"     
+  },
+  "Navbar": {
+    "title": "Test Page",
+    "GetStarted":"Get Started",
+    "Login": "Login",
+    "link": {
+      "home": " Home",
+      "Product": "Product",
+      "Pages": "Pages",
+      "Integrations": "Integrations",
+      "Blog": "Blog",
+      "Pricing": "Pricing"
+    },
+    "Metadata": {
+      "title": "Finbiz"
+    }
+  },
+
+  "Header": {
+    "title": "The Finance Solutions For Your Business ",
+    "suptitle": " Introducing AI Automation",
+    "description": " Empower your finance team. The onestop plateform for all financial management of small and medium-sized business.",
+    "ButtonBookaDemo": "Book a Demo",
+    "ButtonNew": "New",
+    "placeholder" : "Enter your email adress"
+  },
+
+
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, ar {عربى} en {English} other {Unknown}}"
+  },
+  "Testimonial": {
+    "title": "What are people saying",
+    "suptitle": "Testimonials",
+    "description": "Thank you for your trust in Crypt Land! We are grateful for your feedback and are committed to providing the best [products/services offered]. Read what our clients have to say about their experience with us.",
+    "Popular": "Popular"
+  },
+
+  "Pricing": {
+    "title": "Find the right plan",
+    "suptitle": "Pricing",
+    "description": "Invest in your company's future with our comprehensive financial solution. Contact us for pricing details and see how we can help you streamline your finances and reach your business goals.",
+    "Popular": "Popular",
+    "basicTitle": "Basic",
+    "proTitle": "Pro",
+    "enterpriseTitle": "Enterprise",
+    "basicDescription": "Get a professional website designed according to your needs.",
+    "proDescription": "Get a professional website designed according to your needs.",
+    "enterpriseDescription": "Get a professional website designed according to your needs.",
+    "getStarted": "Get started"
+
+  },
+
+  "Features": {
+    "fullWebsite": "Get a fully designed Website.",
+    "webflow": "Webflow Development",
+    "limitedSupport": "Limited Support",
+    "standardIntegrations": "Standard integrations",
+    "emailSupport": "Email support"
+  },
+
+  "Cta": {
+    "title": "Let’s Upgrade your finances experience by using FinBiz",
+    "RequestDemo": "Request Demo",
+    "WatchVideo": "Watch Video"
+  },
+
+  "NotFound":{
+    "title": "Page not found",
+    "description": "Sorry, we couldn’t find the page you’re looking for.",
+    "GoHome": "Go back Home"
+  },
+
+  "FeaturedProducts": {
+    "title": "Faster and Richer Processing",
+    "description": "Faster than EXPEED 4, EXPEED 5 processes data at 45.7 megapixels to reduce noise",
+    "shopNow": "Shop Now"
+  },
+  "Footer": {
+    "newsletter": {
+      "title": "Subscribe to Newsletter",
+      "subtitle": "Join now and get a 10% discount on your next purchase!",
+      "placeholder": "Enter your email",
+      "subscribeBtn": "Subscribe",
+      "disclaimer": "You can unsubscribe at any time"
+    },
+    "appLinks": {
+      "title": "Mobile Apps"
+    },
+    "about": {
+      "title": "About Our Store",
+      "desc": "Salla is one of the best stores selling digital products at the best prices and international brands. Shop now, see more designs, and enjoy the best offers and discounts."
+    },
+    "account": {
+      "title": "My Account",
+      "links": {
+        "myAccount": "My Account",
+        "orders": "My Orders",
+        "cart": "Shopping Cart",
+        "wishlist": "Wishlist"
+      }
+    },
+    "importantLinks": {
+      "title": "Important Links",
+      "links": {
+        "aboutUs": "About Us",
+        "privacy": "Privacy Policy",
+        "terms": "Terms & Conditions",
+        "support": "Technical Support"
+      }
+    },
+    "contact": {
+      "title": "Contact Us",
+      "whatsapp": "WhatsApp",
+      "mobile": "Mobile",
+      "email": "Website"
+    },
+    "followUs": {
+      "title": "Follow Us"
+    },
+    "bottom": {
+      "copyright": "All rights reserved to Salla Platform © 2023",
+      "taxNumber": "Tax Number"
+    }
+  },
+  "Sidebar": {
+    "dashboard": "Dashboard",
+    "patients": "Patients",
+    "clinical": "Clinical",
+    "appointments": "Appointments",
+    "finance": "Finance",
+    "settings": "Settings",
+    "drName": "Dr. Ahmed Samir",
+    "drTitle": "Orthodontist"
+  },
+  "Common": {
+    "search": "Search...",
+    "add": "Add",
+    "new": "New",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "noResults": "No results found"
+  },
+  "Clinical": {
+    "title": "Clinical Diagnosis & Odontogram",
+    "subtitle": "Interactive teeth map and treatment plan builder",
+    "odontogram": "Odontogram",
+    "planBuilder": "Plan Builder",
+    "selectedTooth": "Selected Tooth",
+    "status": "Status",
+    "actions": "Actions",
+    "generatePlan": "Generate Draft Plan",
+    "noTeethSelected": "Select teeth from the map to start building a plan.",
+    "statusReady": "Healthy",
+    "statusCaries": "Caries",
+    "statusFilling": "Filling",
+    "statusEndo": "Endo",
+    "upperArch": "Upper Arch",
+    "lowerArch": "Lower Arch",
+    "proposedPlan": "Proposed Treatment Plan",
+    "total": "Total",
+    "currency": "EGP",
+    "noAffectedTeeth": "No affected teeth. The patient does not need treatment at this time.",
+    "estimatedCost": "Estimated Cost",
+    "pending": "Pending",
+    "convertToInvoice": "Convert to Invoice",
+    "converting": "Converting plan to invoice...",
+    "emptyPlanError": "Cannot convert an empty plan to an invoice.",
+    "invoiceSuccess": "Invoice issued successfully ({invoiceId})",
+    "selectStatus": "Select Tooth Status",
+    "toothLabel": "Tooth No.",
+    "procedureCleaning": "Initial cleaning & filling",
+    "procedureReview": "Old filling review",
+    "procedureRootCanal": "Root canal therapy",
+    "procedureCrown": "Crown placement",
+    "savePlan": "Save Plan",
+    "saving": "Saving...",
+    "lastSaved": "Last saved: {time}",
+    "loadingRecords": "Loading clinical records..."
+  },
+  "Appointments": {
+    "title": "Appointments Schedule",
+    "dailyAgenda": "Daily Agenda",
+    "agendaSummary": "Quick summary of upcoming patients",
+    "upcoming": "Upcoming Appointments",
+    "noAppointments": "No appointments scheduled for today.",
+    "time": "Time",
+    "patientName": "Patient Name",
+    "procedure": "Procedure",
+    "status": "Status",
+    "statusScheduled": "Scheduled",
+    "statusInProgress": "In Progress",
+    "statusInprogress": "In Progress",
+    "statusCompleted": "Completed",
+    "statusCancelled": "Cancelled",
+    "statusNoShow": "No Show",
+    "statusNoshow": "No Show",
+    "appointmentsCount": "appointments",
+    "wizardTitle": "Appointment Booking Wizard",
+    "wizardSubtitle": "Drag and drop a patient onto a time slot for quick booking",
+    "selectPatient": "Select Patient",
+    "selectTime": "Select Time",
+    "confirm": "Confirm",
+    "quickBook": "Quick Book",
+    "available": "Available",
+    "booked": "Booked",
+    "procedureType": "Procedure Type",
+    "confirmBooking": "Confirm Booking",
+    "confirmBookingDesc": "Please review the details before confirming",
+    "bookingSuccess": "Appointment booked successfully!",
+    "noPatients": "No patients registered. Add a new patient first.",
+    "selectProcedure": "Select a procedure to continue"
+  },
+  "Finance": {
+    "title": "Financial Management",
+    "revenue": "Revenue",
+    "payments": "Payments",
+    "balance": "Balance",
+    "dailyReport": "Daily Report",
+    "dailyRevenue": "Daily Revenue (Clinic Shift)",
+    "revenueSummary": "Track revenue, outstanding invoices, and clinic financial reports.",
+    "printReport": "Print Report",
+    "total": "Total",
+    "totalCollected": "Total Amount Collected",
+    "cash": "Cash",
+    "card": "Credit/Debit Card",
+    "wallet": "E-Wallets",
+    "printHeaderTitle": "SmileCraft Dental Clinic",
+    "printHeaderSubtitle": "Treasury Daily Report (Today's Revenue)",
+    "printDate": "Print Date:",
+    "paymentMethod": "Payment Method",
+    "doctorSignature": "Doctor / Consultant Signature",
+    "cashierSignature": "Cashier / Accountant Signature",
+    "invoiceHistory": "Invoice History",
+    "invoiceHistorySummary": "Detailed invoice history table will be added here in the next phase.",
+    "subtitle": "Track revenue, outstanding invoices, and clinic financial reports.",
+    "monthlyPerformance": "Monthly Performance Summary",
+    "revenueChart": "Revenue Chart",
+    "pendingInvoices": "Pending Invoices",
+    "pendingInvoicesDesc": "List of unpaid claims (Coming Soon)",
+    "monthlyRevenue": "Monthly Revenue",
+    "growth": "Growth Rate",
+    "topProcedures": "Top Profitable Procedures",
+    "vsLastMonth": "vs. Last Month",
+    "averageVisitValue": "Avg. Visit Value",
+    "jan": "Jan",
+    "feb": "Feb",
+    "mar": "Mar",
+    "apr": "Apr",
+    "may": "May",
+    "jun": "Jun",
+    "jul": "Jul",
+    "aug": "Aug",
+    "sep": "Sep",
+    "oct": "Oct",
+    "nov": "Nov",
+    "dec": "Dec",
+    "currency": "EGP"
+  },
+  "Patients": {
+    "title": "Patient Records",
+    "listTitle": "Patient Files",
+    "listSummary": "Manage patient data, medical records, and appointments {patientCount}",
+    "patientCount": "({total} patients)",
+    "addPatient": "Add New Patient",
+    "searchPlaceholder": "Search by name or phone...",
+    "advancedFilter": "Advanced Filter",
+    "noResults": "No matching patients",
+    "noResultsSummary": "Try searching with different keywords or add a new patient.",
+    "clearSearch": "Clear Search",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "John Doe",
+    "phone": "Phone Number",
+    "phonePlaceholder": "01XXXXXXXXX",
+    "birthDate": "Birth Date",
+    "nationalId": "National ID",
+    "nationalIdPlaceholder": "2XXXXXXXXXXXXX",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "city": "City",
+    "bloodGroup": "Blood Group",
+    "medicalAlerts": "Medical Alerts",
+    "medicalAlertsPlaceholder": "Penicillin allergy, Diabetic...",
+    "medications": "Regular Medications",
+    "medicationsPlaceholder": "List medications here...",
+    "emergencyContact": "Emergency Contact",
+    "emergencyContactName": "Contact Name",
+    "emergencyRelationship": "Relationship",
+    "emergencyRelationshipPlaceholder": "Father / Spouse / Sibling",
+    "emergencyPhone": "Emergency Phone",
+    "emergencyNote": "Information for the person to contact in case of emergency.",
+    "stepBasic": "Basic Information",
+    "stepMedical": "Medical History",
+    "stepEmergency": "Emergency Contact",
+    "prev": "Previous",
+    "next": "Next",
+    "cancel": "Cancel",
+    "register": "Register Patient",
+    "registering": "Saving...",
+    "addPatientSuccess": "Patient registered successfully!",
+    "redirecting": "Redirecting to patient list...",
+    "validationName": "Full name must be at least 3 characters.",
+    "validationPhone": "Invalid phone number.",
+    "addPatientModalTitle": "Register New Patient",
+    "addPatientModalSub": "Fill in the details to open a medical file for the patient."
+  },
+  "Dashboard": {
+    "greeting": "Good morning, Dr. Ahmed 🦷",
+    "summary": "Here's a quick summary of what's happening in the clinic today",
+    "todayAppointments": "Today's Appointments",
+    "newPatients": "New Patients",
+    "pendingPlans": "Pending Treatment Plans",
+    "todayRevenue": "Today's Total Income",
+    "vsYesterday": "vs. Yesterday",
+    "thisWeek": "This Week",
+    "needFollowup": "Cases needing follow-up",
+    "vsAverage": "vs. Daily Average",
+    "widgetsPlaceholder": "Additional Widgets Area",
+    "widgetsSummary": "More reports and statistics will be added here soon."
+  },
+  "Settings": {
+    "title": "System Settings",
+    "description": "Manage clinic settings, permissions, and appearance.",
+    "tabs": {
+      "services": "Services Management",
+      "permissions": "Permissions",
+      "schedule": "Clinic Hours",
+      "backup": "Data Backup"
+    },
+    "services": {
+      "title": "Services & Pricing List",
+      "add": "Add Service",
+      "name": "Service Name",
+      "category": "Category",
+      "price": "Price",
+      "duration": "Duration (min)",
+      "edit": "Edit",
+      "save": "Save",
+      "cancel": "Cancel",
+      "filterAll": "All",
+      "filterGeneral": "General",
+      "filterSurgery": "Surgery",
+      "filterCosmetic": "Cosmetic",
+      "filterPediatrics": "Pediatrics",
+      "currency": "EGP"
+    },
+    "permissions": {
+      "title": "Permissions Matrix",
+      "doctor": "Doctor / Admin",
+      "receptionist": "Receptionist",
+      "accountant": "Accountant",
+      "viewPatients": "View Patients",
+      "editRecords": "Edit Medical Records",
+      "viewRevenue": "View Revenue",
+      "deleteData": "Delete Data",
+      "adminGuard": "Core admin permissions cannot be modified"
+    },
+    "clinicHours": {
+      "title": "Clinic Business Hours",
+      "day": "Day",
+      "start": "Start Time",
+      "end": "End Time",
+      "offDay": "Off Day",
+      "save": "Save Schedule",
+      "invalidTime": "End time must be after start time"
+    },
+    "backup": {
+      "title": "Data Security & Export",
+      "exportPatients": "Export Patient Data (Excel)",
+      "systemBackup": "System Backup (JSON)",
+      "lastBackup": "Last Backup: {date}",
+      "backupSuccess": "Backup completed successfully",
+      "downloading": "Downloading..."
+    }
+  }
+}

@@ -1,0 +1,395 @@
+{
+  "Button" : {
+    "GetStarted": "ابدأ الآن",
+    "ContactUs": "تواصل معنا",
+    "BookaDemo": "احجز عرضًا توضيحيًا",
+    "RequestDemo": "طلب عرض توضيحي",
+    "WatchVideo": "شاهد الفيديو",
+    "Join": "Join",
+    "ShopNow": "تسوق الآن",
+    "Login": "تسجيل الدخول"
+  },
+    "common": {
+     "exploreMore": "اكتشف المزيد" 
+  },
+  "Navbar": {
+    "title": "موقع تجريبى",
+    "GetStarted":"ابدأ الآن",
+    "Login": "تسجيل الدخول",
+    "link": {
+      "home": " الرئيسية",
+      "Product": "المنتجات",
+      "Pages": "الصفحات",
+      "Integrations": "التكاملات",
+      "Blog": "أخر الاخبار",
+      "Pricing": "التسعير"
+    },
+    "Metadata": {
+      "title": "فينفيز"
+    }
+  },
+  "Header": {
+    "title": "الحلول المالية لأعمالك ",
+    "suptitle": " مقدمة عن الذكاء الاصطناعي  ",
+    "description": " عزز فريقك المالي. منصة شاملة لإدارة جميع شؤون الشركات الصغيرة والمتوسطة ماليًا.",
+    "ButtonBookaDemo": " احجز عرضًا توضيحيًا",
+    "ButtonNew": "جديد",
+    "placeholder" : "أدخل عنوان بريدك الإلكتروني"
+  },
+
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, ar {عربى} en {English} other {Unknown}}"
+  },
+
+  "Testimonial": {
+    "title": "ماذا يقول الناس ",
+    "suptitle": "شهادات العملاء ",
+    "description": "   شكرًا لثقتكم في كريبت لاند! نشكركم على ملاحظاتكم ونلتزم بتقديم أفضل المنتجات/الخدمات. اقرأ آراء عملائنا حول تجربتهم معنا."
+  },
+
+ "Pricing": {
+    "title": "العثور على الخطة الصحيحة",
+    "suptitle": "التسعير",
+    "description": "استثمر في مستقبل شركتك مع حلولنا المالية الشاملة. تواصل معنا لمعرفة تفاصيل الأسعار واكتشف كيف يمكننا مساعدتك في تنظيم أمورك المالية وتحقيق أهدافك التجارية.",
+    "Popular": "الشائع",
+    "basicTitle": "الأساسية",
+    "proTitle": "المتقدمة",
+    "enterpriseTitle": "المؤسسات",
+    "basicDescription": "احصل على موقع احترافي مصمم حسب احتياجاتك",
+    "proDescription": "احصل على موقع احترافي مصمم حسب احتياجاتك",
+    "enterpriseDescription": "احصل على موقع احترافي مصمم حسب احتياجاتك",
+    "getStarted": "ابدأ الآن"
+
+  },
+
+  "Features": {
+    "fullWebsite": "احصل على موقع مصمم بالكامل",
+    "webflow": "تطوير ويب فلو",
+    "limitedSupport": "دعم محدود",
+    "standardIntegrations": "تكاملات قياسية",
+    "emailSupport": "دعم البريد الإلكتروني"
+  },
+
+  "Cta": {
+    "title": "دعنا نطور تجربتك المالية باستخدام FinBiz",
+    "RequestDemo": "اطلب عرضًا توضيحيًا",
+    "WatchVideo": "شاهد الفيديو"
+  },
+
+
+  "NotFound":{
+    "title": "لم يتم العثور على الصفحة",
+    "description": "عذراً، لم نتمكن من العثور على الصفحة التي تبحث عنها.",
+    "GoHome": "العودة الى الرئيسية"
+  },
+
+"FeaturedProducts": {
+    "title": "معالجة أسرع وأكثر ثراءً",
+    "description": "أسرع من 4 EXPEED ، يعالج 5 EXPEED بسرعة 45.7 ميجابكسل من البيانات لتقليل التشويش",
+    "shopNow": "تسوق الآن"
+  },
+
+  "Footer": {
+    "newsletter": {
+      "title": "الاشتراك فى النشرة البريدية",
+      "subtitle": "انضم الآن واحصل على خصم 10% على مشترياتك التالية!",
+      "placeholder": "ادخل البريد الالكتروني",
+      "subscribeBtn": "إشتراك",
+      "disclaimer": "يمكنك إلغاء الاشتراك في أي لحظة"
+    },
+    "appLinks": {
+      "title": "تطبيقات الجوال"
+    },
+    "about": {
+      "title": "عن متجرنا",
+      "desc": "متجر سلة من أفضل المتاجر التي تقوم ببيع المنتجات الرقمية بأفضل الأسعار وماركات عالمية. تسوق الآن واطلع على المزيد من التصاميم واستمتع بأفضل العروض والخصومات."
+    },
+    "account": {
+      "title": "حسابي",
+      "links": {
+        "myAccount": "حسابي",
+        "orders": "طلباتي",
+        "cart": "سلة المشتريات",
+        "wishlist": "المفضلة"
+      }
+    },
+    "importantLinks": {
+      "title": "روابط مهمة",
+      "links": {
+        "aboutUs": "من نحن",
+        "privacy": "سياسة الخصوصية",
+        "terms": "الشروط والأحكام",
+        "support": "الدعم الفني"
+      }
+    },
+    "contact": {
+      "title": "تواصل معنا",
+      "whatsapp": "واتساب",
+      "mobile": "موبايل",
+      "email": "البريد"
+    },
+    "followUs": {
+      "title": "تابعنا على"
+    },
+    "bottom": {
+      "copyright": "الحقوق محفوظة لمنصة سلة © 2023",
+      "taxNumber": "الرقم الضريبي"
+    }
+  },
+  "Sidebar": {
+    "dashboard": "الرئيسية",
+    "patients": "المرضى",
+    "clinical": "التشخيص الطبي",
+    "appointments": "المواعيد",
+    "finance": "الحسابات",
+    "settings": "الإعدادات",
+    "drName": "د. أحمد جمال",
+    "drTitle": "طبيب تقويم"
+  },
+  "Common": {
+    "search": "بحث...",
+    "add": "إضافة",
+    "new": "جديد",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "loading": "جاري التحميل...",
+    "noResults": "لا توجد نتائج"
+  },
+  "Clinical": {
+    "title": "التشخيص الطبي والأودونتوجرام",
+    "subtitle": "خريطة الأسنان التفاعلية وبناء خطة العلاج",
+    "odontogram": "خريطة الأسنان (Odontogram)",
+    "planBuilder": "بناء خطة العلاج",
+    "selectedTooth": "السن المختار",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "generatePlan": "إنشاء مسودة الخطة",
+    "noTeethSelected": "اختر الأسنان من الخريطة للبدء في بناء الخطة.",
+    "statusReady": "سليم",
+    "statusCaries": "تسوس",
+    "statusFilling": "حشو",
+    "statusEndo": "عصب",
+    "upperArch": "الفك العلوي (Upper Arch)",
+    "lowerArch": "الفك السفلي (Lower Arch)",
+    "proposedPlan": "خطة العلاج المقترحة",
+    "total": "إجمالي",
+    "currency": "ج.م",
+    "noAffectedTeeth": "لا توجد أسنات مصابة. المريض لا يحتاج لتدخل علاجي بالوقت الحالي.",
+    "estimatedCost": "التكلفة التقديرية",
+    "pending": "في الانتظار",
+    "convertToInvoice": "إنشاء فاتورة محاسبية (Convert to Invoice)",
+    "converting": "جاري تحويل الخطة للفواتير...",
+    "emptyPlanError": "لا يمكن تحويل خطة فارغة إلى فاتورة.",
+    "invoiceSuccess": "تم إصدار المطالبة المالية بنجاح ({invoiceId})",
+    "selectStatus": "أختر حالة السنة",
+    "toothLabel": "سنة رقم",
+    "procedureCleaning": "تنظيف وحشو مبدئي",
+    "procedureReview": "مراجعة الحشو القديم",
+    "procedureRootCanal": "سحب عصب",
+    "procedureCrown": "تركيب تاج مسند",
+    "savePlan": "حفظ الخطة",
+    "saving": "جاري الحفظ...",
+    "lastSaved": "آخر حفظ: {time}",
+    "loadingRecords": "جاري تحميل السجلات الطبية..."
+  },
+  "Appointments": {
+    "title": "جدول المواعيد",
+    "dailyAgenda": "الأجندة اليومية",
+    "agendaSummary": "ملخص سريع للمرضى القادمين",
+    "upcoming": "المواعيد القادمة",
+    "noAppointments": "لا توجد مواعيد مسجلة اليوم.",
+    "time": "الوقت",
+    "patientName": "اسم المريض",
+    "procedure": "الإجراء",
+    "status": "الحالة",
+    "statusScheduled": "منتظر",
+    "statusInProgress": "بالداخل",
+    "statusInprogress": "بالداخل",
+    "statusCompleted": "انتهى",
+    "statusCancelled": "اعتذر",
+    "statusNoShow": "لم يحضر",
+    "statusNoshow": "لم يحضر",
+    "appointmentsCount": "موعد",
+    "wizardTitle": "معالج حجز المواعيد",
+    "wizardSubtitle": "اسحب المريض وأفلته في خانة الوقت للحجز السريع",
+    "selectPatient": "اختر المريض",
+    "selectTime": "اختر الوقت",
+    "confirm": "تأكيد",
+    "quickBook": "حجز سريع",
+    "available": "متاح",
+    "booked": "محجوز",
+    "procedureType": "نوع الإجراء",
+    "confirmBooking": "تأكيد الحجز",
+    "confirmBookingDesc": "يرجى مراجعة التفاصيل قبل التأكيد",
+    "bookingSuccess": "تم حجز الموعد بنجاح!",
+    "noPatients": "لا يوجد مرضى مسجلين. أضف مريضاً جديداً أولاً.",
+    "selectProcedure": "اختر إجراء للمتابعة"
+  },
+  "Finance": {
+    "title": "الإدارة المالية",
+    "revenue": "الإيرادات",
+    "payments": "المدفوعات",
+    "balance": "الرصيد",
+    "dailyReport": "التقرير اليومي",
+    "dailyRevenue": "إيرادات اليوم (يومية العيادة)",
+    "revenueSummary": "تتبع الإيرادات، الفواتير المستحقة، والتقارير المالية للعيادة.",
+    "printReport": "طباعة التقرير",
+    "total": "الإجمالي",
+    "totalCollected": "الإجمالي الكلي المحصل",
+    "cash": "كاش (نقدي)",
+    "card": "بطاقات بنكية (فيزا)",
+    "wallet": "مَحافظ إلكترونية",
+    "printHeaderTitle": "عيادة SmileCraft لطب الأسنان",
+    "printHeaderSubtitle": "يومية الخزينة (إيرادات اليوم)",
+    "printDate": "تاريخ الطباعة:",
+    "paymentMethod": "طريقة الدفع",
+    "doctorSignature": "توقيع الطبيب / الاستشاري",
+    "cashierSignature": "توقيع الكاشير / المحاسب",
+    "invoiceHistory": "جدول الفواتير (Invoices History)",
+    "invoiceHistorySummary": "سيتم إضافة جدول الفواتير المفصل هنا في المرحلة القادمة.",
+    "subtitle": "تتبع الإيرادات، الفواتير المستحقة، والتقارير المالية للعيادة.",
+    "monthlyPerformance": "ملخص الأداء الشهري",
+    "revenueChart": "رسم بياني للإيرادات",
+    "pendingInvoices": "الفواتير المعلقة",
+    "pendingInvoicesDesc": "قائمة المطالبات غير المدفوعة (قريباً)",
+    "monthlyRevenue": "الإيرادات الشهرية",
+    "growth": "معدل النمو",
+    "topProcedures": "أكثر الإجراءات ربحية",
+    "vsLastMonth": "مقارنة بالشهر الماضي",
+    "averageVisitValue": "متوسط قيمة الزيارة",
+    "jan": "يناير",
+    "feb": "فبراير",
+    "mar": "مارس",
+    "apr": "أبريل",
+    "may": "مايو",
+    "jun": "يونيو",
+    "jul": "يوليو",
+    "aug": "أغسطس",
+    "sep": "سبتمبر",
+    "oct": "أكتوبر",
+    "nov": "نوفمبر",
+    "dec": "ديسمبر",
+    "currency": "ج.م"
+  },
+  "Patients": {
+    "title": "سجل المرضى",
+    "listTitle": "ملفات المرضى",
+    "listSummary": "إدارة بيانات المرضى، السجلات الطبية، والمواعيد {patientCount}",
+    "patientCount": "({total} مريض)",
+    "addPatient": "إضافة مريض جديد",
+    "searchPlaceholder": "بحث بالاسم أو رقم الهاتف...",
+    "advancedFilter": "تصفية متقدمة",
+    "noResults": "لا يوجد مرضى مطابقين",
+    "noResultsSummary": "جرب البحث بكلمات أخرى أو أضف مريضاً جديداً.",
+    "clearSearch": "مسح البحث",
+    "fullName": "الاسم بالكامل",
+    "fullNamePlaceholder": "أحمد محمد السيد",
+    "phone": "رقم الهاتف",
+    "phonePlaceholder": "01XXXXXXXXX",
+    "birthDate": "تاريخ الميلاد",
+    "nationalId": "الرقم القومي",
+    "nationalIdPlaceholder": "2XXXXXXXXXXXXX",
+    "gender": "الجنس",
+    "male": "ذكر",
+    "female": "أنثى",
+    "other": "أخرى",
+    "city": "المدينة",
+    "bloodGroup": "فصيلة الدم",
+    "medicalAlerts": "تنبيهات طبية",
+    "medicalAlertsPlaceholder": "حساسية بنسلين، مريض سكر...",
+    "medications": "أدوية منتظمة",
+    "medicationsPlaceholder": "اكتب الأدوية هنا...",
+    "emergencyContact": "جهة الطوارئ",
+    "emergencyContactName": "اسم جهة الاتصال",
+    "emergencyRelationship": "صلة القرابة",
+    "emergencyRelationshipPlaceholder": "أب / زوج / أخ",
+    "emergencyPhone": "رقم هاتف الطوارئ",
+    "emergencyNote": "بيانات الشخص الذي يمكن الاتصال به في حالة الطوارئ.",
+    "stepBasic": "البيانات الأساسية",
+    "stepMedical": "التاريخ الطبي",
+    "stepEmergency": "جهة الطوارئ",
+    "prev": "السابق",
+    "next": "التالي",
+    "cancel": "إلغاء",
+    "register": "تسجيل المريض",
+    "registering": "جاري الحفظ...",
+    "addPatientSuccess": "تم تسجيل المريض بنجاح!",
+    "redirecting": "جاري توجيهك إلى قائمة المرضى...",
+    "validationName": "اسم المريض يجب أن يكون ثلاثي على الأقل.",
+    "validationPhone": "رقم الهاتف غير صحيح.",
+    "addPatientModalTitle": "تسجيل مريض جديد",
+    "addPatientModalSub": "قم بملء البيانات لفتح ملف طبي للمريض."
+  },
+  "Dashboard": {
+    "greeting": "صباح الخير، د. أحمد 🦷",
+    "summary": "إليك ملخص سريع لما يحدث في العيادة اليوم",
+    "todayAppointments": "مواعيد اليوم",
+    "newPatients": "مرضى جدد",
+    "pendingPlans": "خطط علاج قيد الانتظار",
+    "todayRevenue": "إجمالي دخل اليوم",
+    "vsYesterday": "مقارنة بالأمس",
+    "thisWeek": "هذا الأسبوع",
+    "needFollowup": "حالات تحتاج متابعة",
+    "vsAverage": "مقارنة بمتوسط الأيام السابقة",
+    "widgetsPlaceholder": "مساحة الودجتس الإضافية",
+    "widgetsSummary": "سيتم إضافة تقارير وإحصائيات أخرى هنا قريباً."
+  },
+  "Settings": {
+    "title": "إعدادات النظام",
+    "description": "التحكم في إعدادات العيادة، الصلاحيات، والمظهر.",
+    "tabs": {
+      "services": "إدارة الخدمات",
+      "permissions": "الصلاحيات",
+      "schedule": "مواعيد العمل",
+      "backup": "النسخ الاحتياطي"
+    },
+    "services": {
+      "title": "قائمة الخدمات والأسعار",
+      "add": "إضافة خدمة",
+      "name": "اسم الخدمة",
+      "category": "الفئة",
+      "price": "السعر",
+      "duration": "المدة (دقيقة)",
+      "edit": "تعديل",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "filterAll": "الكل",
+      "filterGeneral": "عام",
+      "filterSurgery": "جراحة",
+      "filterCosmetic": "تجميل",
+      "filterPediatrics": "أطفال",
+      "currency": "ج.م"
+    },
+    "permissions": {
+      "title": "مصفوفة الصلاحيات",
+      "doctor": "دكتور / أدمن",
+      "receptionist": "سكرتارية",
+      "accountant": "محاسب",
+      "viewPatients": "عرض المرضى",
+      "editRecords": "تعديل السجلات الطبية",
+      "viewRevenue": "عرض الأرباح",
+      "deleteData": "حذف البيانات",
+      "adminGuard": "لا يمكن تعديل صلاحيات الأدمن الأساسية"
+    },
+    "clinicHours": {
+      "title": "مواعيد عمل العيادة",
+      "day": "اليوم",
+      "start": "وقت البدء",
+      "end": "وقت الانتهاء",
+      "offDay": "عطلة",
+      "save": "حفظ المواعيد",
+      "invalidTime": "وقت الانتهاء يجب أن يكون بعد وقت البدء"
+    },
+    "backup": {
+      "title": "تأمين البيانات وتصديرها",
+      "exportPatients": "تصدير بيانات المرضى (Excel)",
+      "systemBackup": "نسخة احتياطية للنظام (JSON)",
+      "lastBackup": "آخر نسخة احتياطية: {date}",
+      "backupSuccess": "تم النسخ الاحتياطي بنجاح",
+      "downloading": "جاري التحميل..."
+    }
+  }
+}
