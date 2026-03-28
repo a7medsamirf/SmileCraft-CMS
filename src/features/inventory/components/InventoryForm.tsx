@@ -7,11 +7,17 @@ import { z } from "zod";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { generateId } from "@/lib/utils/id";
 import { InventoryItem, InventoryCategory } from "../types";
 
 interface InventoryFormValues {
   name: string;
-  category: "ANESTHETICS" | "MATERIALS" | "STERILIZATION" | "INSTRUMENTS" | "OTHER";
+  category:
+    | "ANESTHETICS"
+    | "MATERIALS"
+    | "STERILIZATION"
+    | "INSTRUMENTS"
+    | "OTHER";
   quantity: number;
   minQuantity: number;
   unitPrice: number;
@@ -25,7 +31,13 @@ interface InventoryFormValues {
 
 const inventorySchema = z.object({
   name: z.string().min(2, "nameRequired"),
-  category: z.enum(["ANESTHETICS", "MATERIALS", "STERILIZATION", "INSTRUMENTS", "OTHER"]),
+  category: z.enum([
+    "ANESTHETICS",
+    "MATERIALS",
+    "STERILIZATION",
+    "INSTRUMENTS",
+    "OTHER",
+  ]),
   quantity: z.coerce.number().min(0, "invalidQuantity"),
   minQuantity: z.coerce.number().min(0, "minQuantityRequired"),
   unitPrice: z.coerce.number().min(0, "unitPriceRequired"),
@@ -43,7 +55,11 @@ interface InventoryFormProps {
   onCancel: () => void;
 }
 
-export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryFormProps) {
+export function InventoryForm({
+  initialData,
+  onSubmit,
+  onCancel,
+}: InventoryFormProps) {
   const t = useTranslations("Inventory");
 
   const {
@@ -76,7 +92,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
     if (initialData) {
       itemData.id = initialData.id;
     } else {
-      itemData.id = crypto.randomUUID();
+      itemData.id = generateId();
     }
 
     onSubmit(itemData);
@@ -86,7 +102,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Basic Information */}
       <div className="space-y-4">
-        <h3 className="font-bold text-slate-900 dark:text-white">{t("basicInfo")}</h3>
+        <h3 className="font-bold text-slate-900 dark:text-white">
+          {t("basicInfo")}
+        </h3>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
@@ -99,7 +117,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
               className="rounded-xl"
             />
             {errors.name && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.name.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.name.message as string)}
+              </p>
             )}
           </div>
 
@@ -109,11 +129,13 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
             </label>
             <select
               {...register("category")}
-              className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
             >
               <option value="ANESTHETICS">{t("categories.anesthetics")}</option>
               <option value="MATERIALS">{t("categories.materials")}</option>
-              <option value="STERILIZATION">{t("categories.sterilization")}</option>
+              <option value="STERILIZATION">
+                {t("categories.sterilization")}
+              </option>
               <option value="INSTRUMENTS">{t("categories.instruments")}</option>
               <option value="OTHER">{t("categories.other")}</option>
             </select>
@@ -129,7 +151,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
               className="rounded-xl"
             />
             {errors.unit && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.unit.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.unit.message as string)}
+              </p>
             )}
           </div>
 
@@ -144,7 +168,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
               className="rounded-xl"
             />
             {errors.quantity && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.quantity.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.quantity.message as string)}
+              </p>
             )}
           </div>
 
@@ -158,9 +184,13 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
               placeholder="5"
               className="rounded-xl"
             />
-            <p className="text-xs text-slate-500 mt-1">{t("minQuantityHelp")}</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {t("minQuantityHelp")}
+            </p>
             {errors.minQuantity && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.minQuantity.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.minQuantity.message as string)}
+              </p>
             )}
           </div>
 
@@ -176,7 +206,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
               className="rounded-xl"
             />
             {errors.unitPrice && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.unitPrice.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.unitPrice.message as string)}
+              </p>
             )}
           </div>
 
@@ -195,7 +227,9 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
 
       {/* Storage & Tracking */}
       <div className="space-y-4">
-        <h3 className="font-bold text-slate-900 dark:text-white">{t("storageTracking")}</h3>
+        <h3 className="font-bold text-slate-900 dark:text-white">
+          {t("storageTracking")}
+        </h3>
 
         <div className="grid sm:grid-cols-3 gap-4">
           <div>
@@ -227,7 +261,7 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
             <input
               type="date"
               {...register("expiryDate")}
-              className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
             />
           </div>
         </div>
@@ -240,14 +274,19 @@ export function InventoryForm({ initialData, onSubmit, onCancel }: InventoryForm
             {...register("notes")}
             placeholder={t("notesPlaceholder")}
             rows={3}
-            className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
           />
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-        <Button type="button" variant="outline" onClick={onCancel} className="rounded-xl">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="rounded-xl"
+        >
           {t("cancel")}
         </Button>
         <Button

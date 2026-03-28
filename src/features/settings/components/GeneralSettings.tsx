@@ -1,14 +1,7 @@
 "use client";
 
 import React from "react";
-import { 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Timer, 
-  Save 
-} from "lucide-react";
+import { Building2, MapPin, Phone, Mail, Timer, Save } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,9 +54,9 @@ export function GeneralSettings() {
         )}
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-5">
         <div className="glass-card p-6 rounded-3xl space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-slate-400" />
@@ -73,7 +66,9 @@ export function GeneralSettings() {
                 {...register("name")}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
-              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -85,7 +80,9 @@ export function GeneralSettings() {
                 {...register("phone")}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
-              {errors.phone && <p className="text-xs text-red-500">{errors.phone.message}</p>}
+              {errors.phone && (
+                <p className="text-xs text-red-500">{errors.phone.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -97,7 +94,9 @@ export function GeneralSettings() {
                 {...register("email")}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
-              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -127,7 +126,9 @@ export function GeneralSettings() {
               rows={3}
               className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
             />
-            {errors.address && <p className="text-xs text-red-500">{errors.address.message}</p>}
+            {errors.address && (
+              <p className="text-xs text-red-500">{errors.address.message}</p>
+            )}
           </div>
         </div>
       </div>

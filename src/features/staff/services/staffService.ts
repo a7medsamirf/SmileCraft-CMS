@@ -1,4 +1,5 @@
 import { StaffMember, LeaveRequest, StaffSchedule, PayrollRecord } from "../types";
+import { generateId } from "@/lib/utils/id";
 
 const STAFF_STORAGE_KEY = "dental_staff_data";
 const LEAVES_STORAGE_KEY = "dental_leaves_data";
@@ -118,7 +119,7 @@ export const staffService = {
     const leaves = staffService.getAllLeaves();
     const newLeave: LeaveRequest = {
       ...leave,
-      id: crypto.randomUUID(),
+      id: generateId(),
       status: "PENDING",
       requestedAt: new Date().toISOString(),
     };
@@ -214,7 +215,7 @@ export const staffService = {
       const exists = existingRecords.some(r => r.staffId === member.id);
       if (!exists && member.isActive) {
         const record: PayrollRecord = {
-          id: crypto.randomUUID(),
+          id: generateId(),
           staffId: member.id,
           month,
           baseSalary: member.salary,

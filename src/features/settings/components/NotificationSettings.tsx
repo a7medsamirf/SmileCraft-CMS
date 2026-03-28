@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { 
-  Bell, 
-  MessageSquare, 
-  Mail, 
-  PhoneCall, 
-  Clock, 
-  Save 
+import {
+  Bell,
+  MessageSquare,
+  Mail,
+  PhoneCall,
+  Clock,
+  Save,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -39,9 +39,27 @@ export function NotificationSettings() {
   };
 
   const channels = [
-    { id: "smsEnabled", label: t("sms"), icon: MessageSquare, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-    { id: "whatsappEnabled", label: t("whatsapp"), icon: PhoneCall, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-    { id: "emailEnabled", label: t("email"), icon: Mail, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+    {
+      id: "smsEnabled",
+      label: t("sms"),
+      icon: MessageSquare,
+      color: "text-blue-500",
+      bg: "bg-blue-50 dark:bg-blue-900/20",
+    },
+    {
+      id: "whatsappEnabled",
+      label: t("whatsapp"),
+      icon: PhoneCall,
+      color: "text-emerald-500",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    },
+    {
+      id: "emailEnabled",
+      label: t("email"),
+      icon: Mail,
+      color: "text-amber-500",
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+    },
   ] as const;
 
   return (
@@ -62,35 +80,45 @@ export function NotificationSettings() {
         )}
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-5">
         <div className="glass-card p-6 rounded-3xl space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {channels.map((channel) => {
               const Icon = channel.icon;
-              const isEnabled = watch(channel.id as keyof NotificationFormValues);
-              
+              const isEnabled = watch(
+                channel.id as keyof NotificationFormValues,
+              );
+
               return (
                 <label
                   key={channel.id}
                   className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
-                    isEnabled 
-                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
+                    isEnabled
+                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
                       : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 grayscale opacity-60"
                   }`}
                 >
-                  <div className={`p-3 rounded-xl ${channel.bg} ${channel.color}`}>
+                  <div
+                    className={`p-3 rounded-xl ${channel.bg} ${channel.color}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">{channel.label}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {channel.label}
+                    </p>
                   </div>
                   <input
                     type="checkbox"
                     {...register(channel.id as keyof NotificationFormValues)}
                     className="hidden"
                   />
-                  <div className={`w-10 h-6 rounded-full relative transition-colors ${isEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"}`}>
-                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isEnabled ? "left-5" : "left-1"}`} />
+                  <div
+                    className={`w-10 h-6 rounded-full relative transition-colors ${isEnabled ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-700"}`}
+                  >
+                    <div
+                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isEnabled ? "left-5" : "left-1"}`}
+                    />
                   </div>
                 </label>
               );
@@ -131,8 +159,12 @@ export function NotificationSettings() {
         <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800 flex gap-3">
           <Bell className="h-5 w-5 text-amber-600 shrink-0" />
           <div>
-            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{t("noteTitle")}</p>
-            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">{t("noteDescription")}</p>
+            <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+              {t("noteTitle")}
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+              {t("noteDescription")}
+            </p>
           </div>
         </div>
       </div>

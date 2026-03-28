@@ -13,7 +13,7 @@
      "exploreMore": "Explore More"     
   },
   "Navbar": {
-    "title": "Test Page",
+    "title": "Dental Clinic Management System",
     "GetStarted":"Get Started",
     "Login": "Login",
     "link": {
@@ -25,7 +25,7 @@
       "Pricing": "Pricing"
     },
     "Metadata": {
-      "title": "Finbiz"
+      "title": "Dental Clinic Management System"
     }
   },
 
@@ -156,6 +156,8 @@
     "cancel": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
+    "status": "Status",
+    "actions": "Actions",
     "loading": "Loading...",
     "noResults": "No results found"
   },

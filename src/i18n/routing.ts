@@ -21,7 +21,7 @@ export const routing = defineRouting({
     "/finance": { en: '/finance', ar: '/finance' },
     "/dashboard": { en: '/dashboard', ar: '/dashboard' },
     "/patients/[id]": { en: '/patients/[id]', ar: '/patients/[id]' },
-    "/login": { en: '/auth/login', ar: '/auth/login' },
+    "/login": { en: '/login', ar: '/login' },
  },  
 
 });

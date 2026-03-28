@@ -21,7 +21,9 @@ interface LeaveManagementProps {
 
 export function LeaveManagement({ staffId }: LeaveManagementProps) {
   const t = useTranslations("Staff.leaves");
-  const [leaves, setLeaves] = useState<LeaveRequest[]>(() => staffService.getAllLeaves());
+  const [leaves, setLeaves] = useState<LeaveRequest[]>(() =>
+    staffService.getAllLeaves(),
+  );
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedType, setSelectedType] = useState<LeaveType>("ANNUAL");
   const [startDate, setStartDate] = useState("");
@@ -33,7 +35,10 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
     if (staffId) {
       allLeaves = allLeaves.filter((l) => l.staffId === staffId);
     }
-    return allLeaves.sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
+    return allLeaves.sort(
+      (a, b) =>
+        new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime(),
+    );
   }, [leaves, staffId]);
 
   const getStatusBadge = (status: LeaveRequest["status"]) => {
@@ -127,7 +132,9 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
       {/* Request Form */}
       {showRequestForm && (
         <div className="glass-card p-6 space-y-4 animate-in fade-in slide-in-from-top-4">
-          <h3 className="font-bold text-slate-900 dark:text-white">{t("newRequest")}</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white">
+            {t("newRequest")}
+          </h3>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -137,7 +144,7 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value as LeaveType)}
-                className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
               >
                 <option value="ANNUAL">{t("types.annual")}</option>
                 <option value="SICK">{t("types.sick")}</option>
@@ -154,7 +161,7 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
               />
             </div>
 
@@ -166,7 +173,7 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
               />
             </div>
 
@@ -179,7 +186,7 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder={t("reasonPlaceholder")}
-                className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
               />
             </div>
           </div>
@@ -223,14 +230,17 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
                         {staff?.fullName || t("unknownStaff")}
                       </span>
                       {getStatusBadge(leave.status)}
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getTypeBadge(leave.type)}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getTypeBadge(leave.type)}`}
+                      >
                         {t(`types.${leave.type.toLowerCase()}`)}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {new Date(leave.startDate).toLocaleDateString()} - {new Date(leave.endDate).toLocaleDateString()}
+                        {new Date(leave.startDate).toLocaleDateString()} -{" "}
+                        {new Date(leave.endDate).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 mt-2 text-sm text-slate-500">
@@ -268,7 +278,9 @@ export function LeaveManagement({ staffId }: LeaveManagementProps) {
         {filteredLeaves.length === 0 && (
           <div className="text-center py-12 glass-card">
             <CalendarOff className="h-12 w-12 mx-auto text-slate-300 mb-3" />
-            <p className="text-slate-500 dark:text-slate-400">{t("noLeaves")}</p>
+            <p className="text-slate-500 dark:text-slate-400">
+              {t("noLeaves")}
+            </p>
           </div>
         )}
       </div>

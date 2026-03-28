@@ -22,7 +22,7 @@ export function TreatmentTimeline({ visits }: TreatmentTimelineProps) {
   const sortedVisits = [...visits].sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
 
   return (
-    <div className="relative border-e-2 border-slate-100 pe-6 dark:border-slate-800 w-full mx-auto">
+  <div className="relative border-s-2 border-slate-200 ms-4 pe-2 dark:border-slate-800 w-full mx-auto">
       {sortedVisits.map((visit, index) => {
         const dateObj = new Date(visit.visitDate);
         const day = dateObj.toLocaleDateString("ar-EG", { day: "numeric" });
@@ -32,14 +32,14 @@ export function TreatmentTimeline({ visits }: TreatmentTimelineProps) {
         const typeLabel = VISIT_TYPE_LABELS[visit.type]?.ar || visit.type;
 
         return (
-          <div key={visit.id} className="relative mb-8 last:mb-0 group">
+          <div key={visit.id} className="relative mb-10 last:mb-0 group">
             {/* Timeline Node / Circle */}
-            <span className="absolute -inline-end-[35px] flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 ring-4 ring-white transition-all group-hover:bg-blue-500 group-hover:ring-blue-50 dark:bg-slate-800 dark:ring-slate-950 dark:group-hover:bg-blue-500 dark:group-hover:ring-blue-900/30">
-              <CircleDot className="h-3 w-3 text-slate-400 group-hover:text-white" />
-            </span>
+            <span className="absolute -start-[11px] top-0 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white ring-4 ring-slate-50 transition-all group-hover:bg-blue-500 group-hover:ring-blue-100 dark:bg-slate-900 dark:ring-slate-950 dark:group-hover:ring-blue-900/30">
+                  <CircleDot className="h-3 w-3 text-slate-400 group-hover:text-white" />
+                </span>
 
             {/* Timeline Content Box */}
-            <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 relative">
+ <div className="ms-8 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm transition-all hover:border-blue-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
               
               {/* Decorative Date Tag */}
               <div className="absolute -top-3 start-4 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600 shadow-sm dark:border-blue-900 dark:bg-blue-950 dark:text-blue-400 flex items-center gap-1.5">

@@ -39,7 +39,7 @@ export function ProfileLayout({
         {/* Subtle background blob */}
         <div className="absolute -inset-inline-end-20 -top-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-600/20 pointer-events-none" />
 
-        <div className="relative flex flex-col items-center gap-6 text-center md:flex-row md:text-right">
+        <div className="relative flex flex-col items-center gap-5 text-center md:flex-row md:text-right">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 border-4 border-white dark:border-slate-900">
             {patient.photoUrl ? (
               <img
@@ -114,7 +114,12 @@ export function ProfileLayout({
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <MedicalAlerts
               history={patient.medicalHistory}
-              onUpdateHistory={onUpdatePatientHistory ? (newHistory) => onUpdatePatientHistory({ medicalHistory: newHistory }) : undefined}
+              onUpdateHistory={
+                onUpdatePatientHistory
+                  ? (newHistory) =>
+                      onUpdatePatientHistory({ medicalHistory: newHistory })
+                  : undefined
+              }
             />
 
             {/* Quick Demo of a side card for demographic info */}

@@ -1,4 +1,5 @@
 import { InventoryItem, InventoryTransaction, InventoryAlert, StockStatus } from "../types";
+import { generateId } from "@/lib/utils/id";
 
 const INVENTORY_STORAGE_KEY = "dental_inventory_data";
 const TRANSACTIONS_STORAGE_KEY = "dental_inventory_transactions";
@@ -116,7 +117,7 @@ export const inventoryService = {
     // Record transaction
     const transactions = inventoryService.getTransactions();
     transactions.push({
-      id: crypto.randomUUID(),
+      id: generateId(),
       itemId: id,
       type,
       quantity: Math.abs(quantityChange),
@@ -151,7 +152,7 @@ export const inventoryService = {
 
       if (status === "LOW_STOCK") {
         newAlerts.push({
-          id: crypto.randomUUID(),
+          id: generateId(),
           itemId: i.id,
           itemName: i.name,
           type: "LOW_STOCK",
@@ -161,7 +162,7 @@ export const inventoryService = {
         });
       } else if (status === "OUT_OF_STOCK") {
         newAlerts.push({
-          id: crypto.randomUUID(),
+          id: generateId(),
           itemId: i.id,
           itemName: i.name,
           type: "OUT_OF_STOCK",
@@ -179,7 +180,7 @@ export const inventoryService = {
 
         if (expiryDate < thirtyDaysFromNow && expiryDate > new Date()) {
           newAlerts.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             itemId: i.id,
             itemName: i.name,
             type: "EXPIRING_SOON",
@@ -189,7 +190,7 @@ export const inventoryService = {
           });
         } else if (expiryDate < new Date()) {
           newAlerts.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             itemId: i.id,
             itemName: i.name,
             type: "EXPIRED",

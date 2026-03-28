@@ -1,6 +1,7 @@
 "use client";
 
 import { patientService } from "./services/patientService";
+import { generateId } from "@/lib/utils/id";
 import { 
   Patient, 
   Gender, 
@@ -56,7 +57,7 @@ export async function createPatientAction(
   const now = new Date().toISOString() as ISODateTimeString;
   
   const newPatient: Patient = {
-    id: window.crypto.randomUUID() as UUID,
+    id: generateId() as UUID,
     fullName,
     gender,
     birthDate: birthDate as ISODateString,

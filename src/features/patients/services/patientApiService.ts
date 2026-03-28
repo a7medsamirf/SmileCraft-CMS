@@ -9,6 +9,7 @@
 import { apiClient, USE_MOCK_API } from "@/lib/apiClient";
 import { Patient, PatientFilters, PaginatedPatients } from "../types";
 import { patientService } from "./patientService";
+import { generateId } from "@/lib/utils/id";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,7 +65,7 @@ export const patientApiService = {
       const now = new Date().toISOString();
       const newPatient: Patient = {
         ...payload,
-        id: crypto.randomUUID() as Patient["id"],
+        id: generateId() as Patient["id"],
         createdAt: now as Patient["createdAt"],
         updatedAt: now as Patient["updatedAt"],
         visits: payload.visits ?? [],

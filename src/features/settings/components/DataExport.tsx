@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Download, Database, ShieldCheck, RefreshCw, FileJson, FileSpreadsheet } from "lucide-react";
+import {
+  Download,
+  Database,
+  ShieldCheck,
+  RefreshCw,
+  FileJson,
+  FileSpreadsheet,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 
@@ -23,14 +30,18 @@ export function DataExport() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t("title")}</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+          {t("title")}
+        </h2>
         <div className="flex items-center gap-2 text-emerald-600 glass px-3 py-1.5 shadow-sm transition-all duration-300 w-fit">
           <ShieldCheck className="h-4 w-4" />
-          <span className="text-xs font-medium">{t("lastBackup", { date: lastBackup })}</span>
+          <span className="text-xs font-medium">
+            {t("lastBackup", { date: lastBackup })}
+          </span>
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
         {/* Patient Data Export */}
         <div className="group relative overflow-hidden glass-card p-6 shadow-sm transition-all hover:shadow-lg">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-5 blur-2xl transition-all group-hover:scale-150" />
@@ -40,18 +51,28 @@ export function DataExport() {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white">Excel / CSV Export</h3>
-                <p className="text-sm text-slate-500 mt-1">{t("exportPatients")}</p>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                  Excel / CSV Export
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {t("exportPatients")}
+                </p>
               </div>
-              <Button 
+              <Button
                 onClick={() => handleExport("PATIENTS")}
                 disabled={!!isExporting}
                 className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20"
               >
                 {isExporting === "PATIENTS" ? (
-                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> {t("downloading")}</>
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    {t("downloading")}
+                  </>
                 ) : (
-                  <><Download className="mr-2 h-4 w-4" /> {t("exportPatients").split("(")[0].trim()}</>
+                  <>
+                    <Download className="mr-2 h-4 w-4" />{" "}
+                    {t("exportPatients").split("(")[0].trim()}
+                  </>
                 )}
               </Button>
             </div>
@@ -67,19 +88,29 @@ export function DataExport() {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <h3 className="font-bold text-slate-900 dark:text-white">Full JSON Backup</h3>
-                <p className="text-sm text-slate-500 mt-1">{t("systemBackup")}</p>
+                <h3 className="font-bold text-slate-900 dark:text-white">
+                  Full JSON Backup
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {t("systemBackup")}
+                </p>
               </div>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => handleExport("SYSTEM")}
                 disabled={!!isExporting}
                 className="w-full rounded-2xl border-purple-200 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300"
               >
                 {isExporting === "SYSTEM" ? (
-                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> {t("downloading")}</>
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />{" "}
+                    {t("downloading")}
+                  </>
                 ) : (
-                  <><Database className="mr-2 h-4 w-4" /> {t("systemBackup").split("(")[0].trim()}</>
+                  <>
+                    <Database className="mr-2 h-4 w-4" />{" "}
+                    {t("systemBackup").split("(")[0].trim()}
+                  </>
                 )}
               </Button>
             </div>
@@ -89,7 +120,12 @@ export function DataExport() {
 
       <div className="glass p-8 text-center border-dashed border-slate-300 dark:border-slate-800 transition-all duration-300">
         <p className="text-sm text-slate-500">
-          💡 <span className="font-semibold text-slate-700 dark:text-slate-300">Audit Logs:</span> All setting changes and backup actions are recorded in the system audit logs for maximum security.
+          💡{" "}
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            Audit Logs:
+          </span>{" "}
+          All setting changes and backup actions are recorded in the system
+          audit logs for maximum security.
         </p>
       </div>
     </div>

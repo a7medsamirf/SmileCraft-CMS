@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { generateId } from "@/lib/utils/id";
 import { StaffMember, StaffRole } from "../types";
 
 const staffSchema = z.object({
@@ -16,7 +17,10 @@ const staffSchema = z.object({
   specialty: z.string().optional(),
   email: z.string().email("invalidEmail"),
   phone: z.string().min(10, "invalidPhone"),
-  salary: z.preprocess((val) => Number(val), z.number().positive("invalidSalary")),
+  salary: z.preprocess(
+    (val) => Number(val),
+    z.number().positive("invalidSalary"),
+  ),
   certifications: z.array(z.string()).optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
@@ -53,7 +57,8 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
       certifications: initialData?.certifications || [],
       emergencyContactName: initialData?.emergencyContact?.name || "",
       emergencyContactPhone: initialData?.emergencyContact?.phone || "",
-      emergencyContactRelationship: initialData?.emergencyContact?.relationship || "",
+      emergencyContactRelationship:
+        initialData?.emergencyContact?.relationship || "",
     },
   });
 
@@ -68,7 +73,10 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
 
   const handleCertificationRemove = (index: number) => {
     const current = watch("certifications") || [];
-    setValue("certifications", current.filter((_, i) => i !== index));
+    setValue(
+      "certifications",
+      current.filter((_, i) => i !== index),
+    );
   };
 
   const handleFormSubmit = (data: StaffFormValues): void => {
@@ -94,7 +102,7 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
     if (initialData) {
       staffData.id = initialData.id;
     } else {
-      staffData.id = crypto.randomUUID();
+      staffData.id = generateId();
     }
 
     onSubmit(staffData);
@@ -119,7 +127,9 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
               className="rounded-xl"
             />
             {errors.fullName && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.fullName.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.fullName.message as string)}
+              </p>
             )}
           </div>
 
@@ -129,7 +139,7 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
             </label>
             <select
               {...register("role")}
-              className="w-full rounded-xl border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-800"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-slate-900"
             >
               <option value="DOCTOR">{t("roles.doctor")}</option>
               <option value="ASSISTANT">{t("roles.assistant")}</option>
@@ -144,7 +154,11 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
             </label>
             <Input
               {...register("specialty")}
-              placeholder={role === "DOCTOR" ? t("specialtyPlaceholder") : t("notApplicable")}
+              placeholder={
+                role === "DOCTOR"
+                  ? t("specialtyPlaceholder")
+                  : t("notApplicable")
+              }
               disabled={role !== "DOCTOR"}
               className="rounded-xl"
             />
@@ -161,7 +175,9 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
               className="rounded-xl"
             />
             {errors.salary && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.salary.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.salary.message as string)}
+              </p>
             )}
           </div>
 
@@ -176,7 +192,9 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
               className="rounded-xl"
             />
             {errors.email && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.email.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.email.message as string)}
+              </p>
             )}
           </div>
 
@@ -190,7 +208,9 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
               className="rounded-xl"
             />
             {errors.phone && (
-              <p className="text-xs text-red-600 mt-1">{t(errors.phone.message as string)}</p>
+              <p className="text-xs text-red-600 mt-1">
+                {t(errors.phone.message as string)}
+              </p>
             )}
           </div>
         </div>
@@ -282,7 +302,12 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-        <Button type="button" variant="outline" onClick={onCancel} className="rounded-xl">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="rounded-xl"
+        >
           {t("cancel")}
         </Button>
         <Button

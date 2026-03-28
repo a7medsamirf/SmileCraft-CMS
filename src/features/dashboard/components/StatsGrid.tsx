@@ -1,4 +1,11 @@
-import { CalendarCheck, UserPlus, Stethoscope, Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  CalendarCheck,
+  UserPlus,
+  Stethoscope,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface StatCardProps {
@@ -11,38 +18,62 @@ interface StatCardProps {
   colorClass: string;
 }
 
-function StatCard({ title, value, subtext, trend, trendValue, icon, colorClass }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  subtext,
+  trend,
+  trendValue,
+  icon,
+  colorClass,
+}: StatCardProps) {
   return (
     <div className="glass-card relative overflow-hidden p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl dark:hover:shadow-blue-500/5 group">
-      
       {/* Decorative gradient blob */}
-        <div className={`absolute -top-6 h-24 w-24 rounded-full opacity-10 blur-2xl transition-all group-hover:scale-150 
+      <div
+        className={`absolute -top-6 h-24 w-24 rounded-full opacity-10 blur-2xl transition-all group-hover:scale-150 
             ltr:-right-6 
             rtl:-left-6 
-            ${colorClass}`} 
-        />      
+            ${colorClass}`}
+      />
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-          <h3 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{value}</h3>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {title}
+          </p>
+          <h3 className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
+            {value}
+          </h3>
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-opacity-10 dark:bg-opacity-20 ${colorClass.replace("bg-", "text-").replace("500", "600")} bg-current`}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-opacity-10 dark:bg-opacity-20 ${colorClass.replace("bg-", "text-").replace("500", "600")} bg-current`}
+        >
           {icon}
         </div>
       </div>
 
       <div className="mt-4 flex items-center gap-2">
         {trend && (
-          <span className={`flex items-center text-xs font-semibold ${
-            trend === "up" ? "text-emerald-600 dark:text-emerald-400" : 
-            trend === "down" ? "text-red-600 dark:text-red-400" : "text-slate-500"
-          }`}>
-            {trend === "up" ? <TrendingUp className="mr-1 h-3 w-3 rtl:ml-1 rtl:mr-0" /> : 
-             trend === "down" ? <TrendingDown className="mr-1 h-3 w-3 rtl:ml-1 rtl:mr-0" /> : null}
+          <span
+            className={`flex items-center text-xs font-semibold ${
+              trend === "up"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : trend === "down"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-slate-500"
+            }`}
+          >
+            {trend === "up" ? (
+              <TrendingUp className="mr-1 h-3 w-3 rtl:ml-1 rtl:mr-0" />
+            ) : trend === "down" ? (
+              <TrendingDown className="mr-1 h-3 w-3 rtl:ml-1 rtl:mr-0" />
+            ) : null}
             {trendValue}
           </span>
         )}
-        <span className="text-xs text-slate-500 dark:text-slate-400">{subtext}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          {subtext}
+        </span>
       </div>
     </div>
   );
@@ -90,7 +121,7 @@ export function StatsGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, idx) => (
         <StatCard key={idx} {...stat} />
       ))}

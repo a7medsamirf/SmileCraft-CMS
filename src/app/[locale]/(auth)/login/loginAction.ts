@@ -5,6 +5,7 @@
 // app/[locale]/auth/login/loginAction.ts
 // =============================================================================
 
+import { cookies } from "next/headers";
 import { z } from "zod";
 
 // -----------------------------------------------------------------------------
@@ -69,13 +70,8 @@ export async function loginAction(
   const { email, password } = result.data;
 
   // ---------------------------------------------------------------------------
-  // TODO: Replace with actual authentication logic
-  // - Query database for user by email
-  // - Verify password hash (bcrypt/argon2)
-  // - Create session and set cookie
-  // ---------------------------------------------------------------------------
-
   // Mock authentication for demo
+  // ---------------------------------------------------------------------------
   const MOCK_CREDENTIALS = {
     email: "admin@smilecraft.com",
     password: "password123",
@@ -93,7 +89,20 @@ export async function loginAction(
     };
   }
 
-  // Success - In production, set session cookie here
+  // ---------------------------------------------------------------------------
+  // SUCCESS: Set Session Cookie
+  // ---------------------------------------------------------------------------
+  const cookieStore = await cookies();
+  
+  // Set mock token (In production, use JWT or Session ID)
+  cookieStore.set("auth_token", "smilecraft_mock_token_12345", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+
   return {
     success: true,
     message: "تم تسجيل الدخول بنجاح",
