@@ -23,8 +23,25 @@ export interface BusinessDay {
   end: string;
 }
 
+export interface ClinicInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  slotDuration: number;
+}
+
+export interface NotificationSettings {
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  emailEnabled: boolean;
+  reminderTiming: number; // hours before
+}
+
 export interface ClinicSettings {
   services: DentalService[];
   businessHours: BusinessDay[];
   lastBackup: string | null;
+  clinicInfo: ClinicInfo;
+  notifications: NotificationSettings;
 }

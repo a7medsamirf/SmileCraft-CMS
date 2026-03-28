@@ -25,7 +25,7 @@
       "Pricing": "التسعير"
     },
     "Metadata": {
-      "title": "فينفيز"
+      "title": "موقع تجريبى"
     }
   },
   "Header": {
@@ -142,10 +142,11 @@
     "patients": "المرضى",
     "clinical": "التشخيص الطبي",
     "appointments": "المواعيد",
+    "staff": "الموظفين",
     "finance": "الحسابات",
     "settings": "الإعدادات",
-    "drName": "د. أحمد جمال",
-    "drTitle": "طبيب تقويم"
+    "drName": "د. أحمد سمير",
+    "drTitle": "طبيب أسنان"
   },
   "Common": {
     "search": "بحث...",
@@ -321,7 +322,9 @@
     "validationName": "اسم المريض يجب أن يكون ثلاثي على الأقل.",
     "validationPhone": "رقم الهاتف غير صحيح.",
     "addPatientModalTitle": "تسجيل مريض جديد",
-    "addPatientModalSub": "قم بملء البيانات لفتح ملف طبي للمريض."
+    "addPatientModalSub": "قم بملء البيانات لفتح ملف طبي للمريض.",
+    "age": "سنة",
+    "lastVisit": "آخر زيارة"
   },
   "Dashboard": {
     "greeting": "صباح الخير، د. أحمد 🦷",
@@ -341,10 +344,34 @@
     "title": "إعدادات النظام",
     "description": "التحكم في إعدادات العيادة، الصلاحيات، والمظهر.",
     "tabs": {
+      "general": "الإعدادات العامة",
       "services": "إدارة الخدمات",
       "permissions": "الصلاحيات",
       "schedule": "مواعيد العمل",
+      "notifications": "التنبيهات",
       "backup": "النسخ الاحتياطي"
+    },
+    "general": {
+      "title": "بيانات العيادة العامة",
+      "save": "حفظ التغييرات",
+      "clinicName": "اسم العيادة",
+      "phone": "رقم التواصل",
+      "email": "البريد الإلكتروني الرسمي",
+      "address": "العنوان",
+      "slotDuration": "مدة الكشف الافتراضية",
+      "minutes": "دقيقة"
+    },
+    "notifications": {
+      "title": "إعدادات التنبيهات",
+      "save": "تحديث التفضيلات",
+      "sms": "تنبيهات SMS",
+      "whatsapp": "رسائل واتساب",
+      "email": "تنبيهات البريد الإلكتروني",
+      "reminderTiming": "جدول التذكير",
+      "hours": "ساعة",
+      "reminderTimingDescription": "سيتلقى المرضى تذكيرات تلقائية قبل هذا العدد من الساعات من موعدهم.",
+      "noteTitle": "يتطلب مزود خدمة خارجي",
+      "noteDescription": "تتطلب الرسائل التلقائية التكامل مع بوابة خارجية (Twilio, SendGrid, إلخ). يعمل حاليًا بنمط المحاكاة."
     },
     "services": {
       "title": "قائمة الخدمات والأسعار",
@@ -390,6 +417,102 @@
       "lastBackup": "آخر نسخة احتياطية: {date}",
       "backupSuccess": "تم النسخ الاحتياطي بنجاح",
       "downloading": "جاري التحميل..."
+    }
+  },
+  "Staff": {
+    "title": "إدارة الموظفين",
+    "description": "إدارة فريق العيادة، الجداول الزمنية، والرواتب.",
+    "listTitle": "أعضاء الفريق",
+    "addStaff": "إضافة موظف جديد",
+    "editStaff": "تعديل بيانات الموظف",
+    "search": "بحث بالاسم أو البريد...",
+    "filterAll": "الكل",
+    "noStaffFound": "لا يوجد موظفين",
+    "confirmDelete": "هل أنت متأكد من حذف هذا الموظف؟",
+    "roles": {
+      "doctor": "طبيب",
+      "assistant": "مساعد",
+      "receptionist": "موظف استقبال",
+      "accountant": "محاسب"
+    },
+    "tabs": {
+      "list": "قائمة الموظفين",
+      "leaves": "إجازات",
+      "payroll": "الرواتب"
+    },
+    "personalInfo": "البيانات الشخصية",
+    "fullName": "الاسم بالكامل",
+    "fullNamePlaceholder": "د. أحمد محمد",
+    "role": "الوظيفة",
+    "specialty": "التخصص",
+    "specialtyPlaceholder": "مثال: تقويم، علاج جذور",
+    "notApplicable": "غير متاح لغير الأطباء",
+    "salary": "الراتب الشهري",
+    "invalidSalary": "الراتب يجب أن يكون رقمًا موجبًا",
+    "email": "البريد الإلكتروني",
+    "invalidEmail": "البريد الإلكتروني غير صحيح",
+    "phone": "رقم الهاتف",
+    "invalidPhone": "رقم الهاتف يجب أن يكون 10 أرقام على الأقل",
+    "certifications": "الشهادات والمؤهلات",
+    "addCertification": "أضف شهادة...",
+    "add": "إضافة",
+    "emergencyContact": "جهة طوارئ",
+    "contactName": "اسم جهة الاتصال",
+    "contactNamePlaceholder": "اسم جهة الطوارئ",
+    "contactPhone": "رقم هاتف الطوارئ",
+    "contactPhonePlaceholder": "رقم هاتف جهة الطوارئ",
+    "relationship": "صلة القرابة",
+    "relationshipPlaceholder": "مثال: زوج، أب",
+    "cancel": "إلغاء",
+    "saving": "جاري الحفظ...",
+    "update": "تحديث بيانات الموظف",
+    "create": "إضافة الموظف",
+    "nameRequired": "الاسم بالكامل مطلوب",
+    "payroll": {
+      "title": "إدارة الرواتب الشهرية",
+      "description": "حساب الرواتب، إدارة المكافآت والخصومات، وتتبع حالة الدفع.",
+      "generate": "إنشاء كشف الشهر",
+      "noRecords": "لا توجد سجلات لهذا الشهر",
+      "noRecordsDescription": "انقر على الزر أدناه لإنشاء كشوف الرواتب لجميع الموظفين النشطين بناءً على رواتبهم الأساسية.",
+      "generateNow": "إنشاء الرواتب الآن",
+      "staff": "الموظف",
+      "baseSalary": "الراتب الأساسي",
+      "bonuses": "مكافآت",
+      "deductions": "خصومات",
+      "net": "صافي الراتب",
+      "totalBase": "إجمالي الرواتب الأساسية",
+      "totalBonuses": "إجمالي المكافآت",
+      "totalDeductions": "إجمالي الخصومات",
+      "status": {
+        "PENDING": "قيد الانتظار",
+        "PAID": "تم الدفع",
+        "CANCELLED": "ملغى"
+      }
+    },
+    "leaves": {
+      "title": "إدارة الإجازات",
+      "requestLeave": "طلب إجازة",
+      "newRequest": "طلب إجازة جديد",
+      "type": "نوع الإجازة",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "reason": "السبب",
+      "reasonPlaceholder": "سبب الإجازة باختصار",
+      "submitRequest": "إرسال الطلب",
+      "cancel": "إلغاء",
+      "unknownStaff": "موظف غير معروف",
+      "noLeaves": "لا توجد طلبات إجازات",
+      "status": {
+        "pending": "قيد المراجعة",
+        "approved": "موافق عليه",
+        "rejected": "مرفوض"
+      },
+      "types": {
+        "annual": "إجازة سنوية",
+        "sick": "إجازة مرضية",
+        "emergency": "إجازة طارئة",
+        "unpaid": "إجازة بدون مرتب"
+      }
     }
   }
 }

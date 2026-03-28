@@ -142,6 +142,7 @@
     "patients": "Patients",
     "clinical": "Clinical",
     "appointments": "Appointments",
+    "staff": "Staff",
     "finance": "Finance",
     "settings": "Settings",
     "drName": "Dr. Ahmed Samir",
@@ -321,7 +322,9 @@
     "validationName": "Full name must be at least 3 characters.",
     "validationPhone": "Invalid phone number.",
     "addPatientModalTitle": "Register New Patient",
-    "addPatientModalSub": "Fill in the details to open a medical file for the patient."
+    "addPatientModalSub": "Fill in the details to open a medical file for the patient.",
+    "age": "years old",
+    "lastVisit": "Last Visit"
   },
   "Dashboard": {
     "greeting": "Good morning, Dr. Ahmed 🦷",
@@ -341,10 +344,34 @@
     "title": "System Settings",
     "description": "Manage clinic settings, permissions, and appearance.",
     "tabs": {
+      "general": "General Settings",
       "services": "Services Management",
       "permissions": "Permissions",
       "schedule": "Clinic Hours",
+      "notifications": "Notifications",
       "backup": "Data Backup"
+    },
+    "general": {
+      "title": "General Clinic Information",
+      "save": "Save Changes",
+      "clinicName": "Clinic Name",
+      "phone": "Contact Phone",
+      "email": "Official Email",
+      "address": "Physical Address",
+      "slotDuration": "Default Appointment Slot",
+      "minutes": "Minutes"
+    },
+    "notifications": {
+      "title": "Notification Configuration",
+      "save": "Update Preferences",
+      "sms": "SMS Alerts",
+      "whatsapp": "WhatsApp Messages",
+      "email": "Email Notifications",
+      "reminderTiming": "Reminder Schedule",
+      "hours": "Hours",
+      "reminderTimingDescription": "Patients will receive automated reminders this many hours before their appointment.",
+      "noteTitle": "External Provider Required",
+      "noteDescription": "Automated messaging requires integration with a third-party gateway (Twilio, SendGrid, etc.). Currently running in simulation mode."
     },
     "services": {
       "title": "Services & Pricing List",
@@ -390,6 +417,102 @@
       "lastBackup": "Last Backup: {date}",
       "backupSuccess": "Backup completed successfully",
       "downloading": "Downloading..."
+    }
+  },
+  "Staff": {
+    "title": "Staff Management",
+    "description": "Manage your clinic team, schedules, and payroll.",
+    "listTitle": "Team Members",
+    "addStaff": "Add Staff Member",
+    "editStaff": "Edit Staff Member",
+    "search": "Search by name or email...",
+    "filterAll": "All",
+    "noStaffFound": "No staff members found",
+    "confirmDelete": "Are you sure you want to delete this staff member?",
+    "roles": {
+      "doctor": "Doctor",
+      "assistant": "Assistant",
+      "receptionist": "Receptionist",
+      "accountant": "Accountant"
+    },
+    "tabs": {
+      "list": "Staff List",
+      "leaves": "Leave Requests",
+      "payroll": "Payroll"
+    },
+    "personalInfo": "Personal Information",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Dr. Ahmed Mohamed",
+    "role": "Role",
+    "specialty": "Specialty",
+    "specialtyPlaceholder": "e.g., Orthodontics, Endodontics",
+    "notApplicable": "N/A for non-doctor roles",
+    "salary": "Monthly Salary",
+    "invalidSalary": "Salary must be a positive number",
+    "email": "Email Address",
+    "invalidEmail": "Invalid email address",
+    "phone": "Phone Number",
+    "invalidPhone": "Phone must be at least 10 digits",
+    "certifications": "Certifications & Qualifications",
+    "addCertification": "Add certification...",
+    "add": "Add",
+    "emergencyContact": "Emergency Contact",
+    "contactName": "Contact Name",
+    "contactNamePlaceholder": "Name of emergency contact",
+    "contactPhone": "Contact Phone",
+    "contactPhonePlaceholder": "Emergency contact phone",
+    "relationship": "Relationship",
+    "relationshipPlaceholder": "e.g., Spouse, Parent",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "update": "Update Staff",
+    "create": "Create Staff",
+    "nameRequired": "Full name is required",
+    "payroll": {
+      "title": "Monthly Payroll Management",
+      "description": "Calculate salaries, manage bonuses/deductions, and track payment status.",
+      "generate": "Generate Month",
+      "noRecords": "No records found for this month",
+      "noRecordsDescription": "Click the button below to generate payroll for all active staff members based on their base salary.",
+      "generateNow": "Generate Payroll Now",
+      "staff": "Staff Member",
+      "baseSalary": "Base Salary",
+      "bonuses": "Bonuses",
+      "deductions": "Deductions",
+      "net": "Net Salary",
+      "totalBase": "Total Base Salaries",
+      "totalBonuses": "Total Bonuses",
+      "totalDeductions": "Total Deductions",
+      "status": {
+        "PENDING": "Pending",
+        "PAID": "Paid",
+        "CANCELLED": "Cancelled"
+      }
+    },
+    "leaves": {
+      "title": "Leave Management",
+      "requestLeave": "Request Leave",
+      "newRequest": "New Leave Request",
+      "type": "Leave Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "reason": "Reason",
+      "reasonPlaceholder": "Brief reason for leave",
+      "submitRequest": "Submit Request",
+      "cancel": "Cancel",
+      "unknownStaff": "Unknown Staff",
+      "noLeaves": "No leave requests found",
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "types": {
+        "annual": "Annual Leave",
+        "sick": "Sick Leave",
+        "emergency": "Emergency Leave",
+        "unpaid": "Unpaid Leave"
+      }
     }
   }
 }

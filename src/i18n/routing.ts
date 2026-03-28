@@ -10,22 +10,18 @@ export const routing = defineRouting({
 
   pathnames: {
     "/": { en: '/', ar: '/', },
-    "/Product": { en: '/Product', ar: '/المنتجات', },
-    "/Pages": { en: '/Pages', ar: '/الصفحات', },
-    "/Integrations": { en: '/Integrations', ar: '/التكاملات', },
-    "/Blog": { en: '/Blog', ar: '/أخر الاخبار', },
-    "/Pricing": { en: '/Pricing', ar: '/التسعير', },
     // CMS Routes
     "/patients": { en: '/patients', ar: '/patients' },
     "/calendar": { en: '/calendar', ar: '/calendar' },
     "/billing": { en: '/billing', ar: '/billing' },
     "/settings": { en: '/settings', ar: '/settings' },
     "/clinical": { en: '/clinical', ar: '/clinical' },
+    "/staff": { en: '/staff', ar: '/staff' },
     "/appointments": { en: '/appointments', ar: '/appointments' },
     "/finance": { en: '/finance', ar: '/finance' },
     "/dashboard": { en: '/dashboard', ar: '/dashboard' },
     "/patients/[id]": { en: '/patients/[id]', ar: '/patients/[id]' },
-    "/auth/login": { en: '/auth/login', ar: '/auth/login' },
+    "/login": { en: '/auth/login', ar: '/auth/login' },
  },  
 
 });

@@ -135,7 +135,7 @@ export function PlanBuilder({ mouthMap }: PlanBuilderProps) {
             : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:border-red-900/50"
           }`}>
             {state.success ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-            {state.success ? t(state.message, { invoiceId: state.invoiceId }) : t(state.message)}
+            {state.success ? t(state.message, { invoiceId: state.invoiceId ?? "" }) : t(state.message)}
           </div>
         )}
 

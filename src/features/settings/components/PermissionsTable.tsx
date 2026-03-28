@@ -83,7 +83,7 @@ export function PermissionsTable() {
             {PERMISSIONS.map((perm) => (
               <tr
                 key={perm.id}
-                className="hover:bg-slate-50/50 transition-colors"
+                className="hover:bg-amber-50 dark:hover:bg-slate-800/50 transition-colors"
               >
                 <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
                   {t(perm.key)}
@@ -106,7 +106,7 @@ export function PermissionsTable() {
                           disabled={isDisabled}
                           onChange={() => togglePermission(role, perm.id)}
                         />
-                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600 rtl:peer-checked:after:-translate-x-full">
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600 ">
                           {isDisabled && (
                             <Lock className="h-3 w-3 absolute top-1.5 left-1.5 text-slate-400 z-10" />
                           )}

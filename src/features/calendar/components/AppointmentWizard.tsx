@@ -7,7 +7,7 @@
 // Drag-and-Drop Appointment Booking Wizard with React 19 useOptimistic
 // =============================================================================
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, startTransition } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -101,8 +101,6 @@ interface PatientCardProps {
 }
 
 function PatientCard({ patient, onDragStart }: PatientCardProps) {
-  const t = useTranslations("Appointments");
-
   const handleDragStart = () => {
     onDragStart(patient);
   };
@@ -160,8 +158,6 @@ interface TimeSlotCardProps {
 }
 
 function TimeSlotCard({ slot, isOver, onDrop }: TimeSlotCardProps) {
-  const t = useTranslations("Appointments");
-
   const handleDrop = () => {
     if (slot.available) {
       onDrop(slot);
@@ -299,7 +295,9 @@ export function AppointmentWizard() {
       isOptimistic: true,
     };
 
-    setOptimisticAppointments({ appointment: optimisticAppt });
+    startTransition(() => {
+      setOptimisticAppointments({ appointment: optimisticAppt });
+    });
 
     // Simulate async save
     const result = await saveAppointment({
@@ -608,6 +606,15 @@ export function AppointmentWizard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {draggedPatient ? (
+            <div className="w-64 opacity-90 scale-105 rotate-3">
+              <PatientCard patient={draggedPatient} onDragStart={() => {}} />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Optimistic Appointments Display */}
@@ -642,15 +649,6 @@ export function AppointmentWizard() {
           </div>
         </div>
       )}
-
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {draggedPatient ? (
-          <div className="w-64 opacity-90 scale-105 rotate-3">
-            <PatientCard patient={draggedPatient} onDragStart={() => {}} />
-          </div>
-        ) : null}
-      </DragOverlay>
     </div>
   );
 }

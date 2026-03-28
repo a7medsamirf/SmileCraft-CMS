@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, type HTMLMotionProps } from 'framer-motion';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,13 +11,14 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
   variant?: 'primary' | 'secondary' | 'warning' | 'danger' | 'success' | 'info';
   isOutline?: boolean;
   isIconOnly?: boolean;
   showCartIcon?: boolean;
   showArrow?: boolean;
   locale?: string;
+  children?: React.ReactNode;
 }
 
 const CustomButton: React.FC<ButtonProps> = ({

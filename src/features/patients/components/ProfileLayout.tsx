@@ -114,7 +114,7 @@ export function ProfileLayout({
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <MedicalAlerts
               history={patient.medicalHistory}
-              onUpdateHistory={onUpdatePatientHistory}
+              onUpdateHistory={onUpdatePatientHistory ? (newHistory) => onUpdatePatientHistory({ medicalHistory: newHistory }) : undefined}
             />
 
             {/* Quick Demo of a side card for demographic info */}

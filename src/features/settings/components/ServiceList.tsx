@@ -95,7 +95,7 @@ export function ServiceList() {
             {filteredServices.map((service) => (
               <tr
                 key={service.id}
-                className="group hover:bg-slate-50/50 transition-colors"
+                className="group hover:bg-amber-50 dark:hover:bg-slate-800/50 transition-colors"
               >
                 <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
                   {service.name}
@@ -113,7 +113,7 @@ export function ServiceList() {
                       <input
                         autoFocus
                         type="number"
-                        className="w-24 rounded-lg border-slate-300 bg-white px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                        className="w-24 rounded-lg border-slate-300 bg-white dark:bg-slate-800 px-2 py-1 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
                         value={editPrice}
                         onChange={(e) => setEditPrice(e.target.value)}
                         onKeyDown={(e) =>

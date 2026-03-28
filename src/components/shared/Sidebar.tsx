@@ -20,18 +20,20 @@ import {
   Languages,
   Stethoscope,
   LogOut,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { logoutAction } from "@/app/[locale]/auth/logoutAction";
+import { logoutAction } from "@/app/[locale]/(auth)/logoutAction";
 
 export function Sidebar() {
   const t = useTranslations("Sidebar");
 
   const NAV_LINKS = [
-    { name: t("dashboard"), href: "/", icon: LayoutDashboard },
+    { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("patients"), href: "/patients", icon: Users },
     { name: t("clinical"), href: "/clinical", icon: Stethoscope },
     { name: t("appointments"), href: "/calendar", icon: Calendar },
+    { name: t("staff"), href: "/staff", icon: UserCheck },
     { name: t("finance"), href: "/billing", icon: Wallet },
     { name: t("settings"), href: "/settings", icon: Settings },
   ] as const;
@@ -133,7 +135,11 @@ export function Sidebar() {
                       layoutId="active-indicator"
                       className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20"
                       initial={false}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30,
+                      }}
                     />
                   )}
                   <link.icon className="relative z-10 h-5 w-5" />
@@ -146,7 +152,6 @@ export function Sidebar() {
 
         {/* User Profile / Logout Area snippet */}
         <div className="p-4 space-y-4">
-          
           {/* Quick Actions (Theme & Language) */}
           {mounted && (
             <div className="flex gap-2">
@@ -154,14 +159,20 @@ export function Sidebar() {
                 onClick={toggleTheme}
                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl border bg-slate-50 p-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
               </button>
               <button
                 onClick={toggleLocale}
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl border bg-slate-50 p-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Languages className="h-4 w-4" />
-                <span className="uppercase font-bold">{locale === "ar" ? "EN" : "عربي"}</span>
+                <span className="uppercase font-bold">
+                  {locale === "ar" ? "EN" : "عربي"}
+                </span>
               </button>
             </div>
           )}

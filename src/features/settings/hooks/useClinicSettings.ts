@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
-import { DentalService, BusinessDay } from "../types";
+import { useState, useOptimistic, useTransition, useEffect } from "react";
+import { DentalService, BusinessDay, ClinicInfo, NotificationSettings } from "../types";
+
+const SETTINGS_STORAGE_KEY = "smilecraft_clinic_settings";
 
 const MOCK_SERVICES: DentalService[] = [
   { id: "1", name: "حشو ليزر (Laser Filling)", category: "GENERAL", price: 800, duration: 45 },
@@ -20,10 +22,49 @@ const MOCK_HOURS: BusinessDay[] = [
   { day: "Friday", isOpen: false, start: "00:00", end: "00:00" },
 ];
 
+const MOCK_INFO: ClinicInfo = {
+  name: "SmileCraft Dental Clinic",
+  address: "123 Nile St, Zamalek, Cairo",
+  phone: "+20 123 456 7890",
+  email: "info@smilecraft.com",
+  slotDuration: 30,
+};
+
+const MOCK_NOTIFICATIONS: NotificationSettings = {
+  smsEnabled: true,
+  whatsappEnabled: true,
+  emailEnabled: false,
+  reminderTiming: 24,
+};
+
 export function useClinicSettings() {
   const [services, setServices] = useState<DentalService[]>(MOCK_SERVICES);
   const [hours, setHours] = useState<BusinessDay[]>(MOCK_HOURS);
+  const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(MOCK_INFO);
+  const [notifications, setNotifications] = useState<NotificationSettings>(MOCK_NOTIFICATIONS);
   const [isPending, startTransition] = useTransition();
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.services) setServices(parsed.services);
+        if (parsed.hours) setHours(parsed.hours);
+        if (parsed.clinicInfo) setClinicInfo(parsed.clinicInfo);
+        if (parsed.notifications) setNotifications(parsed.notifications);
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    const data = { services, hours, clinicInfo, notifications };
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+  }, [services, hours, clinicInfo, notifications]);
 
   // Optimistic update for service prices
   const [optimisticServices, addOptimisticService] = useOptimistic(
@@ -55,11 +96,23 @@ export function useClinicSettings() {
     setHours(updatedHours);
   };
 
+  const updateClinicInfo = (info: ClinicInfo) => {
+    setClinicInfo(info);
+  };
+
+  const updateNotifications = (settings: NotificationSettings) => {
+    setNotifications(settings);
+  };
+
   return {
     services: optimisticServices,
     updateServicePrice,
     hours,
     updateBusinessHours,
+    clinicInfo,
+    updateClinicInfo,
+    notifications,
+    updateNotifications,
     isSaving: isPending,
   };
 }

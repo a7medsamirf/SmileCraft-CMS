@@ -17,20 +17,27 @@ const buttonSizes = {
   icon: "h-10 w-10",
 };
 
+import { Loader2 } from "lucide-react";
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof buttonVariants;
   size?: keyof typeof buttonSizes;
   asChild?: boolean;
+  loading?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "default", ...props }, ref) => {
+  ({ className, variant = "primary", size = "default", loading = false, children, ...props }, ref) => {
     return (
       <button
         ref={ref}
+        disabled={loading || props.disabled}
         className={cn(buttonVariants.base, buttonVariants[variant], buttonSizes[size], className)}
         {...props}
-      />
+      >
+        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {children}
+      </button>
     );
   }
 );
