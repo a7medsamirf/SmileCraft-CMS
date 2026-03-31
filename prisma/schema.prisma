@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+}
+
+model Patient {
+  id            String          @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String?         @unique
+  phone         String
+  dateOfBirth   DateTime
+  bloodGroup    String?
+  allergies     Json?           // Json since MySQL doesn't support String[]
+  address       String?
+  city          String?
+  medicalAlerts String?         @db.Text
+  createdAt     DateTime        @default(now())
+  
+  treatmentPlans TreatmentPlan[]
+  appointments   Appointment[]
+  invoices       Invoice[]
+  
+  @@index([phone])
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  patientId   String
+  doctorId    String?
+  date        DateTime
+  startTime   String
+  duration    Int
+  type        String
+  notes       String?  @db.Text
+  status      String   @default("CONFIRMED")
+  createdAt   DateTime @default(now())
+
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model TreatmentPlan {
+  id          String         @id @default(uuid())
+  patientId   String
+  createdAt   DateTime       @default(now())
+  status      String         @default("PLANNED")
+  
+  items       TreatmentItem[]
+  patient     Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model TreatmentItem {
+  id              String        @id @default(uuid())
+  treatmentPlanId String
+  toothNumber     String?
+  procedureName   String
+  cost            Float
+  status          String        @default("PLANNED")
+  notes           String?       @db.Text
+
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  patientId     String
+  amount        Float
+  status        String   @default("PENDING")
+  paymentMethod String?
+  paidAt        DateTime?
+  issuedAt      DateTime @default(now())
+  
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
