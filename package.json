@@ -39,6 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-dropzone": "^4.2.2",
+    "baseline-browser-mapping": "^2.10.12",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "react-quick-pinch-zoom": "^5.1.1",

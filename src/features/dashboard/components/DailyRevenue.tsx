@@ -171,7 +171,6 @@ export function DailyRevenue({ payments }: DailyRevenueProps) {
                     background-color: #ffffff !important;
                     color: #000000 !important;
                     width: 100% !important;
-                    min-height: 100vh !important; /* مهم جداً لتغطية الصفحة بالكامل */
                     margin: 0 !important;
                     padding: 0 !important;
                   }

@@ -4,9 +4,16 @@ import React, { useCallback, useState } from "react";
 import { Tooth, ToothStatus, ToothType, TOOTH_STATUS_LABELS } from "../types/odontogram";
 import { useTranslations, useLocale } from "next-intl";
 
+interface ColorOverride {
+  fill: string;
+  stroke: string;
+}
+
 interface ToothVisualProps {
   tooth: Tooth;
   onStatusChange: (id: number, newStatus: ToothStatus) => void;
+  /** Optional color override from completed treatment (useOptimistic) */
+  colorOverride?: ColorOverride;
 }
 
 /** Map ToothStatus enum strictly to Tailwind hex/CSS colors for the SVG fill */
@@ -32,12 +39,17 @@ const TOOTH_PATHS: Record<ToothType, string> = {
 // Mapping 32 complex SVG elements causes heavy React reconciliation if the
 // parent array state updates. Using memo ensures ONLY the clicked tooth re-renders.
 // ---------------------------------------------------------------------------
-export const ToothVisual = React.memo(({ tooth, onStatusChange }: ToothVisualProps) => {
+export const ToothVisual = React.memo(({ tooth, onStatusChange, colorOverride }: ToothVisualProps) => {
   const t = useTranslations("Clinical");
   const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
-  const colors = COLOR_MAP[tooth.status];
+
+  // Use colorOverride if provided, otherwise fall back to status-based colors
+  const colors = colorOverride ?? COLOR_MAP[tooth.status];
   const toothPath = TOOTH_PATHS[tooth.type] || TOOTH_PATHS[ToothType.INCISOR];
+
+  // Track if this tooth was recently overridden (for pulse animation)
+  const hasOverride = !!colorOverride;
 
   // We toggle the popover on click
   const togglePopover = useCallback((e: React.MouseEvent) => {
@@ -59,8 +71,6 @@ export const ToothVisual = React.memo(({ tooth, onStatusChange }: ToothVisualPro
     return () => window.removeEventListener("click", close);
   }, [isOpen]);
 
-  // Generic simplistic SVG path resembling a premolar/molar
-  // For production, a more anatomically accurate SVG set or 5-surface SVGs are used
   const isMissing = tooth.status === ToothStatus.MISSING;
 
   return (
@@ -89,7 +99,9 @@ export const ToothVisual = React.memo(({ tooth, onStatusChange }: ToothVisualPro
       {/* SVG Tooth Element */}
       <div 
         onClick={togglePopover}
-        className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
+        className={`cursor-pointer transition-transform hover:scale-110 active:scale-95 ${
+          hasOverride ? "animate-pulse" : ""
+        }`}
         role="button"
         title={`${t("toothLabel")} ${tooth.id} - ${TOOTH_STATUS_LABELS[tooth.status][locale === "ar" ? "ar" : "en"]}`}
       >
@@ -97,9 +109,23 @@ export const ToothVisual = React.memo(({ tooth, onStatusChange }: ToothVisualPro
           viewBox="0 0 100 120" 
           width="40" 
           height="48" 
-          className="drop-shadow-sm transition-colors duration-300"
+          className="drop-shadow-sm transition-colors duration-500"
           style={{ opacity: isMissing ? 0.3 : 1 }}
         >
+          {/* Glow ring for overridden teeth */}
+          {hasOverride && (
+            <circle
+              cx="50"
+              cy="60"
+              r="55"
+              fill="none"
+              stroke={colors.stroke}
+              strokeWidth="2"
+              opacity="0.3"
+              className="animate-ping"
+              style={{ transformOrigin: "center", animationDuration: "2s" }}
+            />
+          )}
           {/* Anatomically correct path based on tooth type */}
           <path 
             d={toothPath} 
@@ -108,19 +134,29 @@ export const ToothVisual = React.memo(({ tooth, onStatusChange }: ToothVisualPro
             strokeWidth={isMissing ? "4" : "3"}
             strokeDasharray={isMissing ? "5,5" : "none"}
             strokeLinejoin="round"
+            className="transition-all duration-500"
           />
         </svg>
       </div>
 
       {/* Universal ID Label */}
-      <span className="mt-1 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+      <span className={`mt-1 text-[10px] font-bold ${
+        hasOverride 
+          ? "text-emerald-600 dark:text-emerald-400" 
+          : "text-slate-500 dark:text-slate-400"
+      }`}>
         {tooth.id}
       </span>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Custom equality check: only re-render if the tooth's exact status or reference changed
-  return prevProps.tooth.status === nextProps.tooth.status && prevProps.tooth.id === nextProps.tooth.id;
+  // Custom equality check: re-render if status, id, or colorOverride changed
+  return (
+    prevProps.tooth.status === nextProps.tooth.status &&
+    prevProps.tooth.id === nextProps.tooth.id &&
+    prevProps.colorOverride?.fill === nextProps.colorOverride?.fill &&
+    prevProps.colorOverride?.stroke === nextProps.colorOverride?.stroke
+  );
 });
 
 // Setting displayName for fast refresh debugging

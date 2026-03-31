@@ -17,7 +17,7 @@ export function PatientList() {
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
 
   return (
-    <div className="w-full mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="w-full mx-auto space-y-5 animate-in fade-in duration-500">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

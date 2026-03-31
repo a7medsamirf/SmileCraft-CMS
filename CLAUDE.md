@@ -1,12 +1,12 @@
 # 🦷 SmileCraft CMS — Context Snapshot
-**Date:** March 27, 2026
-**Status:** Core Feature-Complete (Patients, Finance, Clinical, Calendar)
+**Date:** March 29, 2026
+**Status:** Core Feature-Complete (Patients, Finance, Clinical, Calendar, Dashboard, Landing, Auth)
 
 ---
 
 ## 🏗️ Technical Stack
 - **Framework**: Next.js 16 (App Router) + React 19.
-- **Styling**: Tailwind CSS 4 (Glassmorphism, CSS Variables).
+- **Styling**: Tailwind CSS 4.2 (Glassmorphism, CSS Variables).
 - **Localization**: `next-intl` (Arabic/English, RTL/LTR support).
 - **Theming**: `next-themes` (Dark/Light mode via Sidebar).
 - **Animations**: `framer-motion` (Spring indicators, Page transitions).
@@ -36,12 +36,54 @@
 - ✅ Client-side State Management (Date selection & Agenda sync).
 - ✅ **Dynamic Agenda**: Polished "Glass-card" UI with localized date formatting.
 - ✅ **Stable Re-fetching**: Optimized `useEffect` with stringified date dependencies.
+- ✅ **Booking Form Modal**: Full appointment booking form with:
+  - Patient name & phone fields.
+  - Date picker + Duration selector (15 min → 2 hours).
+  - 12 procedure types (حشو عصب، تنظيف، تقويم، زراعة...).
+  - Interactive time slot grid (17 slots, 9 AM → 5 PM) with available/booked/selected states.
+  - Notes textarea, Zod validation, Arabic error messages, success animation.
+  - Server Action (`bookAppointmentAction.ts`) with `useActionState`.
 
 ### 🦷 Clinical Module (100%)
 - ✅ **Anatomical Odontogram**: Interactive teeth map with distinct SVG shapes.
 - ✅ **Clinical Persistence**: Status and treatment plans saved/loaded from storage.
 - ✅ **Plan Builder**: Automated procedure generation and cost estimation.
 - ✅ **Plan to Invoice**: React 19 actions to convert plans to financial bills.
+- ✅ **Session Progress Tracking**: 3-state smart checkboxes (Planned → In-Progress → Completed) per treatment item.
+- ✅ **Optimistic Odontogram Sync**: `useOptimistic` changes tooth color instantly on status change (e.g., red→blue) with pulse animation.
+- ✅ **Invoice Mode Dialog**: "Full plan" vs. "Completed items only" selection when converting to invoice.
+- ✅ **Progress Bar**: Visual treatment completion percentage on the Plan Builder.
+- ✅ **Completion History Timeline**: Mini timeline showing recent status changes with timestamps.
+- ✅ **Patient Search Component**: Real-time filter by name/phone from mock data with animated dropdown (Framer Motion).
+- ✅ **Patient Mini-Profile Card**: Compact card above Odontogram showing name, age, phone, city, blood group, allergies, and medical alerts.
+- ✅ **Per-Patient Teeth Data**: Each mock patient has unique MouthMap data loaded on selection (`patientTeeth.mock.ts`).
+- ✅ **Empty State UX**: Welcome message with search prompt when no patient is selected; Odontogram hidden.
+- ✅ **Color Override System**: `ToothVisual` accepts `colorOverride` prop with glow ring SVG effect for completed treatments.
+
+### 📊 Dashboard (100%)
+- ✅ **Stats Grid**: 4 KPI cards (Today's appointments, New patients, Pending plans, Revenue).
+- ✅ **Weekly Revenue Chart**: CSS bar chart for 7-day revenue with hover labels and growth percentage.
+- ✅ **Procedures Breakdown**: CSS donut chart (conic-gradient) showing procedure type distribution with legend.
+- ✅ **Quick Actions**: 4-button shortcut grid (New Patient, Book Appointment, New Invoice, Quick Diagnosis).
+- ✅ **Inventory Alerts**: Low-stock warnings with progress bars and severity badges (Critical/Warning).
+- ✅ **Recent Activity Feed**: Timeline of last 5 clinic events (payments, appointments, updates, prescriptions).
+- ✅ **Birthday Reminders**: Patient CRM widget showing today's + upcoming birthdays with message buttons.
+- ✅ **Lab Tracker**: Dental lab work tracking with 4-step progress bars (Sent → In Progress → Ready → Delivered).
+- ✅ **Outstanding Balances**: Overdue payment tracker with severity levels and contact action buttons.
+
+### 🌐 Landing Page (100%)
+- ✅ **Route Group**: `(front-end)` layout with Cairo + Playfair Display fonts.
+- ✅ **9 Components**: `LandingNavbar`, `HeroSection`, `StatsSection`, `FeaturesSection`, `StepsSection`, `TestimonialsSection`, `FAQSection`, `BottomCTA`, `LandingFooter`.
+- ✅ **Design**: Dark Mode Only (Slate-950) + Glassmorphism + Framer Motion animations.
+- ✅ **Custom CSS**: `landing.css` with grid backgrounds, float animations, gradient text.
+- ✅ **Colors**: SmileCraft Blue-600 branding (migrated from Teal/Cyan).
+
+### 🔐 Auth Pages (100%)
+- ✅ **Login Page**: Split-screen dark design — branding panel (stats, activity feed) + login form.
+- ✅ **Animated Grid**: CSS grid background with slow pan animation on branding panel.
+- ✅ **Form Features**: Email/password fields, password visibility toggle, "Remember Me", demo credentials badge.
+- ✅ **Trust Badges**: Encrypted data, 100% secure, instant access indicators.
+- ✅ **Server Action**: `loginAction.ts` with Zod validation, mock credentials, cookie-based session.
 
 ### ⚙️ Settings & Optimization (Progressing)
 - ✅ **Glass-card UI**: Standardized premium aesthetics across Permissions and Service lists.
@@ -51,17 +93,19 @@
 ---
 
 ## 🛠️ Key Architectural Patterns
-1. **Feature-Based Structure**: Organized domain logic (`features/patients`, `features/clinical`, etc.).
+1. **Feature-Based Structure**: Organized domain logic (`features/patients`, `features/clinical`, `features/dashboard`, `features/landing`, etc.).
 2. **React 19 Actions**: Heavy use of `useActionState` and `useOptimistic`.
-3. **Data Persistence Layer**: Custom client-side services managing state across sessions.
-4. **Premium Visuals**: Glassmorphism and Tailwind 4 variables for a modern high-end feel.
+3. **Server Actions**: Zod-validated mutations (`loginAction`, `bookAppointmentAction`, `updateTreatmentItemStatus`).
+4. **Data Persistence Layer**: Custom client-side services managing state across sessions.
+5. **Premium Visuals**: Glassmorphism and Tailwind 4 variables for a modern high-end feel.
+6. **Route Groups**: `(dashboard)` for app, `(front-end)` for landing, `(auth)` for login.
 
 ---
 
 ## 🚀 Recommended Next Steps
 1. **Cloud Migration**: Transition current `localStorage` services to actual Axios-based API calls.
 2. **Advanced Analytics**: Implement deep-dive reporting for specific dental specialties.
-3. **Appointment Wizard**: Expand the calendar with a drag-and-drop scheduling interface.
+3. **Real-time Notifications**: Push alerts for appointments, low stock, and payment reminders.
 
 ---
 
@@ -79,8 +123,11 @@ Environment: You are working with a Senior Developer (Ahmed Samir). Keep explana
 |--------|--------|---------|
 | 👥 Patients | 100% | Full profile + Medical history + New intake wizard |
 | 💸 Finance & Billing | 100% | Multi-currency (EGP) + Daily/ Monthly reports |
-| 📅 Calendar & Appointments | 100% | Interactive RTL calendar + Client-side state management |
-| 🦷 Clinical | 100% | Interactive teeth map + Treatment plans to invoices |
+| 📅 Calendar & Appointments | 100% | Interactive RTL calendar + Booking form modal |
+| 🦷 Clinical | 100% | Interactive teeth map + Session tracking + Patient search + Optimistic UI |
+| 📊 Dashboard | 100% | 8 widgets: Revenue chart, Procedures, Quick Actions, Inventory, Activity, Birthdays, Lab, Balances |
+| 🌐 Landing Page | 100% | 9-component dark SaaS landing with Framer Motion |
+| 🔐 Auth (Login) | 100% | Split-screen dark design + Server Action + Zod validation |
 
 ---
 
@@ -147,9 +194,9 @@ Environment: You are working with a Senior Developer (Ahmed Samir). Keep explana
 ### 8️⃣ **User Experience Improvements** - *Ongoing Development*
 ```typescript
 // Enhancements:
-- 🎨 Full Dark Mode Implementation (via next-themes)
+- ✅ Full Dark Mode Implementation (via next-themes)
 - 📱 Mobile-responsive UI optimization
-- 🔍 Advanced Search for patients + appointments
+- ✅ Advanced Search for patients (Clinical Module patient search)
 - 💾 Data Export/Import (Excel/PDF formats)
 ```
 
@@ -174,6 +221,11 @@ Based on `CLAUDE.md`:
 - React 19 Actions (useOptimistic) for instant feedback
 - Logical Properties for RTL/LTR compatibility
 - Unified Glassmorphism design system
+- Framer Motion AnimatePresence for smooth state transitions
+- Per-patient mock data architecture (ready for API migration)
+- Custom hooks for complex state (useSessionProgress)
+- Server Actions with Zod validation for mutations
+- CSS-based charts (conic-gradient, bar charts) — no charting library dependency
 
 // ⚠️ Areas of Concern:
 - localStorage risks data loss on cache clearing
@@ -182,5 +234,38 @@ Based on `CLAUDE.md`:
 
 ---
 
+## 📁 Key File Paths
+
+```
+src/
+├── app/[locale]/
+│   ├── (auth)/login/          → Login page + loginAction.ts
+│   ├── (dashboard)/
+│   │   ├── dashboard/         → Main dashboard with 8 widgets
+│   │   ├── appointments/      → Appointments page + BookingForm modal
+│   │   ├── patients/          → Patient management
+│   │   ├── clinical/          → Clinical module (Odontogram)
+│   │   ├── finance/           → Financial management
+│   │   ├── calendar/          → Calendar view
+│   │   ├── staff/             → Staff management
+│   │   ├── inventory/         → Inventory management
+│   │   └── settings/          → System settings
+│   └── (front-end)/landing/   → Landing page
+├── features/
+│   ├── dashboard/components/  → 10 widgets (Stats, Revenue, Procedures, etc.)
+│   ├── appointments/          → DailyAgenda, BookingForm, CalendarGrid
+│   ├── clinical/              → Odontogram, PatientSearch, PlanBuilder
+│   ├── patients/              → Profile, MedicalHistory, IntakeWizard
+│   ├── finance/               → Payments, DailyRevenue, MonthlyDashboard
+│   ├── landing/components/    → 9 landing page sections
+│   └── settings/              → Permissions, Services
+└── locales/
+    ├── ar.json                → Arabic translations
+    └── en.json                → English translations
+```
+
+---
+
 ## 🎯 Summary
 
+SmileCraft CMS is a comprehensive dental clinic management SaaS with **7 complete modules**, a **professional dark-themed landing page**, and a **split-screen auth system**. The dashboard includes **8 intelligent widgets** covering revenue, procedures, inventory, lab tracking, patient CRM, and more. All UI is fully RTL Arabic with premium Glassmorphism aesthetics.

@@ -2,253 +2,387 @@
 
 // =============================================================================
 // DENTAL CMS — Authentication: Login Page
-// app/[locale]/auth/login/page.tsx
-//
-// React 19 useActionState for form state management
+// Redesigned to match signin.html — split-screen dark theme
 // =============================================================================
 
-import React, { useActionState, useEffect, useRef } from "react";
+import React, { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/routing";
-import { Mail, Lock, Stethoscope, Eye, EyeOff, ArrowRight, Dna } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User, ArrowLeft } from "lucide-react";
 import { loginAction, LoginState } from "./loginAction";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 
-// -----------------------------------------------------------------------------
-// Initial State
-// -----------------------------------------------------------------------------
+// ─── CSS Keyframes (injected once) ──────────────────────────────────────────
+const AuthStyles = () => (
+  <style>{`
+    @keyframes authFadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes authGridPan {
+      from { transform: translate(0, 0); }
+      to   { transform: translate(60px, 60px); }
+    }
+    @keyframes authFloat {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    @keyframes authErrIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .auth-fade-up   { animation: authFadeUp 0.5s ease both; }
+    .auth-float     { animation: authFloat 3s ease-in-out infinite; }
+    .auth-grid-pan  { animation: authGridPan 12s linear infinite; }
+    .auth-err-in    { animation: authErrIn 0.3s ease both; }
+  `}</style>
+);
 
+// ─── Initial state ──────────────────────────────────────────────────────────
 const initialState: LoginState = {
   success: false,
   errors: {},
 };
 
-// -----------------------------------------------------------------------------
-// Login Page Component
-// -----------------------------------------------------------------------------
-
+// ─── Main Component ─────────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Redirect on successful login
+  // Redirect on success
   useEffect(() => {
     if (state.success) {
-      const timer = setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
+      const timer = setTimeout(() => router.push("/dashboard"), 1000);
       return () => clearTimeout(timer);
     }
   }, [state.success, router]);
 
   return (
-    <div className="">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/20 dark:bg-blue-900/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-200/20 dark:bg-emerald-900/10 rounded-full blur-3xl" />
-      </div>
+    <>
+      <AuthStyles />
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-md">
-        {/* Glass Card */}
-        <div className="glass-card rounded-3xl p-8 shadow-2xl shadow-blue-500/10 dark:shadow-none backdrop-blur-3xl bg-white/80 dark:bg-slate-900/60 border border-white/30 dark:border-slate-700/50">
+      {/* ══════════ LEFT PANEL — Branding (Desktop Only) ══════════ */}
+      <div className="hidden lg:flex lg:w-[44%] xl:w-[48%] flex-col justify-between p-10 relative overflow-hidden bg-[#0B1525]">
+        {/* Animated Grid */}
+        <div
+          className="absolute inset-0 opacity-[0.035] auth-grid-pan"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgb(37, 99, 235) 1px, transparent 1px), linear-gradient(90deg, rgb(37, 99, 235) 1px, transparent 1px)",
+            backgroundSize: "50px 50px",
+          }}
+        />
 
-          {/* Logo & Header */}
-          <div className="text-center mb-8">
-            {/* Medical Logo */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30 mb-4">
-              <Dna className="w-8 h-8 text-white" />
+        {/* Radial Glow */}
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(rgba(37, 99, 235, 0.08) 0%, transparent 65%)" }}
+        />
+
+        {/* Top Accent Line */}
+        <div
+          className="absolute top-0 right-0 left-0 h-[2px]"
+          style={{ background: "linear-gradient(90deg, transparent, #2563EB, transparent)" }}
+        />
+
+        {/* Logo */}
+        <div className="relative z-10">
+          <span className="text-xl font-black text-white tracking-tight">
+            <span className="text-blue-500">Smile</span>Craft
+          </span>
+        </div>
+
+        {/* Hero Text + Stats */}
+        <div className="relative z-10 space-y-8">
+          <div>
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-5">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-blue-400 text-[12px] font-bold">مرحباً بعودتك</span>
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              تسجيل الدخول
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              SmileCraft CMS - نظام إدارة عيادة الأسنان
+            <h2 className="text-3xl xl:text-4xl font-black text-white leading-tight mb-4">
+              عيادتك بانتظارك
+              <br />
+              <span className="text-blue-400">سجّل دخولك الآن</span>
+            </h2>
+            <p className="text-slate-500 text-[14px] font-medium leading-relaxed max-w-xs">
+              استمر من حيث توقفت. مرضاك، مواعيدك، وتقاريرك في مكان واحد.
             </p>
           </div>
 
-          {/* Demo Credentials Badge */}
-          <div className="mb-6 flex justify-center">
-            <Badge variant="outline" className="text-sm bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
-              <span className="ms-2">تجريبي:</span>
-              admin@smilecraft.com / password123
-            </Badge>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { value: "+٥٠٠", label: "عيادة نشطة" },
+              { value: "+٢٠٠ألف", label: "ملف مريض" },
+              { value: "٩٩.٩٪", label: "وقت التشغيل" },
+              { value: "٢٤/٧", label: "دعم فني" },
+            ].map((stat, i) => (
+              <div key={i} className="bg-[#0D1B2E] border border-blue-500/10 rounded-xl p-4">
+                <div className="text-blue-400 text-[20px] font-black mb-0.5">{stat.value}</div>
+                <div className="text-slate-600 text-[11.5px] font-semibold">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="relative z-10">
+      {/*     <div className="bg-[#0D1B2E] border border-blue-500/[0.12] rounded-2xl p-5">
+            <p className="text-slate-500 text-[11.5px] font-bold mb-3 uppercase tracking-widest">
+              آخر نشاط
+            </p>
+            <div className="space-y-2.5">
+              {[
+                { icon: "📅", text: "موعد جديد — أحمد سالم", time: "منذ ٥ دقائق" },
+                { icon: "🦷", text: "تم تحديث ملف — نور خالد", time: "منذ ٢٠ دقيقة" },
+                { icon: "💳", text: "دفعة مستلمة — ٣٥٠ جنيه", time: "منذ ساعة" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-[12px] shrink-0">
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-slate-300 text-[12px] font-semibold truncate">{item.text}</p>
+                  </div>
+                  <span className="text-slate-700 text-[11px] font-medium shrink-0">{item.time}</span>
+                </div>
+              ))}
+            </div>
+          </div> */}
+        </div>
+      </div>
+
+      {/* ══════════ RIGHT PANEL — Login Form ══════════ */}
+      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 lg:p-12 relative">
+        {/* Top Glow */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-32 opacity-30 pointer-events-none"
+          style={{ background: "radial-gradient(rgba(37, 99, 235, 0.15) 0%, transparent 70%)" }}
+        />
+
+        <div className="w-full max-w-[420px] relative z-10">
+          {/* Mobile Logo */}
+          <div className="lg:hidden mb-6 text-center">
+            <span className="text-2xl font-black text-white tracking-tight">
+              <span className="text-blue-500">Smile</span>Craft
+            </span>
           </div>
 
-          {/* Login Form */}
-          <form ref={formRef} action={formAction} className="space-y-5">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                البريد الإلكتروني
-              </label>
-              <div className="relative">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="admin@smilecraft.com"
-                  defaultValue={state.data?.email}
-                  icon={<Mail className="w-5 h-5" />}
-                  className={cn(
-                    "rounded-xl h-12 ps-12",
-                    state.errors?.email
-                      ? "border-red-500 focus-visible:ring-red-500"
-                      : "focus-visible:ring-blue-500"
+          {/* ── Card ── */}
+          <div className="auth-fade-up bg-[#0B1525] border border-white/[0.06] rounded-2xl p-7 sm:p-8 shadow-2xl shadow-black/40">
+            {/* Header */}
+            <div className="mb-7">
+              <div
+                className="auth-float w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-5"
+              >
+                <User className="w-[22px] h-[22px] text-blue-500" strokeWidth={2} />
+              </div>
+              <h1 className="text-[22px] font-black text-white mb-1.5">تسجيل الدخول</h1>
+              <p className="text-[13.5px] text-slate-500 font-medium">
+                SmileCraft CMS - نظام إدارة عيادة الأسنان
+              </p>
+            </div>
+
+            {/* Demo Badge */}
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-1.5 text-[12px] font-bold text-amber-400">
+                <span>تجريبي:</span>
+                admin@smilecraft.com / password123
+              </div>
+            </div>
+
+            {/* ── Form ── */}
+            <form ref={formRef} action={formAction}>
+              <div className="space-y-4">
+                {/* Email */}
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-400 mb-2 tracking-wide">
+                    البريد الإلكتروني
+                  </label>
+                  <div className="relative">
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="example@email.com"
+                      defaultValue={state.data?.email}
+                      autoComplete="email"
+                      disabled={isPending}
+                      dir="ltr"
+                      className={cn(
+                        "w-full rounded-xl px-4 py-3 text-[13.5px] font-medium text-white",
+                        "bg-[#0D1B2E] border-[1.5px] outline-none transition-all duration-200",
+                        "placeholder:text-slate-700 pr-10",
+                        state.errors?.email
+                          ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                          : "border-white/[0.07] focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/[0.08] hover:border-white/[0.12]",
+                        isPending && "opacity-50 cursor-not-allowed",
+                      )}
+                    />
+                  </div>
+                  {state.errors?.email && (
+                    <p className="auth-err-in text-[11.5px] text-red-400 font-medium mt-1.5">
+                      {state.errors.email[0]}
+                    </p>
                   )}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[12px] font-bold text-slate-400 tracking-wide">
+                      كلمة المرور
+                    </label>
+                    <a
+                      href="#"
+                      className="text-[11.5px] text-blue-400 font-bold hover:underline transition-colors"
+                    >
+                      نسيت كلمة المرور؟
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="أدخل كلمة المرور"
+                      autoComplete="current-password"
+                      disabled={isPending}
+                      dir="ltr"
+                      className={cn(
+                        "w-full rounded-xl px-4 py-3 text-[13.5px] font-medium text-white",
+                        "bg-[#0D1B2E] border-[1.5px] outline-none transition-all duration-200",
+                        "placeholder:text-slate-700 pr-10 pl-12",
+                        state.errors?.password
+                          ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                          : "border-white/[0.07] focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/[0.08] hover:border-white/[0.12]",
+                        isPending && "opacity-50 cursor-not-allowed",
+                      )}
+                    />
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-600 hover:text-slate-400 transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {state.errors?.password && (
+                    <p className="auth-err-in text-[11.5px] text-red-400 font-medium mt-1.5">
+                      {state.errors.password[0]}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remember Me */}
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-slate-700 bg-[#0D1B2E] text-blue-500 focus:ring-blue-500/30"
+                    />
+                    <span className="text-slate-500 text-[12px] font-medium">تذكرني</span>
+                  </label>
+                </div>
+
+                {/* Form-level Error */}
+                {state.errors?.form && (
+                  <div className="auth-err-in p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <p className="text-[12.5px] text-red-400 text-center font-medium">
+                      {state.errors.form[0]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {state.success && (
+                  <div className="auth-err-in p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <p className="text-[12.5px] text-emerald-400 text-center font-medium flex items-center justify-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      {state.message}
+                    </p>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
                   disabled={isPending}
-                  dir="ltr"
-                />
+                  className={cn(
+                    "w-full py-3.5 rounded-xl font-bold text-[14.5px] mt-1",
+                    "transition-all duration-200 flex items-center justify-center gap-2.5",
+                    isPending
+                      ? "bg-blue-500/30 text-[#060D18]/40 cursor-not-allowed"
+                      : "bg-blue-500 text-white hover:bg-blue-600 shadow-[0_8px_28px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_36px_rgba(37,99,235,0.4)] hover:-translate-y-0.5",
+                  )}
+                >
+                  {isPending ? (
+                    <span className="flex items-center gap-2 text-blue-200">
+                      <span className="w-4 h-4 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+                      جاري تسجيل الدخول...
+                    </span>
+                  ) : (
+                    <>
+                      تسجيل الدخول
+                      <ArrowLeft className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               </div>
-              {state.errors?.email && (
-                <p className="text-xs text-red-500 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
-                  {state.errors.email[0]}
-                </p>
-              )}
-            </div>
+            </form>
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                كلمة المرور
-              </label>
-              <PasswordInput
-                id="password"
-                name="password"
-                placeholder="••••••••"
-                disabled={isPending}
-                error={!!state.errors?.password}
-              />
-              {state.errors?.password && (
-                <p className="text-xs text-red-500 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
-                  {state.errors.password[0]}
-                </p>
-              )}
+            {/* Divider */}
+        {/*     <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px bg-white/[0.05]" />
+              <span className="text-slate-700 text-[11.5px] font-semibold">أو</span>
+              <div className="flex-1 h-px bg-white/[0.05]" />
             </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-slate-600 dark:text-slate-400">تذكرني</span>
-              </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
-                نسيت كلمة المرور؟
-              </a>
-            </div>
-
-            {/* Form Level Error */}
-            {state.errors?.form && (
-              <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400 text-center">
-                  {state.errors.form[0]}
-                </p>
+ */}
+            {/* Trust Badges */}
+        {/*     <div className="flex items-center justify-center gap-5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px]">🔒</span>
+                <span className="text-[11.5px] text-slate-600 font-semibold">بيانات مشفرة</span>
               </div>
-            )}
-
-            {/* Success Message */}
-            {state.success && (
-              <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 text-center flex items-center justify-center gap-2">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {state.message}
-                </p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px]">✓</span>
+                <span className="text-[11.5px] text-slate-600 font-semibold">آمن ١٠٠٪</span>
               </div>
-            )}
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full h-12 rounded-xl text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-shadow"
-              disabled={isPending}
-            >
-              {isPending ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  جاري تسجيل الدخول...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  تسجيل الدخول
-                  <ArrowRight className="w-5 h-5 rotate-180 rtl:rotate-0" />
-                </span>
-              )}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-            <span className="text-xs text-slate-400">أو</span>
-            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px]">⚡</span>
+                <span className="text-[11.5px] text-slate-600 font-semibold">وصول فوري</span>
+              </div>
+            </div> */}
           </div>
 
-          {/* Sign Up Link */}
-          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-            ليس لديك حساب؟{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold">
-              تواصل مع الإدارة
+          {/* Support Link */}
+          <p className="text-center text-slate-700 text-[12px] font-medium mt-5">
+            تواجه مشكلة في الدخول؟{" "}
+            <a
+              href="mailto:support@smilecraft.com"
+              className="text-blue-400/70 hover:text-blue-400 transition-colors font-bold"
+            >
+              تواصل مع الدعم
             </a>
           </p>
         </div>
-
-        {/* Footer */}
-        <p className="text-center mt-6 text-xs text-slate-400 dark:text-slate-500">
-          © 2026 SmileCraft CMS - جميع الحقوق محفوظة
-        </p>
       </div>
-    </div>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Password Input Component with Toggle Visibility
-// -----------------------------------------------------------------------------
-
-interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  error?: boolean;
-}
-
-function PasswordInput({ error, ...props }: PasswordInputProps) {
-  const [showPassword, setShowPassword] = React.useState(false);
-
-  return (
-    <div className="relative">
-      <Input
-        {...props}
-        type={showPassword ? "text" : "password"}
-        icon={<Lock className="w-5 h-5" />}
-        className={cn(
-          "rounded-xl h-12 ps-12 pr-12",
-          error
-            ? "border-red-500 focus-visible:ring-red-500"
-            : "focus-visible:ring-blue-500"
-        )}
-        dir="ltr"
-      />
-      <button
-        type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        className="absolute inset-y-0 end-0 flex items-center pe-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-        tabIndex={-1}
-      >
-        {showPassword ? (
-          <EyeOff className="w-5 h-5" />
-        ) : (
-          <Eye className="w-5 h-5" />
-        )}
-      </button>
-    </div>
+    </>
   );
 }

@@ -20,7 +20,7 @@ const NotFound = () => {
               {t('description')}
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Button className='px-5 py-2.5' label={t('GoHome')} variant="brand" size="sm" href="#" />
+              <Button className='px-5 py-2.5' label={t('GoHome')} variant="brand" size="sm" href="/ar" />
               </div>
             </div>
           </div>

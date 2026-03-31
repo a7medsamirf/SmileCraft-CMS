@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFormStatus } from "react-dom";
 import {
   LayoutDashboard,
   Users,
@@ -21,9 +22,29 @@ import {
   Stethoscope,
   LogOut,
   UserCheck,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/[locale]/(auth)/logoutAction";
+
+function LogoutButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {pending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <LogOut className="h-4 w-4" />
+      )}
+      {pending ? "جارٍ تسجيل الخروج..." : "تسجيل الخروج"}
+    </button>
+  );
+}
 
 export function Sidebar() {
   const t = useTranslations("Sidebar");
@@ -190,13 +211,7 @@ export function Sidebar() {
 
           {/* Logout Button */}
           <form action={logoutAction} className="w-full">
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
-            >
-              <LogOut className="h-4 w-4" />
-              تسجيل الخروج
-            </button>
+            <LogoutButton />
           </form>
         </div>
       </motion.aside>
