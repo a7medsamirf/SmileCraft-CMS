@@ -1,10 +1,134 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "library"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
+}
+
+// 👥 Users & Authentication
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String?
+  role          Role      @default(ADMIN)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  patients      Patient[]
+  appointments  Appointment[]
+  invoices      Invoice[]
+}
+
+// 👥 Patients
+model Patient {
+  id            String    @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String?   @unique
+  phone         String
+  dateOfBirth   DateTime
+  bloodGroup    String?
+  allergies     String[]  @default([])
+  address       String?
+  city          String?
+  medicalAlerts String?   // General health alerts (e.g. Diabates, High BP)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  medicalHistory MedicalHistory[]
+  appointments   Appointment[]
+  treatmentPlans TreatmentPlan[]
+  invoices       Invoice[]
+  
+  @@index([phone])
+}
+
+// ⚕️ Medical History Entries
+model MedicalHistory {
+  id           String    @id @default(uuid())
+  patientId    String
+  condition    String
+  severity     Severity  @default(LOW)
+  notes        String?
+  diagnosedAt  DateTime  @default(now())
+  
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+// 📅 Appointments
+model Appointment {
+  id          String    @id @default(uuid())
+  patientId   String
+  doctorId    String?   // User ID if multiple doctors
+  date        DateTime
+  startTime   String    // Storing as string "HH:mm" helps avoid timezone issues for simple grids
+  duration    Int       // Duration in minutes
+  type        String    // e.g. "حشو عصب", "تنظيف"
+  status      Status    @default(PENDING)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?     @relation(fields: [doctorId], references: [id])
+  
+  @@unique([date, startTime, doctorId])
+}
+
+// 🦷 Clinical Data
+model TreatmentPlan {
+  id          String    @id @default(uuid())
+  patientId   String
+  status      PlanStatus @default(IN_PROGRESS)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  items       TreatmentItem[]
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model TreatmentItem {
+  id              String         @id @default(uuid())
+  treatmentPlanId String
+  toothNumber     String?        // Target tooth id from Odontogram
+  procedureName   String         // e.g. Root Canal
+  cost            Float
+  status          TreatmentStatus @default(PLANNED)
+  notes           String?
+  
+  plan            TreatmentPlan  @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+}
+
+// 💸 Finance
+model Invoice {
+  id            String      @id @default(uuid())
+  patientId     String
+  amount        Float
+  status        InvoiceStatus @default(PENDING)
+  paymentMethod PaymentType?
+  issuedAt      DateTime    @default(now())
+  paidAt        DateTime?
+  
+  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  creator       User?       @relation(fields: [creatorId], references: [id])
+  creatorId     String?
+}
+
+// 📦 Inventory (For Phase 2)
+model InventoryItem {
+  id          String    @id @default(uuid())
+  name        String
+  sku         String    @unique
+  quantity    Int       @default(0)
+  minQuantity Int       @default(10)
+  unit        String    // e.g. 'box', 'piece'
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([minQuantity, quantity])
 }
 
 enum Role {
@@ -13,81 +137,40 @@ enum Role {
   RECEPTIONIST
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      Role     @default(ADMIN)
-  createdAt DateTime @default(now())
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
-model Patient {
-  id            String          @id @default(uuid())
-  firstName     String
-  lastName      String
-  email         String?         @unique
-  phone         String
-  dateOfBirth   DateTime
-  bloodGroup    String?
-  allergies     Json?           // Json since MySQL doesn't support String[]
-  address       String?
-  city          String?
-  medicalAlerts String?         @db.Text
-  createdAt     DateTime        @default(now())
-  
-  treatmentPlans TreatmentPlan[]
-  appointments   Appointment[]
-  invoices       Invoice[]
-  
-  @@index([phone])
+enum PaymentType {
+  CASH
+  CARD
+  WALLET
 }
 
-model Appointment {
-  id          String   @id @default(uuid())
-  patientId   String
-  doctorId    String?
-  date        DateTime
-  startTime   String
-  duration    Int
-  type        String
-  notes       String?  @db.Text
-  status      String   @default("CONFIRMED")
-  createdAt   DateTime @default(now())
-
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum Status {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
 }
 
-model TreatmentPlan {
-  id          String         @id @default(uuid())
-  patientId   String
-  createdAt   DateTime       @default(now())
-  status      String         @default("PLANNED")
-  
-  items       TreatmentItem[]
-  patient     Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum PlanStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
 }
 
-model TreatmentItem {
-  id              String        @id @default(uuid())
-  treatmentPlanId String
-  toothNumber     String?
-  procedureName   String
-  cost            Float
-  status          String        @default("PLANNED")
-  notes           String?       @db.Text
-
-  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+enum TreatmentStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
 }
 
-model Invoice {
-  id            String   @id @default(uuid())
-  patientId     String
-  amount        Float
-  status        String   @default("PENDING")
-  paymentMethod String?
-  paidAt        DateTime?
-  issuedAt      DateTime @default(now())
-  
-  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
 }

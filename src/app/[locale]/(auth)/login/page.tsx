@@ -5,10 +5,11 @@
 // Redesigned to match signin.html — split-screen dark theme
 // =============================================================================
 
-import React, { useActionState, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/routing";
+import { signIn } from "next-auth/react";
 import { Mail, Lock, Eye, EyeOff, User, ArrowLeft } from "lucide-react";
-import { loginAction, LoginState } from "./loginAction";
+import type { LoginState } from "./loginAction";
 import { cn } from "@/lib/utils";
 
 // ─── CSS Keyframes (injected once) ──────────────────────────────────────────
@@ -47,8 +48,68 @@ const initialState: LoginState = {
 export default function LoginPage() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, isPending] = useActionState(loginAction, initialState);
+  const [state, setState] = useState<LoginState>(initialState);
+  const [isPending, setIsPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsPending(true);
+    setState(initialState); // تصغير الحالة قبل البدء
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+
+    // 1. Client-side Validation
+    if (!email || !password) {
+      setState({
+        success: false,
+        errors: { form: ["يرجى ملء جميع الحقول"] },
+        data: { email }
+      });
+      setIsPending(false);
+      return;
+    }
+
+    try {
+      // 2. NextAuth Sign In
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false, // لضمان التحكم في الأنيميشن والرسائل
+      });
+
+      if (result?.error) {
+        setState({
+          success: false,
+          errors: { form: [result.error] },
+          data: { email },
+        });
+        return;
+      }
+
+      // 3. Success State
+      setState({
+        success: true,
+        message: "تم تسجيل الدخول بنجاح، جاري التحويل...",
+        errors: {},
+        data: { email },
+      });
+      
+      // التوجيه للداشبورد بعد ثانية واحدة لمنح المستخدم شعور بالنجاح
+      setTimeout(() => router.push("/dashboard"), 1000);
+
+    } catch (error) {
+      setState({
+        success: false,
+        errors: { form: ["حدث عطل فني، يرجى المحاولة لاحقاً"] },
+        data: { email },
+      });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   // Redirect on success
   useEffect(() => {
@@ -190,12 +251,12 @@ export default function LoginPage() {
             <div className="mb-6 flex justify-center">
               <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-1.5 text-[12px] font-bold text-amber-400">
                 <span>تجريبي:</span>
-                admin@smilecraft.com / password123
+                admin@smile-craft.com / Admin@Smile2026
               </div>
             </div>
 
             {/* ── Form ── */}
-            <form ref={formRef} action={formAction}>
+            <form ref={formRef} onSubmit={handleSubmit}>
               <div className="space-y-4">
                 {/* Email */}
                 <div>
@@ -210,7 +271,7 @@ export default function LoginPage() {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="example@email.com"
+                      placeholder="admin@smile-craft.com"
                       defaultValue={state.data?.email}
                       autoComplete="email"
                       disabled={isPending}
