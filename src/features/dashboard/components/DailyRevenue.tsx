@@ -153,14 +153,22 @@ export function DailyRevenue({ payments }: DailyRevenueProps) {
                 dir={locale === "ar" ? "rtl" : "ltr"}
               >
               <style>{`
+              .print-only-revenue {
+                  display: none;
+                }
                 @media print {
                   /* إجبار الـ html والـ body على الأبيض حتى لو كان مفعل كلاس dark */
                   html, html.dark, body, body.dark, :root {
                     background-color: #ffffff !important;
                     color: #000000 !important;
                     color-scheme: light !important;
+                    print-color-adjust: exact; 
+                    -webkit-print-color-adjust: exact;
                   }
-
+                    .dark, [data-theme='dark'] {
+                        background-color: transparent !important;
+                        color: #000000 !important;
+                    }
                   body > *:not(.print-only-revenue) {
                     display: none !important;
                   }
