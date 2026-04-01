@@ -6,7 +6,6 @@
 // =============================================================================
 
 import React, { useActionState, useEffect, useRef, useState } from "react";
-import { useRouter } from "@/i18n/routing";
 import { Mail, Lock, Eye, EyeOff, User, ArrowLeft } from "lucide-react";
 import { loginAction, LoginState } from "./loginAction";
 import { cn } from "@/lib/utils";
@@ -45,7 +44,6 @@ const initialState: LoginState = {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function LoginPage() {
-  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
@@ -53,10 +51,14 @@ export default function LoginPage() {
   // Redirect on success
   useEffect(() => {
     if (state.success) {
-      const timer = setTimeout(() => router.push("/dashboard"), 1000);
+      const timer = setTimeout(() => {
+        // Force a hard navigation to bypass Next.js client-side cache
+        // ensure the newly set cookie is sent to middleware correctly.
+        window.location.href = window.location.pathname.replace(/\/login$/, '/dashboard');
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [state.success, router]);
+  }, [state.success]);
 
   return (
     <>

@@ -11,6 +11,17 @@
 - **Theming**: `next-themes` (Dark/Light mode via Sidebar).
 - **Animations**: `framer-motion` (Spring indicators, Page transitions).
 - **Type Safety**: Strict TypeScript (Branded primitives and defineRouting).
+- **React Hook Form**: Utilized for form state management and validation.
+- **Zod**: Data validation and parsing.
+- **Database**: PostgreSQL with Prisma ORM.
+- **Authentication**: NextAuth.js with JWT tokens.
+- **Authorization**: Role-based access control (RBAC) with `next-auth` middleware.
+- **API**: RESTful API with JSON responses.
+- **Server**: `next-auth` for authentication, Prisma for database operations.
+- **Client**: React 19 with `useActionState` for server actions.
+- **State Management**: `useClient` for local state management.
+- **Error Handling**: Comprehensive error logging and user feedback.
+- **Performance**: Optimized for fast load times and smooth interactions.
 
 
 ---
