@@ -325,19 +325,19 @@ export default function LoginPage() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isPending || state.success}
                   className={cn(
                     "w-full py-3.5 rounded-xl font-bold text-[14.5px] mt-1",
                     "transition-all duration-200 flex items-center justify-center gap-2.5",
-                    isPending
+                    (isPending || state.success)
                       ? "bg-blue-500/30 text-[#060D18]/40 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600 shadow-[0_8px_28px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_36px_rgba(37,99,235,0.4)] hover:-translate-y-0.5",
                   )}
                 >
-                  {isPending ? (
+                  {(isPending || state.success) ? (
                     <span className="flex items-center gap-2 text-blue-200">
                       <span className="w-4 h-4 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
-                      جاري تسجيل الدخول...
+                       جاري تسجيل الدخول...
                     </span>
                   ) : (
                     <>

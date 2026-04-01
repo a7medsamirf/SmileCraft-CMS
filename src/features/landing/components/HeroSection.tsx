@@ -129,65 +129,88 @@ export function HeroSection() {
               </div>
             </div>
 
-            {/* Mockup Content */}
-            <div className="p-[18px]">
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-2 mb-[14px]">
+            {/* Mockup Content - System Dashboard Style */}
+            <div className="p-[16px] flex flex-col gap-2.5">
+              {/* Row 1: StatsGrid (4 items) */}
+              <div className="grid grid-cols-4 gap-2">
                 {[
-                  { val: "٤٨", label: "مريض هذا الشهر", delta: "↑ +١٢٪", deltaColor: "#10b981" },
-                  { val: "٧", label: "مواعيد اليوم", delta: "٣ متبقية", deltaColor: "#f59e0b" },
-                  { val: "٢٤.٥k", label: "الإيرادات ج.م.", delta: "↑ +٨٪", deltaColor: "#10b981", valColor: "#2563EB" },
+                  { label: "إجمالي المرضى", val: "١,٢٥٠", icon: "👥", color: "#3B82F6" },
+                  { label: "مواعيد اليوم", val: "٢٤", icon: "📅", color: "#10B981" },
+                  { label: "إيرادات اليوم", val: "٥,٤٠٠", icon: "💰", color: "#F59E0B" },
+                  { label: "مهام معلقة", val: "٨", icon: "✅", color: "#8B5CF6" },
                 ].map((s, i) => (
-                  <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-[10px] p-2.5">
-                    <div className="text-[18px] font-black text-white" style={s.valColor ? { color: s.valColor } : undefined}>
-                      {s.val}
+                  <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-[8px] p-2 flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-1.5">
+                       <span className="text-[10px] opacity-70 grayscale">{s.icon}</span>
+                       <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
                     </div>
-                    <div className="text-[10px] text-[#6B849E] font-semibold mt-0.5">{s.label}</div>
-                    <div className="text-[10px] font-bold mt-1" style={{ color: s.deltaColor }}>{s.delta}</div>
+                    <div>
+                      <div className="text-[13px] font-black text-white leading-none mb-1">{s.val}</div>
+                      <div className="text-[8px] text-[#6B849E] font-semibold">{s.label}</div>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Mini Chart */}
-              <div className="bg-white/[0.02] border border-white/[0.05] rounded-[10px] p-3 mb-2.5">
-                <div className="text-[11px] font-bold text-[#6B849E] mb-2.5">الإيرادات الشهرية</div>
-                <div className="flex items-end gap-1.5 h-[50px]">
-                  {[55, 72, 62, 45, 80].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-t mini-bar"
-                      style={{ height: `${h}%`, background: "rgba(37,99,235,0.15)" }}
-                    />
-                  ))}
-                  <div
-                    className="flex-1 rounded-t mini-bar"
-                    style={{ height: "78%", background: "#2563EB" }}
-                  />
-                </div>
+              {/* Row 2: Quick Actions, Revenue, Breakdown */}
+              <div className="grid grid-cols-3 gap-2">
+                 {/* Quick Actions */}
+                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-2 flex flex-col gap-1.5">
+                    <div className="w-14 h-1.5 rounded bg-white/[0.1] mb-1" />
+                    <div className="grid grid-cols-2 gap-1.5">
+                       <div className="h-6 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[#2563EB] text-[8px] font-bold">مريض</div>
+                       <div className="h-6 rounded bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[#10B981] text-[8px] font-bold">موعد</div>
+                    </div>
+                 </div>
+                 {/* Weekly Revenue */}
+                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-2 flex flex-col justify-between">
+                    <div className="w-16 h-1.5 rounded bg-white/[0.1] mb-1.5" />
+                    <div className="flex items-end gap-[3px] h-6 pt-1">
+                      {[40, 60, 45, 80, 55, 90, 70].map((h, i) => (
+                        <div key={i} className="flex-1 rounded-t-[1px]" style={{ height: `${h}%`, background: i === 5 ? '#2563EB' : 'rgba(37,99,235,0.15)' }} />
+                      ))}
+                    </div>
+                 </div>
+                 {/* Procedures Breakdown */}
+                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-2.5 flex items-center justify-center relative">
+                    <div className="absolute top-2 right-2 w-10 h-1.5 rounded bg-white/[0.1]" />
+                    <div className="w-7 h-7 rounded-full border-[3px] border-[#2563EB] border-t-[#10b981] border-l-[#f59e0b] mt-2" />
+                 </div>
               </div>
 
-              {/* Appointments List */}
-              <div className="flex flex-col gap-1.5">
-                {[
-                  { time: "09:00", name: "أحمد حسن", status: "مكتمل", statusBg: "rgba(16,185,129,0.15)", statusColor: "#10b981", dotColor: "#2563EB" },
-                  { time: "10:30", name: "سارة محمد", status: "جارٍ الآن", statusBg: "rgba(245,158,11,0.15)", statusColor: "#f59e0b", dotColor: "#f59e0b" },
-                  { time: "11:30", name: "خالد علي", status: "قادم", statusBg: "rgba(100,116,139,0.2)", statusColor: "#64748b", dotColor: "#64748b" },
-                ].map((ap, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 bg-white/[0.02] border border-white/[0.05] rounded-lg px-2.5 py-2"
-                  >
-                    <span className="text-[10px] font-extrabold text-[#2563EB] min-w-[32px]" dir="ltr">{ap.time}</span>
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: ap.dotColor }} />
-                    <span className="text-[10.5px] font-bold text-white flex-1">{ap.name}</span>
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: ap.statusBg, color: ap.statusColor }}
-                    >
-                      {ap.status}
-                    </span>
-                  </div>
-                ))}
+              {/* Row 3: Agenda & Recent Activity */}
+              <div className="grid grid-cols-3 gap-2">
+                 {/* Daily Agenda (span 2) */}
+                 <div className="col-span-2 bg-white/[0.02] border border-white/[0.04] rounded-lg p-2">
+                    <div className="w-16 h-1.5 rounded bg-white/[0.1] mb-2" />
+                    <div className="flex flex-col gap-1.5">
+                      {[
+                        { time: "09:00", name: "أحمد حسن", statusBg: "rgba(16,185,129,0.15)", statusColor: "#10b981", w: "w-14" },
+                        { time: "10:30", name: "سارة محمد", statusBg: "rgba(245,158,11,0.15)", statusColor: "#f59e0b", w: "w-20" },
+                      ].map((ap, i) => (
+                        <div key={i} className="flex items-center justify-between bg-white/[0.015] border border-white/[0.03] rounded p-1.5">
+                           <div className="flex items-center gap-2">
+                             <span className="text-[8px] font-extrabold text-[#2563EB]">{ap.time}</span>
+                             <div className={`h-1.5 rounded bg-white/[0.15] ${ap.w}`} />
+                           </div>
+                           <div className="w-6 h-2 rounded-full" style={{ background: ap.statusBg }} />
+                        </div>
+                      ))}
+                    </div>
+                 </div>
+                 {/* Recent Activity */}
+                 <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-2 flex flex-col gap-1.5">
+                    <div className="w-14 h-1.5 rounded bg-white/[0.1] mb-1" />
+                    {[1, 2].map((_, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                         <div className="w-3.5 h-3.5 rounded bg-slate-700/50" />
+                         <div className="flex flex-col gap-1">
+                            <div className="w-10 h-[3px] rounded bg-white/[0.2]" />
+                            <div className="w-16 h-[3px] rounded bg-white/[0.06]" />
+                         </div>
+                      </div>
+                    ))}
+                 </div>
               </div>
             </div>
           </div>
