@@ -29,7 +29,7 @@ function buildConicGradient(): string {
 
 export function ProceduresBreakdown() {
   return (
-    <div className="glass-card p-6 relative overflow-hidden">
+    <div className="glass-card p-6 relative overflow-hidden h-full">
       <div className="absolute -bottom-10 -inset-inline-start-10 w-40 h-40 rounded-full bg-purple-500/10 blur-3xl" />
 
       <h3 className="relative text-base font-bold text-slate-800 dark:text-white mb-5">

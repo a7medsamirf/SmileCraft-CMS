@@ -38,11 +38,11 @@ const ACTIONS = [
 
 export function QuickActions() {
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 h-full">
       <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4">
         ⚡ إجراءات سريعة
       </h3>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {ACTIONS.map((action, i) => (
           <Link
             key={i}

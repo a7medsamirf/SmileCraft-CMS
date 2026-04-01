@@ -61,7 +61,7 @@ export function DailyAgenda({ selectedDate = new Date() }: DailyAgendaProps) {
   }, [selectedDate.toDateString()]);
 
   return (
-    <div className="glass-card p-6 min-h-[500px] flex flex-col">
+    <div className="glass-card p-6 min-h-[400px] flex flex-col">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t("dailyAgenda")}</h2>

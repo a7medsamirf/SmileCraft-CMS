@@ -36,7 +36,18 @@ export default async function DashboardPage() {
         <StatsGrid />
 
         {/* ── 2. Quick Actions ── */}
-        <QuickActions />
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-1">
+          <QuickActions />
+          </div>
+          <div>
+          <WeeklyRevenueChart />
+          </div>
+           <div className="lg:col-span-1 ">
+                  <ProceduresBreakdown />
+          </div>
+        </div>
+      
 
         {/* ── 3. Main Content: Agenda + Revenue Chart ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -44,22 +55,22 @@ export default async function DashboardPage() {
             <DailyAgenda />
           </div>
           <div>
-            <WeeklyRevenueChart />
+             <RecentActivity />
           </div>
         </div>
 
         {/* ── 4. Secondary Row: Procedures + Recent Activity + Lab ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <ProceduresBreakdown />
-          <RecentActivity />
+         <InventoryAlerts />
+         <OutstandingBalances />
           <LabTracker />
         </div>
 
         {/* ── 5. Bottom Row: Inventory + Birthdays + Balances ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <InventoryAlerts />
-          <BirthdayReminders />
-          <OutstandingBalances />
+          
+         {/*  <BirthdayReminders /> */}
+         
         </div>
       </div>
     </PageTransition>

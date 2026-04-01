@@ -48,11 +48,18 @@ const ACTIVITIES: Activity[] = [
     detail: "هدى إبراهيم — مضاد حيوي ومسكن",
     time: "منذ ساعتين",
   },
+  {
+    icon: <UserPlus className="w-3.5 h-3.5" />,
+    iconBg: "bg-cyan-500/20 text-cyan-400",
+    text: "مريض جديد",
+    detail: "محمد مصطفى — تسجيل أول زيارة",
+    time: "منذ ٣٠ دقيقة",
+  },
 ];
 
 export function RecentActivity() {
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 h-full">
       <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-5">
         <Clock className="w-5 h-5 text-slate-400" />
         آخر النشاطات
