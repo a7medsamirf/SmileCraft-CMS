@@ -5,10 +5,14 @@
 // Redesigned to match signin.html — split-screen dark theme
 // =============================================================================
 
-import React, { useActionState, useEffect, useRef, useState } from "react";
+import React, { useTransition, useState } from "react";
 import { Mail, Lock, Eye, EyeOff, User, ArrowLeft } from "lucide-react";
-import { loginAction, LoginState } from "./loginAction";
+import { loginAction } from "./loginAction";
+import { loginSchema, type LoginFormData } from "./schema";
 import { cn } from "@/lib/utils";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 
 // ─── CSS Keyframes (injected once) ──────────────────────────────────────────
 const AuthStyles = () => (
@@ -36,29 +40,43 @@ const AuthStyles = () => (
   `}</style>
 );
 
-// ─── Initial state ──────────────────────────────────────────────────────────
-const initialState: LoginState = {
-  success: false,
-  errors: {},
-};
-
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function LoginPage() {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, isPending] = useActionState(loginAction, initialState);
+  const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Redirect on success
-  useEffect(() => {
-    if (state.success) {
-      const timer = setTimeout(() => {
-        // Force a hard navigation to bypass Next.js client-side cache
-        // ensure the newly set cookie is sent to middleware correctly.
-        window.location.href = window.location.pathname.replace(/\/login$/, '/dashboard');
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [state.success]);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const isMutating = isPending || isSubmitting || !!successMsg;
+
+  const onSubmit = (data: LoginFormData) => {
+    setServerError(null);
+    setSuccessMsg(null);
+    startTransition(async () => {
+      const result = await loginAction(data);
+      if (result.success) {
+        setSuccessMsg(result.message || "تم تسجيل الدخول بنجاح");
+        setTimeout(() => {
+          // Force a hard navigation to bypass Next.js client-side cache
+          window.location.href = window.location.pathname.replace(/\/login$/, '/dashboard');
+        }, 1000);
+      } else if (result.errors?.form) {
+        setServerError(result.errors.form[0]);
+      }
+    });
+  };
 
   return (
     <>
@@ -197,11 +215,11 @@ export default function LoginPage() {
             </div>
 
             {/* ── Form ── */}
-            <form ref={formRef} action={formAction}>
+            <form onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-4">
                 {/* Email */}
                 <div>
-                  <label className="block text-[12px] font-bold text-slate-400 mb-2 tracking-wide">
+                  <label htmlFor="email" className="block text-[12px] font-bold text-slate-400 mb-2 tracking-wide">
                     البريد الإلكتروني
                   </label>
                   <div className="relative">
@@ -210,27 +228,26 @@ export default function LoginPage() {
                     </div>
                     <input
                       id="email"
-                      name="email"
                       type="email"
+                      {...register("email")}
                       placeholder="example@email.com"
-                      defaultValue={state.data?.email}
                       autoComplete="email"
-                      disabled={isPending}
+                      disabled={isMutating}
                       dir="ltr"
                       className={cn(
                         "w-full rounded-xl px-4 py-3 text-[13.5px] font-medium text-white",
                         "bg-[#0D1B2E] border-[1.5px] outline-none transition-all duration-200",
                         "placeholder:text-slate-700 pr-10",
-                        state.errors?.email
+                        errors.email
                           ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
                           : "border-white/[0.07] focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/[0.08] hover:border-white/[0.12]",
-                        isPending && "opacity-50 cursor-not-allowed",
+                        isMutating && "opacity-50 cursor-not-allowed"
                       )}
                     />
                   </div>
-                  {state.errors?.email && (
+                  {errors.email?.message && (
                     <p className="auth-err-in text-[11.5px] text-red-400 font-medium mt-1.5">
-                      {state.errors.email[0]}
+                      {errors.email.message}
                     </p>
                   )}
                 </div>
@@ -238,7 +255,7 @@ export default function LoginPage() {
                 {/* Password */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[12px] font-bold text-slate-400 tracking-wide">
+                    <label htmlFor="password" className="block text-[12px] font-bold text-slate-400 tracking-wide">
                       كلمة المرور
                     </label>
                     <a
@@ -254,20 +271,20 @@ export default function LoginPage() {
                     </div>
                     <input
                       id="password"
-                      name="password"
                       type={showPassword ? "text" : "password"}
+                      {...register("password")}
                       placeholder="أدخل كلمة المرور"
                       autoComplete="current-password"
-                      disabled={isPending}
+                      disabled={isMutating}
                       dir="ltr"
                       className={cn(
                         "w-full rounded-xl px-4 py-3 text-[13.5px] font-medium text-white",
                         "bg-[#0D1B2E] border-[1.5px] outline-none transition-all duration-200",
                         "placeholder:text-slate-700 pr-10 pl-12",
-                        state.errors?.password
+                        errors.password
                           ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
                           : "border-white/[0.07] focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/[0.08] hover:border-white/[0.12]",
-                        isPending && "opacity-50 cursor-not-allowed",
+                        isMutating && "opacity-50 cursor-not-allowed"
                       )}
                     />
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
@@ -285,9 +302,9 @@ export default function LoginPage() {
                       </button>
                     </div>
                   </div>
-                  {state.errors?.password && (
+                  {errors.password?.message && (
                     <p className="auth-err-in text-[11.5px] text-red-400 font-medium mt-1.5">
-                      {state.errors.password[0]}
+                      {errors.password.message}
                     </p>
                   )}
                 </div>
@@ -304,20 +321,20 @@ export default function LoginPage() {
                 </div>
 
                 {/* Form-level Error */}
-                {state.errors?.form && (
+                {serverError && (
                   <div className="auth-err-in p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                     <p className="text-[12.5px] text-red-400 text-center font-medium">
-                      {state.errors.form[0]}
+                      {serverError}
                     </p>
                   </div>
                 )}
 
                 {/* Success Message */}
-                {state.success && (
+                {successMsg && (
                   <div className="auth-err-in p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <p className="text-[12.5px] text-emerald-400 text-center font-medium flex items-center justify-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      {state.message}
+                      {successMsg}
                     </p>
                   </div>
                 )}
@@ -325,16 +342,16 @@ export default function LoginPage() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isPending || state.success}
+                  disabled={isMutating}
                   className={cn(
                     "w-full py-3.5 rounded-xl font-bold text-[14.5px] mt-1",
                     "transition-all duration-200 flex items-center justify-center gap-2.5",
-                    (isPending || state.success)
+                    isMutating
                       ? "bg-blue-500/30 text-[#060D18]/40 cursor-not-allowed"
-                      : "bg-blue-500 text-white hover:bg-blue-600 shadow-[0_8px_28px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_36px_rgba(37,99,235,0.4)] hover:-translate-y-0.5",
+                      : "bg-blue-500 text-white hover:bg-blue-600 shadow-[0_8px_28px_rgba(37,99,235,0.3)] hover:shadow-[0_12px_36px_rgba(37,99,235,0.4)] hover:-translate-y-0.5"
                   )}
                 >
-                  {(isPending || state.success) ? (
+                  {isMutating ? (
                     <span className="flex items-center gap-2 text-blue-200">
                       <span className="w-4 h-4 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
                        جاري تسجيل الدخول...
@@ -371,6 +388,18 @@ export default function LoginPage() {
                 <span className="text-[11.5px] text-slate-600 font-semibold">وصول فوري</span>
               </div>
             </div> */}
+          </div>
+
+          <div className="mt-6">
+            <p className="text-center text-slate-600 text-[13px] font-medium">
+              لا تمتلك حساب؟{" "}
+              <Link
+                href="/signup"
+                className="text-blue-400 hover:text-blue-300 font-bold transition-colors"
+              >
+                أنشئ حسابًا جديدًا
+              </Link>
+            </p>
           </div>
 
           {/* Support Link */}

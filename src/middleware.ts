@@ -21,7 +21,7 @@ export default async function middleware(request: NextRequest) {
 
   // Check for login at both levels for safety
   const isAuthPage = cleanPath.startsWith("/login") || cleanPath.startsWith("/auth/login");
-  const isPublicPage = cleanPath === "/" || cleanPath.startsWith("/landing");
+  const isPublicPage = cleanPath === "/" || cleanPath.startsWith("/signup") || cleanPath.startsWith("/auth/signup");
   const isProtectedPage = !isAuthPage && !isPublicPage && !pathname.includes(".");
 
   // 3. Manual Redirect Logic BEFORE running intlMiddleware

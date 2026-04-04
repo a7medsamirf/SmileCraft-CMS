@@ -23,7 +23,7 @@ export function LandingNavbar() {
   return (
     <nav
       dir="rtl"
-      className={`fixed top-0 inset-x-0 z-[900] px-[5vw] h-[72px] flex items-center justify-between transition-all duration-300 border-b backdrop-blur-xl ${
+      className={`fixed top-0 inset-x-0 z-900 px-[5vw] h-[72px] flex items-center justify-between transition-all duration-300 border-b backdrop-blur-xl ${
         scrolled
           ? "bg-[#060D18]/90 border-[rgba(37,99,235,0.12)]"
           : "bg-[#060D18]/70 border-transparent"
@@ -59,7 +59,7 @@ export function LandingNavbar() {
           تسجيل الدخول
         </a>
         <a
-          href="/ar/login"
+          href="/ar/signup"
           className="btn-primary text-[13.5px] font-extrabold px-[22px] py-[9px] text-white rounded-[10px] bg-[#2563EB] cursor-pointer transition-all shadow-[0_0_0_0_rgba(37,99,235,0.4)]"
         >
           ابدأ مجاناً

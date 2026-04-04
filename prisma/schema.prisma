@@ -1,0 +1,337 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+// ============================================
+// 👥 USERS & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id
+  email         String    @unique
+  password      String?
+  fullName      String
+  clinicName    String?
+  phone         String?
+  role          UserRole  @default(RECEPTIONIST)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  appointments  Appointment[] @relation("AssignedAppointments")
+  treatments    Treatment[]   @relation("AssignedTreatments")
+  payments      Payment[]     @relation("ProcessedPayments")
+  
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+  ASSISTANT
+}
+
+// ============================================
+// 👥 PATIENTS
+// ============================================
+
+model Patient {
+  id              String   @id @default(cuid())
+  fileNumber      String   @unique
+  fullName        String
+  phone           String
+  altPhone        String?
+  email           String?
+  dateOfBirth     DateTime
+  gender          Gender
+  bloodGroup      String?
+  city            String?
+  address         String?
+  job             String?
+  notes           String?
+  allergies       String?  @db.Text
+  medicalHistory  Json     @default("[]")
+  mouthMap        Json     @default("{}")
+  avatar          String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  appointments    Appointment[]
+  treatments      Treatment[]
+  payments        Payment[]
+  invoices        Invoice[]
+  
+  @@index([phone])
+  @@index([fileNumber])
+  @@map("patients")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+// ============================================
+// 📅 APPOINTMENTS
+// ============================================
+
+model Appointment {
+  id            String           @id @default(cuid())
+  patientId     String
+  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?            @relation("AssignedAppointments", fields: [userId], references: [id])
+  date          DateTime
+  startTime     String
+  endTime       String?
+  status        AppointmentStatus @default(SCHEDULED)
+  type          String?
+  notes         String?
+  reason        String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  @@index([patientId])
+  @@index([userId])
+  @@index([date])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================
+// 🦷 CLINICAL & TREATMENTS
+// ============================================
+
+model Treatment {
+  id            String           @id @default(cuid())
+  patientId     String
+  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?            @relation("AssignedTreatments", fields: [userId], references: [id])
+  toothNumber   String?
+  surface       String?
+  procedureType String
+  procedureName String
+  status        TreatmentStatus  @default(PLANNED)
+  priority      Priority         @default(MEDIUM)
+  cost          Decimal          @default(0)
+  completedAt   DateTime?
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  invoiceItems  InvoiceItem[]
+  
+  @@index([patientId])
+  @@index([status])
+  @@map("treatments")
+}
+
+enum TreatmentStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================
+// 💸 FINANCE & PAYMENTS
+// ============================================
+
+model Payment {
+  id            String        @id @default(cuid())
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?         @relation("ProcessedPayments", fields: [userId], references: [id])
+  amount        Decimal
+  method        PaymentMethod @default(CASH)
+  type          PaymentType   @default(PAYMENT)
+  notes         String?
+  reference     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([patientId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  WALLET
+  BANK_TRANSFER
+  INSURANCE
+}
+
+enum PaymentType {
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+}
+
+// ============================================
+// 📄 INVOICES
+// ============================================
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  totalAmount   Decimal       @default(0)
+  paidAmount    Decimal       @default(0)
+  status        InvoiceStatus @default(DRAFT)
+  dueDate       DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  items         InvoiceItem[]
+  
+  @@index([patientId])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+}
+
+model InvoiceItem {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  treatmentId   String?
+  treatment     Treatment? @relation(fields: [treatmentId], references: [id])
+  description   String
+  quantity      Int      @default(1)
+  unitPrice     Decimal
+  total         Decimal
+  
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// ============================================
+// 🦷 SERVICES
+// ============================================
+
+model Service {
+  id            String   @id @default(cuid())
+  name          String
+  nameAr        String?
+  code          String   @unique
+  category      String
+  price         Decimal
+  duration      Int?     // minutes
+  description   String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([category])
+  @@map("services")
+}
+
+// ============================================
+// 📦 INVENTORY
+// ============================================
+
+model InventoryItem {
+  id            String   @id @default(cuid())
+  name          String
+  nameAr        String?
+  code          String   @unique
+  category      String
+  quantity      Int      @default(0)
+  unit          String
+  minStock      Int      @default(10)
+  price         Decimal  @default(0)
+  supplier      String?
+  expiryDate    DateTime?
+  location      String?
+  notes         String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([code])
+  @@index([category])
+  @@map("inventory_items")
+}
+
+// ============================================
+// 👨‍⚕️ STAFF
+// ============================================
+
+model Staff {
+  id            String   @id @default(cuid())
+  userId        String?  @unique
+  employeeCode  String   @unique
+  fullName      String
+  specialty     String?
+  certification String?
+  phone         String
+  email         String
+  address       String?
+  salary        Decimal?
+  joinDate      DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([employeeCode])
+  @@map("staff")
+}
+
+// ============================================
+// 🔔 NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  title     String
+  message   String   @db.Text
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}

@@ -1,5 +1,3 @@
-The user is asking me to review the CLAUDE.md file they provided and explain what's in it - specifically in Arabic (العربي). This is a straightforward reading comprehension task where I need to summarize the content of the file in Arabic.
-
 Let me analyze what's in this CLAUDE.md file:
 
 1. It's a context snapshot for a project called "SmileCraft CMS" - a dental clinic management system

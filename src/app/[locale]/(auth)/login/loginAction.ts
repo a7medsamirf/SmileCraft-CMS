@@ -5,23 +5,15 @@
 // app/[locale]/auth/login/loginAction.ts
 // =============================================================================
 
-import { cookies } from "next/headers";
 import { z } from "zod";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 // -----------------------------------------------------------------------------
 // Validation Schema
 // -----------------------------------------------------------------------------
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "البريد الإلكتروني مطلوب")
-    .email("صيغة البريد الإلكتروني غير صحيحة"),
-  password: z
-    .string()
-    .min(1, "كلمة المرور مطلوبة")
-    .min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
-});
+import { loginSchema, type LoginFormData } from "./schema";
 
 // -----------------------------------------------------------------------------
 // Login Result Types
@@ -35,24 +27,40 @@ export type LoginState = {
     password?: string[];
     form?: string[];
   };
-  data?: {
-    email: string;
-  };
 };
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Ignored when called from server component/action when setting cookies
+          }
+        },
+      },
+    }
+  );
+}
 
 // -----------------------------------------------------------------------------
 // Login Server Action
 // -----------------------------------------------------------------------------
 
-export async function loginAction(
-  prevState: LoginState,
-  formData: FormData
-): Promise<LoginState> {
-  // Parse form data
-  const result = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
+export async function loginAction(data: LoginFormData): Promise<LoginState> {
+  // Parse data to be sure
+  const result = loginSchema.safeParse(data);
 
   // Validation failed
   if (!result.success) {
@@ -69,43 +77,34 @@ export async function loginAction(
   // Valid data
   const { email, password } = result.data;
 
-  // ---------------------------------------------------------------------------
-  // Mock authentication for demo
-  // ---------------------------------------------------------------------------
-  const MOCK_CREDENTIALS = {
-    email: "admin@smilecraft.com",
-    password: "password123",
-  };
+  const supabase = await createClient();
 
-  await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate network delay
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-  if (email !== MOCK_CREDENTIALS.email || password !== MOCK_CREDENTIALS.password) {
+  if (error) {
     return {
       success: false,
       errors: {
         form: ["البريد الإلكتروني أو كلمة المرور غير صحيحة"],
       },
-      data: { email },
     };
   }
 
-  // ---------------------------------------------------------------------------
-  // SUCCESS: Set Session Cookie
-  // ---------------------------------------------------------------------------
+  // Set the "auth_token" to satisfy existing middleware.ts logic 
   const cookieStore = await cookies();
-  
-  // Set mock token (In production, use JWT or Session ID)
-  cookieStore.set("auth_token", "smilecraft_mock_token_12345", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+  cookieStore.set("auth_token", authData.session?.access_token || "supabase_auth_secure_token", {
     path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
   return {
     success: true,
     message: "تم تسجيل الدخول بنجاح",
-    data: { email },
   };
 }
