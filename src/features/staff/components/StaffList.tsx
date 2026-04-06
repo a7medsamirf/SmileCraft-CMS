@@ -1,19 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Users,
   Plus,
   Search,
-  Filter,
   Edit2,
   Trash2,
   UserCheck,
   UserX,
-  Briefcase,
   Mail,
   Phone,
-  Calendar,
   DollarSign,
   Award,
 } from "lucide-react";
@@ -21,24 +19,28 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { StaffMember, StaffRole } from "../types";
-import { staffService } from "../services/staffService";
 
 interface StaffListProps {
+  staff: StaffMember[];
+  isMutating?: boolean;
   onEdit: (staff: StaffMember) => void;
   onAdd: () => void;
+  onToggleStatus: (staff: StaffMember) => void;
+  onDelete: (staff: StaffMember) => void;
 }
 
-export function StaffList({ onEdit, onAdd }: StaffListProps) {
+export function StaffList({
+  staff,
+  isMutating = false,
+  onEdit,
+  onAdd,
+  onToggleStatus,
+  onDelete,
+}: StaffListProps) {
   const t = useTranslations("Staff");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<StaffRole | "ALL">("ALL");
-  const [staff, setStaff] = useState<StaffMember[]>(() => staffService.getAllStaff());
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Refresh staff when refreshKey changes
-  useMemo(() => {
-    setStaff(staffService.getAllStaff());
-  }, [refreshKey]);
+  const [pendingDelete, setPendingDelete] = useState<StaffMember | null>(null);
 
   const filteredStaff = useMemo(() => {
     return staff.filter((s) => {
@@ -49,16 +51,14 @@ export function StaffList({ onEdit, onAdd }: StaffListProps) {
     });
   }, [staff, searchTerm, filterRole]);
 
-  const handleToggleStatus = (id: string) => {
-    staffService.toggleStaffStatus(id);
-    setRefreshKey((k) => k + 1);
+  const handleDelete = (member: StaffMember) => {
+    setPendingDelete(member);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm(t("confirmDelete"))) {
-      staffService.deleteStaff(id);
-      setRefreshKey((k) => k + 1);
-    }
+  const handleConfirmDelete = () => {
+    if (!pendingDelete) return;
+    onDelete(pendingDelete);
+    setPendingDelete(null);
   };
 
   const getRoleBadgeColor = (role: StaffRole) => {
@@ -168,7 +168,8 @@ export function StaffList({ onEdit, onAdd }: StaffListProps) {
               <Button
                 variant={member.isActive ? "outline" : "primary"}
                 size="sm"
-                onClick={() => handleToggleStatus(member.id)}
+                onClick={() => onToggleStatus(member)}
+                disabled={isMutating}
                 className="rounded-xl"
               >
                 {member.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -176,7 +177,8 @@ export function StaffList({ onEdit, onAdd }: StaffListProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleDelete(member.id)}
+                onClick={() => handleDelete(member)}
+                disabled={isMutating}
                 className="rounded-xl text-red-600 hover:bg-red-50 hover:border-red-200"
               >
                 <Trash2 className="h-4 w-4" />
@@ -192,6 +194,47 @@ export function StaffList({ onEdit, onAdd }: StaffListProps) {
           <p className="text-slate-500 dark:text-slate-400">{t("noStaffFound")}</p>
         </div>
       )}
+
+      <AnimatePresence>
+        {pendingDelete && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="glass-card w-full max-w-md rounded-2xl p-6"
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.9 }}
+            >
+            <p className="text-center text-base font-semibold text-slate-900 dark:text-white">
+              {t("confirmDelete")}
+            </p>
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <Button
+                variant="primary"
+                onClick={handleConfirmDelete}
+                disabled={isMutating}
+                className="min-w-24 rounded-xl"
+              >
+                {t("confirmDeleteYes")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setPendingDelete(null)}
+                className="min-w-24 rounded-xl"
+              >
+                {t("cancel")}
+              </Button>
+            </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

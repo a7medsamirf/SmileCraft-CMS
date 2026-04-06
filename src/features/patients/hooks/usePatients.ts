@@ -1,18 +1,9 @@
 "use client";
 
-// =============================================================================
-// DENTAL CMS — Patients Module: usePatients Hook
-// features/patients/hooks/usePatients.ts
-//
-// Currently backed by mock data. Swap fetchPatients() with your real API
-// service once the backend is ready — the hook interface stays identical.
-// =============================================================================
-
-import { useCallback, useMemo, useState, useEffect } from "react";
-import { MOCK_PATIENTS } from "../mock/patients.mock";
+import { useCallback, useState, useEffect } from "react";
 import { Patient, PatientFilters, PaginationParams } from "../types/index";
 import { DEFAULT_PAGE_SIZE } from "../constants";
-import { patientService } from "../services/patientService";
+import { getPatientsAction } from "../serverActions";
 
 interface UsePatientsReturn {
   patients: Patient[];
@@ -33,62 +24,32 @@ const DEFAULT_PAGINATION: PaginationParams = { page: 1, limit: DEFAULT_PAGE_SIZE
 export function usePatients(): UsePatientsReturn {
   const [filters, setFiltersState] = useState<PatientFilters>(DEFAULT_FILTERS);
   const [pagination, setPagination] = useState<PaginationParams>(DEFAULT_PAGINATION);
-  const [persistedPatients, setPersistedPatients] = useState<Patient[]>(() => {
-    if (typeof window !== "undefined") {
-      return patientService.getPatients();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchPatients = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await getPatientsAction(filters, pagination.page, pagination.limit);
+      setPatients(result.data);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+    } catch (error) {
+      console.error("Failed to fetch patients:", error);
+    } finally {
+      setIsLoading(false);
     }
-    return [];
-  });
+  }, [filters, pagination.page, pagination.limit]);
 
-  // Function to load patients from localStorage
-  const refresh = useCallback(() => {
-    const saved = patientService.getPatients();
-    setPersistedPatients(saved);
-  }, []);
-
-  // Load once on mount - no longer needed due to lazy initializer
-  // but we keep it empty to satisfy potential other needs or remove if not used.
-  useEffect(() => {}, []);
-
-  // In a real app this would be an async call; keep the signature stable.
-  const isLoading = false;
-
-  // --- Client-side filtering (will be replaced by server-side query params) ---
-  const filtered = useMemo(() => {
-    // Merge mock data with persisted data
-    // Tip: Use IDs to avoid duplicates if mock data is also persisted
-    const allPatients = [...MOCK_PATIENTS, ...persistedPatients];
-    let result = [...allPatients];
-
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.fullName.toLowerCase().includes(q) ||
-          p.contactInfo.phone.includes(q) ||
-          p.nationalId?.includes(q),
-      );
-    }
-    if (filters.gender) result = result.filter((p) => p.gender === filters.gender);
-    if (filters.status) result = result.filter((p) => p.status === filters.status);
-    if (filters.bloodGroup)
-      result = result.filter(
-        (p) => p.medicalHistory.bloodGroup === filters.bloodGroup,
-      );
-
-    return result;
-  }, [filters, persistedPatients]);
-
-  const total      = filtered.length;
-  const totalPages = Math.ceil(total / pagination.limit);
-  const patients   = filtered.slice(
-    (pagination.page - 1) * pagination.limit,
-    pagination.page * pagination.limit
-  );
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
 
   const setFilters = useCallback((partial: Partial<PatientFilters>) => {
     setFiltersState((prev) => ({ ...prev, ...partial }));
-    setPagination((prev) => ({ ...prev, page: 1 })); // reset to first page on filter change
+    setPagination((prev) => ({ ...prev, page: 1 }));
   }, []);
 
   const setPage = useCallback((page: number) => {
@@ -110,6 +71,6 @@ export function usePatients(): UsePatientsReturn {
     setFilters,
     setPage,
     resetFilters,
-    refresh,
+    refresh: fetchPatients,
   };
 }

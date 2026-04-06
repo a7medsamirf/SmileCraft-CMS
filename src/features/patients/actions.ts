@@ -1,15 +1,14 @@
-"use client";
+"use server";
 
-import { patientService } from "./services/patientService";
-import { generateId } from "@/lib/utils/id";
+import { z } from "zod";
+import { createPatientActionDB } from "./serverActions";
+import { addPatientSchema } from "./schemas/addPatientSchema";
 import { 
   Patient, 
   Gender, 
   BloodGroup, 
   PatientStatus, 
-  UUID, 
   ISODateString, 
-  ISODateTimeString 
 } from "./types/index";
 
 export interface ActionState {
@@ -23,77 +22,69 @@ export async function createPatientAction(
   prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  // Simulate network delay for better UX (showing loading states)
-  await new Promise((res) => setTimeout(res, 800));
+  const rawData = {
+    fullName: formData.get("fullName"),
+    phone: formData.get("phone"),
+    nationalId: formData.get("nationalId"),
+    birthDate: formData.get("birthDate"),
+    gender: formData.get("gender"),
+    city: formData.get("city"),
+    bloodGroup: formData.get("bloodGroup"),
+    medicalNotes: formData.get("medicalNotes"),
+    currentMedications: formData.get("currentMedications"),
+    emergencyName: formData.get("emergencyName"),
+    emergencyRelationship: formData.get("emergencyRelationship"),
+    emergencyPhone: formData.get("emergencyPhone"),
+  };
 
-  const fullName = formData.get("fullName") as string;
-  const phone = formData.get("phone") as string;
-  const nationalId = formData.get("nationalId") as string;
-  const birthDate = formData.get("birthDate") as string;
-  const gender = formData.get("gender") as Gender;
-  const city = formData.get("city") as string;
-  const bloodGroup = formData.get("bloodGroup") as BloodGroup;
-  const medicalNotes = formData.get("medicalNotes") as string;
-  const currentMedications = formData.get("currentMedications") as string;
-  const emergencyName = formData.get("emergencyName") as string;
-  const emergencyRelationship = formData.get("emergencyRelationship") as string;
-  const emergencyPhone = formData.get("emergencyPhone") as string;
+  const validated = addPatientSchema.safeParse(rawData);
 
-  // Basic validation - returning keys for localization in the component
-  if (!fullName || fullName.length < 3) {
+  if (!validated.success) {
     return {
       success: false,
-      message: "validationName",
+      errors: validated.error.flatten().fieldErrors as Record<string, string[]>,
+      message: "validationError",
     };
   }
 
-  if (!phone || phone.length < 10) {
-    return {
-      success: false,
-      message: "validationPhone",
-    };
-  }
+  const { data } = validated;
 
-  const now = new Date().toISOString() as ISODateTimeString;
-  
-  const newPatient: Patient = {
-    id: generateId() as UUID,
-    fullName,
-    gender,
-    birthDate: birthDate as ISODateString,
+  const payload: Omit<Patient, "id" | "createdAt" | "updatedAt"> = {
+    fullName: data.fullName,
+    gender: data.gender,
+    birthDate: data.birthDate as ISODateString,
     contactInfo: {
-      phone,
-      city,
+      phone: data.phone,
+      city: data.city,
     },
     medicalHistory: {
-      conditions: medicalNotes ? [{ condition: medicalNotes, isActive: true }] : [],
+      conditions: data.medicalNotes ? [{ condition: data.medicalNotes, isActive: true }] : [],
       allergies: [],
-      currentMedications: currentMedications ? [currentMedications] : [],
-      bloodGroup: bloodGroup || BloodGroup.UNKNOWN,
+      currentMedications: data.currentMedications ? [data.currentMedications] : [],
+      bloodGroup: data.bloodGroup || BloodGroup.UNKNOWN,
     },
-    emergencyContact: emergencyName ? {
-      name: emergencyName,
-      relationship: emergencyRelationship,
-      phone: emergencyPhone,
+    emergencyContact: data.emergencyName ? {
+      name: data.emergencyName,
+      relationship: data.emergencyRelationship || "",
+      phone: data.emergencyPhone || "",
     } : undefined,
     status: PatientStatus.ACTIVE,
-    nationalId,
+    nationalId: data.nationalId,
     visits: [],
-    createdAt: now,
-    updatedAt: now,
   };
 
   try {
-    patientService.savePatient(newPatient);
+    const newPatient = await createPatientActionDB(payload);
     return {
       success: true,
       message: "addPatientSuccess",
       data: newPatient,
     };
-  } catch (_error) {
+  } catch (error) {
+    console.error("Failed to create patient:", error);
     return {
       success: false,
-      message: "An error occurred while saving the patient.",
+      message: "saveError",
     };
   }
 }

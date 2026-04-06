@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { createPatientAction } from "../actions";
@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gender, BloodGroup } from "../types";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { addPatientSchema, AddPatientFormData } from "../schemas/addPatientSchema";
 
 interface AddPatientFormProps {
   onSuccess?: () => void;
@@ -30,9 +33,20 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
   const t = useTranslations("Patients");
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [state, formAction, isPending] = useActionState(createPatientAction, {
     success: null,
+  });
+
+  const {
+    register,
+    trigger,
+    getValues,
+    formState: { errors },
+  } = useForm<AddPatientFormData>({
+    resolver: zodResolver(addPatientSchema),
+    mode: "onChange",
   });
 
   // Success handling
@@ -45,8 +59,38 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
     }
   }, [state.success, onSuccess]);
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, totalSteps));
+  const nextStep = async () => {
+    let fieldsToValidate: (keyof AddPatientFormData)[] = [];
+    if (step === 1) {
+      fieldsToValidate = ["fullName", "phone", "nationalId", "birthDate", "gender", "city"];
+    } else if (step === 2) {
+      fieldsToValidate = ["bloodGroup", "medicalNotes", "currentMedications"];
+    }
+
+    const isValid = await trigger(fieldsToValidate);
+    if (isValid) {
+      setStep((s) => Math.min(s + 1, totalSteps));
+    }
+  };
+
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const isValid = await trigger();
+    if (isValid) {
+      const data = getValues();
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          formData.append(key, value.toString());
+        }
+      });
+      React.startTransition(() => {
+        formAction(formData);
+      });
+    }
+  };
 
   if (state.success) {
     return (
@@ -61,6 +105,13 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
       </div>
     );
   }
+
+  // Helper to merge server errors and client errors
+  const getError = (name: keyof AddPatientFormData) => {
+    if (errors[name]?.message) return t(errors[name]?.message as any);
+    if (state.errors?.[name]?.[0]) return t(state.errors[name][0] as any);
+    return undefined;
+  };
 
   return (
     <div className="w-full">
@@ -95,7 +146,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
         ))}
       </div>
 
-      <form action={formAction} className="space-y-5">
+      <form ref={formRef} onSubmit={onSubmit} className="space-y-5">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
@@ -111,10 +162,10 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("fullName")}
                   </label>
                   <Input
-                    name="fullName"
+                    {...register("fullName")}
                     placeholder={t("fullNamePlaceholder")}
-                    required
                     icon={<User className="h-4 w-4" />}
+                    error={getError("fullName")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -122,11 +173,11 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("phone")}
                   </label>
                   <Input
-                    name="phone"
+                    {...register("phone")}
                     placeholder={t("phonePlaceholder")}
                     type="tel"
-                    required
                     icon={<Phone className="h-4 w-4" />}
+                    error={getError("phone")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -134,9 +185,10 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("nationalId")}
                   </label>
                   <Input
-                    name="nationalId"
+                    {...register("nationalId")}
                     placeholder={t("nationalIdPlaceholder")}
                     icon={<CreditCard className="h-4 w-4" />}
+                    error={getError("nationalId")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -144,10 +196,10 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("birthDate")}
                   </label>
                   <Input
-                    name="birthDate"
+                    {...register("birthDate")}
                     type="date"
-                    required
                     icon={<Calendar className="h-4 w-4" />}
+                    error={getError("birthDate")}
                   />
                 </div>
                 <div className="space-y-2">
@@ -155,7 +207,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("gender")}
                   </label>
                   <select
-                    name="gender"
+                    {...register("gender")}
                     className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-medium focus:border-blue-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                   >
                     <option value={Gender.MALE}>{t("male")}</option>
@@ -167,7 +219,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                     {t("city")}
                   </label>
-                  <Input name="city" placeholder="..." />
+                  <Input {...register("city")} placeholder="..." />
                 </div>
               </div>
             </motion.div>
@@ -187,7 +239,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("bloodGroup")}
                   </label>
                   <select
-                    name="bloodGroup"
+                    {...register("bloodGroup")}
                     className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-medium focus:border-blue-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                   >
                     {Object.values(BloodGroup).map((bg) => (
@@ -202,7 +254,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("medicalAlerts")}
                   </label>
                   <Input
-                    name="medicalNotes"
+                    {...register("medicalNotes")}
                     placeholder={t("medicalAlertsPlaceholder")}
                     icon={<Activity className="h-4 w-4" />}
                   />
@@ -213,7 +265,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                   {t("medications")}
                 </label>
                 <textarea
-                  name="currentMedications"
+                  {...register("currentMedications")}
                   rows={3}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm font-medium focus:border-blue-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900"
                   placeholder={t("medicationsPlaceholder")}
@@ -239,7 +291,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("emergencyContactName")}
                   </label>
                   <Input
-                    name="emergencyName"
+                    {...register("emergencyName")}
                     placeholder="..."
                     icon={<UserPlus className="h-4 w-4" />}
                   />
@@ -249,7 +301,7 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("emergencyRelationship")}
                   </label>
                   <Input
-                    name="emergencyRelationship"
+                    {...register("emergencyRelationship")}
                     placeholder={t("emergencyRelationshipPlaceholder")}
                   />
                 </div>
@@ -258,9 +310,10 @@ export function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
                     {t("emergencyPhone")}
                   </label>
                   <Input
-                    name="emergencyPhone"
+                    {...register("emergencyPhone")}
                     placeholder={t("phonePlaceholder")}
                     icon={<Phone className="h-4 w-4" />}
+                    error={getError("emergencyPhone")}
                   />
                 </div>
               </div>

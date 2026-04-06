@@ -22,6 +22,11 @@ export const routing = defineRouting({
     "/dashboard": { en: '/dashboard', ar: '/dashboard' },
     "/patients/[id]": { en: '/patients/[id]', ar: '/patients/[id]' },
     "/login": { en: '/login', ar: '/login' },
+    "/patients/add": { en: '/patients/add', ar: '/patients/add' },
+    "/patients/edit/[id]": { en: '/patients/edit/[id]', ar: '/patients/edit/[id]' },
+    "/patients/delete/[id]": { en: '/patients/delete/[id]', ar: '/patients/delete/[id]' },
+    "/patients/view/[id]": { en: '/patients/view/[id]', ar: '/patients/view/[id]' },
+    
  },  
 
 });

@@ -1,11 +1,13 @@
-# 🚀 إعداد قاعدة البيانات - SmileCraft CMS
+# 🚀 إعداد قاعدة البيانات - SmileCraft CMS (Multi-tenant Ready)
 
 ## ✅ ما تم إنجازه
 
-- ✅ تثبيت Prisma v7.6 + Supabase
-- ✅ إنشاء Schema كامل بـ 12 model
-- ✅ إعداد ملفات الـ Configuration
-- ✅ إنشاء Prisma Client wrapper
+- ✅ تثبيت Prisma v7.6 + Supabase SSR
+- ✅ إنشاء Schema متطور يدعم Multi-tenancy (Clinic model)
+- ✅ فصل `MedicalHistory` لجداول مستقلة (Queryable)
+- ✅ إعداد طبقة المصادقة (Auth) مع Supabase Middleware
+- ✅ تفعيل الـ Audit Logging والـ Media Storage (Metadata)
+- ✅ إنشاء Error Boundary عالمي لحماية الـ UI
 
 ## 📋 الخطوات المطلوبة
 
@@ -16,19 +18,18 @@
 
 # 1. روح على Supabase Dashboard → Project Settings → Database
 # 2. خد Connection String (Pooler mode)
-# 3. استبدل password بالـ password بتاعك
-# 4. لو فيه special characters، اعملها URL encoding:
-#    & → %26, $ → %24, + → %2B, # → %23, @ → %40
+# 3. استبدل password بالـ password بتاعك (URL encoded)
+#    & → %26, $ → %24, + → %2B, # # → %23, @ → %40
 
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@db.kzpirzxhqvyhvtvjyfbz.supabase.co:5432/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:YOUR_PASSWORD@aws-1-eu-central-1.pooler.supabase.com:5432/postgres"
+DATABASE_URL="postgresql://postgres:PASSWORD@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
 
-# 5. روح على Project Settings → API
-# 6. خد الـ Keys
+# 4. روح على Project Settings → API
+# 5. خد الـ Keys
 
-NEXT_PUBLIC_SUPABASE_URL="https://kzpirzxhqvyhvtvjyfbz.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGc...your-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGc...your-service-role-key"
+NEXT_PUBLIC_SUPABASE_URL="https://wqvrsvscfsqnezlabmvb.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGc..."
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGc..."
 ```
 
 ### 2️⃣ تشغيل Migration
@@ -37,21 +38,24 @@ SUPABASE_SERVICE_ROLE_KEY="eyJhbGc...your-service-role-key"
 # تأكد إنك في جذر المشروع
 cd f:\react\SmileCraft-CMS
 
-# شغّل الـ Migration
-npx prisma migrate dev --name init
+# لو فيه Drift أو مشاكل في الـ DB القديمة، صفر الـ DB:
+npx prisma migrate reset --force
 
-# هيخلق الجداول دي في Supabase:
-# - users
-# - patients
-# - appointments
-# - treatments
-# - payments
-# - invoices
-# - invoice_items
-# - services
-# - inventory_items
-# - staff
-# - notifications
+# شغّل الـ Migration الجديد:
+npx prisma migrate dev --name init_multi_tenant_schema
+
+# الجداول اللي اتخلقت:
+# - clinics (Multi-tenancy root)
+# - users (Auth linked)
+# - staff (HR & Payroll)
+# - patients (Profile & MouthMap)
+# - medical_histories (Separate table)
+# - appointments (Schedules)
+# - treatments (Clinical plans)
+# - payments & invoices (Finance)
+# - services & inventory_items (Inventory)
+# - media_files (Storage metadata)
+# - audit_logs (Tracking)
 ```
 
 ### 3️⃣ توليد Prisma Client
@@ -63,7 +67,7 @@ npx prisma generate
 ### 4️⃣ التحقق من الاتصال
 
 ```bash
-# افتح Prisma Studio
+# افتح Prisma Studio لتعديل البيانات يدوياً
 npx prisma studio
 ```
 
@@ -71,52 +75,37 @@ npx prisma studio
 
 ```
 prisma/
-├── schema.prisma          # Database schema (12 models)
-├── migrations/            # Migration files (هي تتخلق بعد ما تشغّل migrate)
+├── schema.prisma          # Database schema (Multi-tenant)
+├── migrations/            # Migration history
+└── ..
+
+src/lib/supabase/
+├── client.ts              # Browser client
+├── server.ts              # Server client (for Actions)
+├── middleware.ts          # Auth session refresher
 └── ..
 
 src/lib/
-├── prisma.ts             # Prisma Client singleton
-├── db.ts                 # Database exports
-└── supabase.ts           # Supabase Client
+├── prisma.ts             # Prisma singleton
+├── db.ts                 # Main DB export
+└── ..
 
-.env                      # Environment variables (عدّلها!)
-.env.example              # Template للـ .env
+src/components/shared/
+└── ErrorBoundary.tsx     # Global Action Error Catcher
 ```
 
 ## 🔧 استكشاف الأخطاء
 
-### مشكلة: Can't reach database server
+### مشكلة: Prisma 7 Datasource Error
 
 ```bash
-# 1. تأكد من الـ DATABASE_URL صحيح
-# 2. لو الـ password فيه special characters، اعمل URL encoding
-# 3. تأكد إن الـ Database مفتوح في Supabase (مش pause)
+# في Prisma 7، الـ URL لازم يكون في prisma.config.ts
+# والـ schema.prisma يكون فيها datasource { provider = "postgresql" } بس.
 ```
 
-### مشكلة: Schema parsing error
+### مشكلة: Auth Session Not Working
 
 ```bash
-# Prisma 7 بيطلب datasource URL تكون في prisma.config.ts
-# مش في schema.prisma - ده تمام عندنا
+# تأكد إنك بتستخدم `await createClient()` من `src/lib/supabase/server.ts`
+# في الـ Server Actions عشان تقرأ الـ session صح.
 ```
-
-## 🎯 الخطوات الجاية
-
-بعد ما الـ Migration تخلص:
-
-1. ✅ **بناء Server Actions** لكل Module
-2. ✅ **استبدال localStorage** بـ Prisma queries
-3. ✅ **ربط Supabase Auth** مع Next.js Middleware
-4. ✅ **تفعيل RBAC** (Role-Based Access Control)
-
-## 📚 مراجع
-
-- [Prisma 7 Documentation](https://www.prisma.io/docs/)
-- [Supabase + Prisma Integration](https://supabase.com/docs/guides/database/prisma)
-- [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
-
----
-
-**آخر تحديث:** April 2, 2026
-**الحالة:** ✅ جاهز للـ Migration

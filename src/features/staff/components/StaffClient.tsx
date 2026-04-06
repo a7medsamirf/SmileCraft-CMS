@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import { Users, CalendarOff, DollarSign, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { StaffList } from "@/features/staff/components/StaffList";
@@ -9,31 +9,80 @@ import { LeaveManagement } from "@/features/staff/components/LeaveManagement";
 import { PayrollManagement } from "@/features/staff/components/PayrollManagement";
 import { StaffMember } from "@/features/staff/types";
 import { PageTransition } from "@/components/ui/PageTransition";
+import {
+  createStaffMemberAction,
+  deleteStaffMemberAction,
+  updateStaffMemberAction,
+} from "@/features/staff/serverActions";
 
 type StaffTab = "list" | "add" | "edit" | "leaves" | "payroll";
 
-export function StaffClient() {
+interface StaffClientProps {
+  initialStaff: StaffMember[];
+}
+
+export function StaffClient({ initialStaff }: StaffClientProps) {
   const t = useTranslations("Staff");
   const [activeTab, setActiveTab] = useState<StaffTab>("list");
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+  const [isMutating, startTransition] = useTransition();
 
-  const handleAddStaff = (data: Partial<StaffMember>) => {
-    // Import staffService here to avoid circular dependency
-    import("@/features/staff/services/staffService").then(({ staffService }) => {
-      staffService.saveStaff(data as StaffMember);
+  const handleAddStaff = async (data: Partial<StaffMember>) => {
+    startTransition(async () => {
+      const created = await createStaffMemberAction(data as Omit<StaffMember, "id">);
+      const normalized: StaffMember = {
+        id: created.id,
+        fullName: created.fullName,
+        role: created.role,
+        specialty: created.specialty,
+        certifications: created.certifications,
+        email: created.email,
+        phone: created.phone,
+        joinDate: created.joinDate,
+        salary: created.salary,
+        isActive: created.isActive,
+      };
+      setStaff((prev) => [...prev, normalized]);
       setActiveTab("list");
     });
   };
 
-  const handleEditStaff = (data: Partial<StaffMember>) => {
-    import("@/features/staff/services/staffService").then(({ staffService }) => {
-      if (data.id) {
-        staffService.saveStaff(data as StaffMember);
-        setEditingStaff(null);
-        setActiveTab("list");
-      }
+  const handleEditStaff = async (data: Partial<StaffMember>) => {
+    if (!data.id) return;
+    startTransition(async () => {
+      const updated = await updateStaffMemberAction(data.id!, data);
+      const normalized: StaffMember = {
+        id: updated.id,
+        fullName: updated.fullName,
+        role: updated.role,
+        specialty: updated.specialty,
+        certifications: updated.certifications,
+        email: updated.email,
+        phone: updated.phone,
+        joinDate: updated.joinDate,
+        salary: updated.salary,
+        isActive: updated.isActive,
+      };
+      setStaff((prev) => prev.map((member) => (member.id === normalized.id ? normalized : member)));
+      setEditingStaff(null);
+      setActiveTab("list");
     });
   };
+  const handleToggleStatus = (member: StaffMember) => {
+    startTransition(async () => {
+      const updated = await updateStaffMemberAction(member.id, { isActive: !member.isActive });
+      setStaff((prev) => prev.map((item) => (item.id === member.id ? { ...item, isActive: updated.isActive } : item)));
+    });
+  };
+
+  const handleDeleteStaff = (member: StaffMember) => {
+    startTransition(async () => {
+      await deleteStaffMemberAction(member.id);
+      setStaff((prev) => prev.filter((item) => item.id !== member.id));
+    });
+  };
+
 
   const handleEditClick = (staff: StaffMember) => {
     setEditingStaff(staff);
@@ -87,7 +136,14 @@ export function StaffClient() {
           <main className="flex-1 w-full p-1 transition-all duration-300">
             <div className="bg-white dark:bg-slate-900 glass-card p-6 sm:p-8 min-h-full">
               {activeTab === "list" && (
-                <StaffList onEdit={handleEditClick} onAdd={() => setActiveTab("add")} />
+                <StaffList
+                  staff={staff}
+                  isMutating={isMutating}
+                  onEdit={handleEditClick}
+                  onAdd={() => setActiveTab("add")}
+                  onToggleStatus={handleToggleStatus}
+                  onDelete={handleDeleteStaff}
+                />
               )}
 
               {activeTab === "add" && (

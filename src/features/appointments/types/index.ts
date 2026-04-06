@@ -5,6 +5,7 @@
 
 export enum AppointmentStatus {
   SCHEDULED = "SCHEDULED",   // منتظر
+  CONFIRMED = "CONFIRMED",   // مؤكد
   IN_PROGRESS = "IN_PROGRESS", // بالداخل
   COMPLETED = "COMPLETED",   // انتهى
   CANCELLED = "CANCELLED",   // اعتذر

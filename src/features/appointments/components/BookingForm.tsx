@@ -18,6 +18,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { bookAppointmentAction, BookingState } from "../actions/bookAppointmentAction";
+import { getAppointmentsByDateAction } from "../serverActions";
+import { AppointmentStatus } from "../types";
 import { cn } from "@/lib/utils";
 
 // ── Procedures List ─────────────────────────────────────────────────────────
@@ -72,6 +74,9 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(bookAppointmentAction, initialState);
   const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set());
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   // Auto-close on success
   useEffect(() => {
@@ -87,8 +92,61 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
   useEffect(() => {
     if (isOpen) {
       setSelectedTime("");
+      setSelectedDate("");
+      setBookedTimes(new Set());
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !selectedDate) {
+      setBookedTimes(new Set());
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadSlots = async () => {
+      try {
+        setIsLoadingSlots(true);
+        const dayAppointments = await getAppointmentsByDateAction(new Date(selectedDate));
+        if (!isMounted) return;
+
+        const unavailableStatuses = new Set<AppointmentStatus>([
+          AppointmentStatus.SCHEDULED,
+          AppointmentStatus.CONFIRMED,
+          AppointmentStatus.IN_PROGRESS,
+        ]);
+
+        const nextBooked = new Set(
+          dayAppointments
+            .filter((appointment) => unavailableStatuses.has(appointment.status))
+            .map((appointment) => appointment.time),
+        );
+
+        setBookedTimes(nextBooked);
+      } catch (error) {
+        console.error("Failed to load booked slots:", error);
+        if (isMounted) {
+          setBookedTimes(new Set());
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSlots(false);
+        }
+      }
+    };
+
+    loadSlots();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, selectedDate]);
+
+  useEffect(() => {
+    if (selectedTime && bookedTimes.has(selectedTime)) {
+      setSelectedTime("");
+    }
+  }, [bookedTimes, selectedTime]);
 
   if (!isOpen) return null;
 
@@ -160,6 +218,7 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 name="date"
                 icon={<Calendar className="w-4 h-4" />}
                 type="date"
+                onChange={(value) => setSelectedDate(value)}
                 error={state.errors?.date?.[0]}
                 disabled={isPending}
               />
@@ -232,16 +291,26 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 اختر الوقت
               </label>
               <input type="hidden" name="time" value={selectedTime} />
+              {!selectedDate && (
+                <p className="text-[11px] text-amber-500 font-medium mb-2">
+                  اختر التاريخ أولًا لعرض الأوقات المتاحة.
+                </p>
+              )}
+              {isLoadingSlots && (
+                <p className="text-[11px] text-slate-500 font-medium mb-2">
+                  جاري تحميل الأوقات المتاحة...
+                </p>
+              )}
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {TIME_SLOTS.map((slot) => {
                   const isSelected = selectedTime === slot;
-                  // Mock: mark some slots as booked
-                  const isBooked = ["10:00 ص", "11:00 ص", "02:00 م"].includes(slot);
+                  const isBooked = bookedTimes.has(slot);
+                  const isDisabled = isPending || !selectedDate || isLoadingSlots || isBooked;
                   return (
                     <button
                       key={slot}
                       type="button"
-                      disabled={isBooked || isPending}
+                      disabled={isDisabled}
                       onClick={() => setSelectedTime(slot)}
                       className={cn(
                         "py-2 px-1 rounded-lg text-[12px] font-bold transition-all border",
@@ -366,9 +435,20 @@ interface FormFieldProps {
   dir?: string;
   error?: string;
   disabled?: boolean;
+  onChange?: (value: string) => void;
 }
 
-function FormField({ label, name, icon, placeholder, type = "text", dir, error, disabled }: FormFieldProps) {
+function FormField({
+  label,
+  name,
+  icon,
+  placeholder,
+  type = "text",
+  dir,
+  error,
+  disabled,
+  onChange,
+}: FormFieldProps) {
   return (
     <div>
       <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
@@ -384,6 +464,7 @@ function FormField({ label, name, icon, placeholder, type = "text", dir, error, 
           placeholder={placeholder}
           dir={dir}
           disabled={disabled}
+          onChange={(event) => onChange?.(event.target.value)}
           className={cn(
             "w-full rounded-xl px-4 py-3 text-[13px] font-medium",
             "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700",

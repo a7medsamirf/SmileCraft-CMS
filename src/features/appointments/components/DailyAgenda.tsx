@@ -6,23 +6,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Clock, UserCircle, Activity } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
 
-// Mock DB Fetcher
-async function fetchAppointmentsByDate(date: Date): Promise<Appointment[]> {
-  // Simulate network latency
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  // In a real app, we'd fetch based on the date
-  // For the demo, we'll return the same mock data but maybe filter or slightly vary it
-  return [
-    { id: "1", patientId: "p1", patientName: "أحمد السيد", time: "10:00 ص", durationMinutes: 45, procedure: "حشو عصب", status: AppointmentStatus.COMPLETED },
-    { id: "2", patientId: "p2", patientName: "سارة محمود", time: "11:00 ص", durationMinutes: 30, procedure: "التنظيف وتلميع", status: AppointmentStatus.IN_PROGRESS },
-    { id: "3", patientId: "p3", patientName: "خالد إبراهيم", time: "12:30 م", durationMinutes: 60, procedure: "تركيب تقويم", status: AppointmentStatus.SCHEDULED },
-    { id: "4", patientId: "p4", patientName: "منى محمد", time: "02:00 م", durationMinutes: 30, procedure: "خلع ضرس عقل", status: AppointmentStatus.CANCELLED },
-  ];
-}
+import { getAppointmentsByDateAction } from "../serverActions";
 
 const statusVariantMap: Record<AppointmentStatus, { variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" }> = {
   [AppointmentStatus.SCHEDULED]: { variant: "warning" },
+  [AppointmentStatus.CONFIRMED]: { variant: "default" },
   [AppointmentStatus.IN_PROGRESS]: { variant: "default" },
   [AppointmentStatus.COMPLETED]: { variant: "success" },
   [AppointmentStatus.CANCELLED]: { variant: "destructive" },
@@ -44,7 +32,7 @@ export function DailyAgenda({ selectedDate = new Date() }: DailyAgendaProps) {
     const load = async () => {
       try {
         setIsLoading(true);
-        const data = await fetchAppointmentsByDate(selectedDate);
+        const data = await getAppointmentsByDateAction(selectedDate);
         if (isMounted) {
           setAppointments(data);
           setIsLoading(false);

@@ -31,7 +31,7 @@ type StaffFormValues = z.infer<typeof staffSchema>;
 
 interface StaffFormProps {
   initialData?: StaffMember;
-  onSubmit: (data: Partial<StaffMember>) => void;
+  onSubmit: (data: Partial<StaffMember>) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -79,7 +79,7 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
     );
   };
 
-  const handleFormSubmit = (data: StaffFormValues): void => {
+  const handleFormSubmit = async (data: StaffFormValues): Promise<void> => {
     const staffData: Partial<StaffMember> = {
       fullName: data.fullName,
       role: data.role,
@@ -105,7 +105,7 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
       staffData.id = generateId();
     }
 
-    onSubmit(staffData);
+    await onSubmit(staffData);
   };
 
   return (
@@ -234,7 +234,18 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
               }
             }}
           />
-          <Button type="button" variant="outline" className="rounded-xl">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl"
+            onClick={(e) => {
+              const input = e.currentTarget.parentElement?.querySelector("input");
+              if (!input) return;
+              const value = input.value;
+              handleCertificationAdd(value);
+              input.value = "";
+            }}
+          >
             {t("add")}
           </Button>
         </div>

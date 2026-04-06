@@ -1,19 +1,19 @@
-// Prisma Client singleton for Next.js
-import { PrismaClient } from '@prisma/client';
+import "server-only"
+import { PrismaClient } from '@prisma/client'
+// بنعرف الـ Singleton عشان الـ Development mode في Next.js
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+}
+
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+  prisma: PrismaClientSingleton | undefined
+}
 
-export const prisma =
-  globalForPrisma.prisma ??
-  (typeof window === 'undefined'
-    ? new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-      })
-    : (null as unknown as PrismaClient));
+// هنا بنضمن إن Prisma مش هتشتغل غير لو إحنا فعلاً في بيئة Server
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-
-
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

@@ -234,6 +234,7 @@
     "procedure": "Procedure",
     "status": "Status",
     "statusScheduled": "Scheduled",
+    "statusConfirmed": "In Progress",
     "statusInProgress": "In Progress",
     "statusInprogress": "In Progress",
     "statusCompleted": "Completed",
@@ -254,7 +255,20 @@
     "confirmBookingDesc": "Please review the details before confirming",
     "bookingSuccess": "Appointment booked successfully!",
     "noPatients": "No patients registered. Add a new patient first.",
-    "selectProcedure": "Select a procedure to continue"
+    "selectProcedure": "Select a procedure to continue",
+    "queueTitle": "Today's Queue",
+    "queueSubtitle": "Live appointment flow updates without full page reload.",
+    "queueTotal": "Total Appointments",
+    "queuePending": "Pending",
+    "queueInProgress": "In Progress",
+    "queueCompleted": "Completed",
+    "queueCancelled": "Cancelled / No Show",
+    "queueActions": "Actions",
+    "queueStart": "Start",
+    "queueComplete": "Complete",
+    "queueCancel": "Cancel",
+    "queueNoProcedure": "Not specified",
+    "queueEmpty": "No appointments for today."
   },
   "Finance": {
     "title": "Financial Management",
@@ -456,6 +470,7 @@
     "filterAll": "All",
     "noStaffFound": "No staff members found",
     "confirmDelete": "Are you sure you want to delete this staff member?",
+    "confirmDeleteYes": "Yes",
     "roles": {
       "doctor": "Doctor",
       "assistant": "Assistant",

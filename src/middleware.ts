@@ -1,14 +1,15 @@
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 import { NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
 const intlMiddleware = createMiddleware(routing);
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Extract auth token from cookies (do this before intlMiddleware to decide if we need to redirect)
-  const token = request.cookies.get("auth_token")?.value;
+  // 1. Update session and get user (this handles refreshing the session)
+  const { supabaseResponse, user } = await updateSession(request);
 
   // 2. Identify and handle auth/protected routes
   const pathnameIsMissingLocale = routing.locales.every(
@@ -21,28 +22,33 @@ export default async function middleware(request: NextRequest) {
 
   // Check for login at both levels for safety
   const isAuthPage = cleanPath.startsWith("/login") || cleanPath.startsWith("/auth/login");
-  const isPublicPage = cleanPath === "/" || cleanPath.startsWith("/signup") || cleanPath.startsWith("/auth/signup");
+  const isPublicPage = cleanPath === "/" || cleanPath.startsWith("/signup") || cleanPath.startsWith("/auth/signup") || cleanPath.startsWith("/landing");
   const isProtectedPage = !isAuthPage && !isPublicPage && !pathname.includes(".");
 
-  // 3. Manual Redirect Logic BEFORE running intlMiddleware
-  // (This handles the case where we don't want intlMiddleware to run if we're redirecting anyway)
+  // 3. Manual Redirect Logic
   
   // Case A: User is NOT logged in and trying to access a protected page
-  if (!token && isProtectedPage) {
+  if (!user && isProtectedPage) {
     const locale = pathname.split("/")[1] || routing.defaultLocale;
     const loginUrl = new URL(`/${locale}/login`, request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   // Case B: User IS logged in and trying to access login page
-  if (token && isAuthPage) {
+  if (user && isAuthPage) {
     const locale = pathname.split("/")[1] || routing.defaultLocale;
     const dashboardUrl = new URL(`/${locale}/dashboard`, request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // 4. Handle internationalization for other cases
+  // 4. Handle internationalization
+  // We apply the intlMiddleware and merge its response with supabaseResponse
   const response = intlMiddleware(request);
+  
+  // Important: Copy cookies from supabaseResponse to the final response
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie.name, cookie.value, cookie);
+  });
 
   return response;
 }
