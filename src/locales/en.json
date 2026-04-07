@@ -143,8 +143,13 @@
     "staff": "Staff",
     "finance": "Finance",
     "settings": "Settings",
+    "appName": "SmileCraft CMS",
+    "shortAppName": "SmileCraft",
+    "switchTo": "عربي",
     "drName": "Dr. Ahmed Samir",
-    "drTitle": "Orthodontist"
+    "drTitle": "Orthodontist",
+    "logout": "Logout",
+    "loggingOut": "Logging out..."
   },
   "Common": {
     "search": "Search...",
@@ -410,7 +415,14 @@
     "needFollowup": "Cases needing follow-up",
     "vsAverage": "vs. Daily Average",
     "widgetsPlaceholder": "Additional Widgets Area",
-    "widgetsSummary": "More reports and statistics will be added here soon."
+    "widgetsSummary": "More reports and statistics will be added here soon.",
+    "QuickActions": {
+      "title": "⚡ Quick Actions",
+      "newPatient": "New Patient",
+      "bookAppointment": "Book Appointment",
+      "newInvoice": "New Invoice",
+      "quickDiagnosis": "Quick Diagnosis"
+    }
   },
   "Settings": {
     "title": "System Settings",

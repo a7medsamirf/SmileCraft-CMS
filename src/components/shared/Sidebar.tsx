@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/[locale]/(auth)/logoutAction";
 
 function LogoutButton() {
+  const t = useTranslations("Sidebar");
   const { pending } = useFormStatus();
 
   return (
@@ -41,7 +42,7 @@ function LogoutButton() {
       ) : (
         <LogOut className="h-4 w-4" />
       )}
-      {pending ? "جارٍ تسجيل الخروج..." : "تسجيل الخروج"}
+      {pending ? t("loggingOut") : t("logout")}
     </button>
   );
 }
@@ -88,7 +89,7 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <Dna className="h-6 w-6 text-blue-600" />
           <span className="font-bold text-slate-900 dark:text-white">
-            SmileCraft
+            {t("shortAppName")}
           </span>
         </div>
         <button
@@ -131,7 +132,7 @@ export function Sidebar() {
               <Dna className="h-6 w-6" />
             </div>
             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              SmileCraft CMS
+              {t("appName")}
             </span>
           </div>
 
@@ -192,7 +193,7 @@ export function Sidebar() {
               >
                 <Languages className="h-4 w-4" />
                 <span className="uppercase font-bold">
-                  {locale === "ar" ? "EN" : "عربي"}
+                  {t("switchTo")}
                 </span>
               </button>
             </div>

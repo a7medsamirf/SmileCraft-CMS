@@ -143,8 +143,13 @@
     "staff": "الموظفين",
     "finance": "الحسابات",
     "settings": "الإعدادات",
+    "appName": "SmileCraft CMS",
+    "shortAppName": "SmileCraft",
+    "switchTo": "English",
     "drName": "د. أحمد سمير",
-    "drTitle": "طبيب أسنان"
+    "drTitle": "طبيب أسنان",
+    "logout": "تسجيل الخروج",
+    "loggingOut": "جارٍ تسجيل الخروج..."
   },
   "Common": {
     "search": "بحث...",
@@ -414,7 +419,14 @@
     "needFollowup": "حالات تحتاج متابعة",
     "vsAverage": "مقارنة بمتوسط الأيام السابقة",
     "widgetsPlaceholder": "مساحة الودجتس الإضافية",
-    "widgetsSummary": "سيتم إضافة تقارير وإحصائيات أخرى هنا قريباً."
+    "widgetsSummary": "سيتم إضافة تقارير وإحصائيات أخرى هنا قريباً.",
+    "QuickActions": {
+      "title": "⚡ إجراءات سريعة",
+      "newPatient": "مريض جديد",
+      "bookAppointment": "حجز موعد",
+      "newInvoice": "فاتورة جديدة",
+      "quickDiagnosis": "تشخيص سريع"
+    }
   },
   "Settings": {
     "title": "إعدادات النظام",
