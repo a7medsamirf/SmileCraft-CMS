@@ -114,12 +114,13 @@ export function StaffList({
       </div>
 
       {/* Staff Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
         {filteredStaff.map((member) => (
           <div
             key={member.id}
-            className="group glass-card p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
+            className="group glass-card p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] flex flex-col h-full"
           >
+            <div className="flex-1">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-linear-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
@@ -155,7 +156,7 @@ export function StaffList({
                 <span>{member.salary.toLocaleString()} EGP</span>
               </div>
             </div>
-
+           </div>
             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
               <Button
                 variant="outline"
@@ -198,39 +199,43 @@ export function StaffList({
       <AnimatePresence>
         {pendingDelete && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div
-              className="glass-card w-full max-w-md rounded-2xl p-6"
-              initial={{ opacity: 0, y: 12, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.9 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+           <motion.div
+              className="glass-card w-full max-w-md rounded-2xl p-6 bg-white dark:bg-slate-800 shadow-2xl"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} // بتبدأ من تحت شوية وصغيرة
+              animate={{ opacity: 1, scale: 1, y: 0 }}    // بتطلع لمكانها الطبيعي
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}   // وهي ماشية بتختفي بنعومة
+              transition={{ 
+                type: "spring", 
+                stiffness: 300, 
+                damping: 25 
+              }}
             >
             <p className="text-center text-base font-semibold text-slate-900 dark:text-white">
               {t("confirmDelete")}
             </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <Button
-                variant="primary"
-                onClick={handleConfirmDelete}
-                disabled={isMutating}
-                className="min-w-24 rounded-xl"
-              >
-                {t("confirmDeleteYes")}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setPendingDelete(null)}
-                className="min-w-24 rounded-xl"
-              >
-                {t("cancel")}
-              </Button>
-            </div>
+       <div className="mt-8 flex flex-row-reverse items-center justify-center gap-3">
+          <Button
+            variant="danger" // خلي اللون أحمر لو ده حذف فعلاً
+            onClick={handleConfirmDelete}
+            disabled={isMutating}
+            className="min-w-28 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors"
+          >
+            {isMutating ? "..." : t("confirmDeleteYes")}
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => setPendingDelete(null)}
+            className="min-w-28 rounded-xl border-slate-200 dark:border-slate-700"
+          >
+            {t("cancel")}
+          </Button>
+        </div>
             </motion.div>
           </motion.div>
         )}

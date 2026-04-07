@@ -211,6 +211,7 @@ export function Sidebar() {
 
           {/* Logout Button */}
           <form action={logoutAction} className="w-full">
+            <input type="hidden" name="locale" value={locale} />
             <LogoutButton />
           </form>
         </div>

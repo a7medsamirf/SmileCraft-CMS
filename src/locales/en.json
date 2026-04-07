@@ -10,11 +10,11 @@
     "Login": "Login"
   },
   "common": {
-     "exploreMore": "Explore More"     
+    "exploreMore": "Explore More"
   },
   "Navbar": {
     "title": "Dental Clinic Management System",
-    "GetStarted":"Get Started",
+    "GetStarted": "Get Started",
     "Login": "Login",
     "link": {
       "home": " Home",
@@ -35,9 +35,8 @@
     "description": " Empower your finance team. The onestop plateform for all financial management of small and medium-sized business.",
     "ButtonBookaDemo": "Book a Demo",
     "ButtonNew": "New",
-    "placeholder" : "Enter your email adress"
+    "placeholder": "Enter your email adress"
   },
-
 
   "LocaleSwitcher": {
     "label": "Change language",
@@ -62,7 +61,6 @@
     "proDescription": "Get a professional website designed according to your needs.",
     "enterpriseDescription": "Get a professional website designed according to your needs.",
     "getStarted": "Get started"
-
   },
 
   "Features": {
@@ -79,7 +77,7 @@
     "WatchVideo": "Watch Video"
   },
 
-  "NotFound":{
+  "NotFound": {
     "title": "Page not found",
     "description": "Sorry, we couldn’t find the page you’re looking for.",
     "GoHome": "Go back Home"
@@ -214,6 +212,7 @@
     "itemNotFound": "Procedure item not found.",
     "statusUpdateError": "An error occurred while updating the procedure status.",
     "invoiceError": "An error occurred while creating the invoice.",
+    "searchingPatients": "Searching patients...",
     "searchPatientPlaceholder": "Search patient by name or phone...",
     "noPatientResults": "No matching results found.",
     "years": "years old",
@@ -221,7 +220,30 @@
     "lastVisitLabel": "Last visit",
     "deselectPatient": "Deselect patient",
     "welcomeDoctor": "Dr. Ahmed, search for a patient to begin 🔍",
-    "welcomeMessage": "Search for a patient from the list to open their dental chart, start clinical diagnosis, and build a treatment plan."
+    "welcomeMessage": "Search for a patient from the list to open their dental chart, start clinical diagnosis, and build a treatment plan.",
+    "casePanel": "Clinical Case",
+    "casePanelTitle": "Tooth #{toothNumber} — Clinical Record",
+    "caseDiagnosis": "Diagnosis",
+    "caseDiagnosisPlaceholder": "e.g. Deep mesial caries, root involvement",
+    "caseProcedure": "Procedure",
+    "caseProcedurePlaceholder": "e.g. Root canal therapy, composite filling",
+    "caseNotes": "Clinical Notes",
+    "caseNotesPlaceholder": "Additional clinical observations...",
+    "caseCost": "Estimated Cost (EGP)",
+    "caseDate": "Session Date",
+    "caseStatus": "Case Status",
+    "saveCase": "Save Case",
+    "savingCase": "Saving...",
+    "caseSaved": "Case saved successfully",
+    "caseError": "Failed to save case",
+    "casesForTooth": "cases",
+    "existingCase": "Existing case loaded — update fields and save",
+    "newCase": "No case recorded yet — fill in details to create",
+    "closeCase": "Close",
+    "appointmentBooked": "Booked Appointment",
+    "appointmentMapUpdated": "Dental map updated from bookings",
+    "appointmentMapUpdatedDetail": "{count} tooth/teeth pre-populated from appointments — you can edit any tooth manually",
+    "fromAppointment": "From booking"
   },
   "Appointments": {
     "title": "Appointments Schedule",
@@ -268,7 +290,10 @@
     "queueComplete": "Complete",
     "queueCancel": "Cancel",
     "queueNoProcedure": "Not specified",
-    "queueEmpty": "No appointments for today."
+    "queueEmpty": "No appointments for today.",
+    "queuePhone": "Phone",
+    "queueViewMap": "Tooth Map",
+    "queueLive": "Live"
   },
   "Finance": {
     "title": "Financial Management",
@@ -364,6 +389,12 @@
     "validationPhone": "Invalid phone number.",
     "addPatientModalTitle": "Register New Patient",
     "addPatientModalSub": "Fill in the details to open a medical file for the patient.",
+    "editPatientModalTitle": "Edit Patient Record",
+    "editPatientModalSub": "Update the patient's information. Changes are saved immediately.",
+    "editPatientSuccess": "Patient record updated successfully!",
+    "editPatient": "Edit Patient",
+    "update": "Save Changes",
+    "updating": "Saving...",
     "age": "years old",
     "lastVisit": "Last Visit"
   },
@@ -542,6 +573,8 @@
       "reasonPlaceholder": "Brief reason for leave",
       "submitRequest": "Submit Request",
       "cancel": "Cancel",
+      "employee": "Employee",
+      "selectEmployee": "Select employee",
       "unknownStaff": "Unknown Staff",
       "noLeaves": "No leave requests found",
       "status": {

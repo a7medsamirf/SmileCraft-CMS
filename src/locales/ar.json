@@ -1,5 +1,5 @@
 {
-  "Button" : {
+  "Button": {
     "GetStarted": "ابدأ الآن",
     "ContactUs": "تواصل معنا",
     "BookaDemo": "احجز عرضًا توضيحيًا",
@@ -9,12 +9,12 @@
     "ShopNow": "تسوق الآن",
     "Login": "تسجيل الدخول"
   },
-    "common": {
-     "exploreMore": "اكتشف المزيد" 
+  "common": {
+    "exploreMore": "اكتشف المزيد"
   },
   "Navbar": {
     "title": "نظام إدارة عيادات الأسنان",
-    "GetStarted":"ابدأ الآن",
+    "GetStarted": "ابدأ الآن",
     "Login": "تسجيل الدخول",
     "link": {
       "home": " الرئيسية",
@@ -34,7 +34,7 @@
     "description": " عزز فريقك المالي. منصة شاملة لإدارة جميع شؤون الشركات الصغيرة والمتوسطة ماليًا.",
     "ButtonBookaDemo": " احجز عرضًا توضيحيًا",
     "ButtonNew": "جديد",
-    "placeholder" : "أدخل عنوان بريدك الإلكتروني"
+    "placeholder": "أدخل عنوان بريدك الإلكتروني"
   },
 
   "LocaleSwitcher": {
@@ -48,7 +48,7 @@
     "description": "   شكرًا لثقتكم في كريبت لاند! نشكركم على ملاحظاتكم ونلتزم بتقديم أفضل المنتجات/الخدمات. اقرأ آراء عملائنا حول تجربتهم معنا."
   },
 
- "Pricing": {
+  "Pricing": {
     "title": "العثور على الخطة الصحيحة",
     "suptitle": "التسعير",
     "description": "استثمر في مستقبل شركتك مع حلولنا المالية الشاملة. تواصل معنا لمعرفة تفاصيل الأسعار واكتشف كيف يمكننا مساعدتك في تنظيم أمورك المالية وتحقيق أهدافك التجارية.",
@@ -60,7 +60,6 @@
     "proDescription": "احصل على موقع احترافي مصمم حسب احتياجاتك",
     "enterpriseDescription": "احصل على موقع احترافي مصمم حسب احتياجاتك",
     "getStarted": "ابدأ الآن"
-
   },
 
   "Features": {
@@ -77,14 +76,13 @@
     "WatchVideo": "شاهد الفيديو"
   },
 
-
-  "NotFound":{
+  "NotFound": {
     "title": "لم يتم العثور على الصفحة",
     "description": "عذراً، لم نتمكن من العثور على الصفحة التي تبحث عنها.",
     "GoHome": "العودة الى الرئيسية"
   },
 
-"FeaturedProducts": {
+  "FeaturedProducts": {
     "title": "معالجة أسرع وأكثر ثراءً",
     "description": "أسرع من 4 EXPEED ، يعالج 5 EXPEED بسرعة 45.7 ميجابكسل من البيانات لتقليل التشويش",
     "shopNow": "تسوق الآن"
@@ -214,6 +212,7 @@
     "itemNotFound": "لم يتم العثور على الإجراء.",
     "statusUpdateError": "حدث خطأ أثناء تحديث حالة الإجراء.",
     "invoiceError": "حدث خطأ أثناء إنشاء الفاتورة.",
+    "searchingPatients": "جاري البحث عن المرضى...",
     "searchPatientPlaceholder": "ابحث عن مريض بالاسم أو رقم الهاتف...",
     "noPatientResults": "لا توجد نتائج مطابقة.",
     "years": "سنة",
@@ -221,7 +220,30 @@
     "lastVisitLabel": "آخر زيارة",
     "deselectPatient": "إلغاء اختيار المريض",
     "welcomeDoctor": "دكتور أحمد، ابدأ بالبحث عن مريض 🔍",
-    "welcomeMessage": "ابحث عن مريض من القائمة لفتح مخطط الأسنان الخاص به وبدء التشخيص الطبي وبناء خطة العلاج."
+    "welcomeMessage": "ابحث عن مريض من القائمة لفتح مخطط الأسنان الخاص به وبدء التشخيص الطبي وبناء خطة العلاج.",
+    "casePanel": "الحالة السريرية",
+    "casePanelTitle": "السن رقم {toothNumber} — السجل السريري",
+    "caseDiagnosis": "التشخيص",
+    "caseDiagnosisPlaceholder": "مثال: تسوس عميق في السطح الإنسي",
+    "caseProcedure": "الإجراء العلاجي",
+    "caseProcedurePlaceholder": "مثال: سحب عصب، حشو كومبوزيت",
+    "caseNotes": "ملاحظات سريرية",
+    "caseNotesPlaceholder": "ملاحظات وتفاصيل سريرية إضافية...",
+    "caseCost": "التكلفة التقديرية (ج.م)",
+    "caseDate": "تاريخ الجلسة",
+    "caseStatus": "حالة الإجراء",
+    "saveCase": "حفظ الحالة",
+    "savingCase": "جارٍ الحفظ...",
+    "caseSaved": "تم حفظ الحالة بنجاح ✓",
+    "caseError": "فشل حفظ الحالة",
+    "casesForTooth": "حالات",
+    "existingCase": "حالة موجودة — عدّل البيانات واحفظ",
+    "newCase": "لم يتم تسجيل حالة بعد — أدخل البيانات لإنشائها",
+    "closeCase": "إغلاق",
+    "appointmentBooked": "موعد محجوز",
+    "appointmentMapUpdated": "تم تحديث خريطة الأسنان من المواعيد",
+    "appointmentMapUpdatedDetail": "{count} سن مُحدَّث تلقائياً من الحجوزات — يمكنك تعديل أي سن يدوياً",
+    "fromAppointment": "من موعد"
   },
   "Appointments": {
     "title": "جدول المواعيد",
@@ -268,7 +290,10 @@
     "queueComplete": "إنهاء",
     "queueCancel": "إلغاء",
     "queueNoProcedure": "غير محدد",
-    "queueEmpty": "لا توجد مواعيد اليوم."
+    "queueEmpty": "لا توجد مواعيد اليوم.",
+    "queuePhone": "الهاتف",
+    "queueViewMap": "خريطة الأسنان",
+    "queueLive": "مباشر"
   },
   "Finance": {
     "title": "الإدارة المالية",
@@ -364,8 +389,18 @@
     "validationPhone": "رقم الهاتف غير صحيح.",
     "addPatientModalTitle": "تسجيل مريض جديد",
     "addPatientModalSub": "قم بملء البيانات لفتح ملف طبي للمريض.",
+    "editPatientModalTitle": "تعديل ملف المريض",
+    "editPatientModalSub": "قم بتعديل البيانات وسيتم الحفظ فوراً في قاعدة البيانات.",
+    "editPatientSuccess": "تم تحديث بيانات المريض بنجاح!",
+    "editPatient": "تعديل البيانات",
+    "update": "حفظ التعديلات",
+    "updating": "جارٍ الحفظ...",
     "age": "سنة",
-    "lastVisit": "آخر زيارة"
+    "lastVisit": "آخر زيارة",
+    "validationError": "يرجى تصحيح الأخطاء في النموذج.",
+    "saveError": "حدث خطأ أثناء حفظ بيانات المريض. حاول مرة أخرى.",
+    "validationDate": "تاريخ الميلاد مطلوب.",
+    "invalidInput": "هذا الحقل مطلوب."
   },
   "Dashboard": {
     "greeting": "صباح الخير، د. أحمد 🦷",
@@ -542,6 +577,8 @@
       "reasonPlaceholder": "سبب الإجازة باختصار",
       "submitRequest": "إرسال الطلب",
       "cancel": "إلغاء",
+      "employee": "اسم الموظف",
+      "selectEmployee": "اختر الموظف",
       "unknownStaff": "موظف غير معروف",
       "noLeaves": "لا توجد طلبات إجازات",
       "status": {

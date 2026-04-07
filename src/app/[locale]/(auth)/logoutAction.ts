@@ -1,21 +1,18 @@
 "use server";
 
-// =============================================================================
-// DENTAL CMS — Authentication: Logout Server Action
-// app/[locale]/auth/logoutAction.ts
-// =============================================================================
-
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { redirect } from "@/i18n/routing";
+import { createClient } from "@/lib/supabase/server";
 
-export async function logoutAction() {
-  // Clear session cookie
+export async function logoutAction(formData: FormData) {
+  const supabase = await createClient();
+  // THE FIX — actually signs out from Supabase, clearing sb-*-auth-token cookies
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error("[logoutAction] Supabase signOut error:", error.message);
+  }
   const cookieStore = await cookies();
   cookieStore.delete("auth_token");
-
-  // Simulate logout delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Redirect to login page
-  redirect({ href: "/login", locale: "ar" });
+  const locale = (formData.get("locale") as string | null) ?? "ar";
+  redirect(`/${locale}/login`);
 }

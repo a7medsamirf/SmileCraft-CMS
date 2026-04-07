@@ -1,16 +1,18 @@
 "use server";
 
-import { z } from "zod";
-import { createPatientActionDB } from "./serverActions";
+import { createPatientActionDB, updatePatientActionDB } from "./serverActions";
 import { addPatientSchema } from "./schemas/addPatientSchema";
-import { 
-  Patient, 
-  Gender, 
-  BloodGroup, 
-  PatientStatus, 
-  ISODateString, 
+import {
+  Patient,
+  Gender,
+  BloodGroup,
+  PatientStatus,
+  ISODateString,
 } from "./types/index";
 
+// =============================================================================
+// Shared state type
+// =============================================================================
 export interface ActionState {
   success: boolean | null;
   message?: string;
@@ -18,11 +20,11 @@ export interface ActionState {
   data?: unknown;
 }
 
-export async function createPatientAction(
-  prevState: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const rawData = {
+// =============================================================================
+// Helper: extract & validate common form fields
+// =============================================================================
+function extractFormData(formData: FormData) {
+  return {
     fullName: formData.get("fullName"),
     phone: formData.get("phone"),
     nationalId: formData.get("nationalId"),
@@ -36,7 +38,90 @@ export async function createPatientAction(
     emergencyRelationship: formData.get("emergencyRelationship"),
     emergencyPhone: formData.get("emergencyPhone"),
   };
+}
 
+function buildPatientPayload(
+  data: ReturnType<typeof addPatientSchema.parse>,
+): Omit<Patient, "id" | "createdAt" | "updatedAt"> {
+  return {
+    fullName: data.fullName,
+    gender: data.gender as Gender,
+    birthDate: data.birthDate as ISODateString,
+    contactInfo: {
+      phone: data.phone,
+      city: data.city,
+    },
+    medicalHistory: {
+      conditions: data.medicalNotes
+        ? [{ condition: data.medicalNotes, isActive: true }]
+        : [],
+      allergies: [],
+      currentMedications: data.currentMedications
+        ? [data.currentMedications]
+        : [],
+      bloodGroup: (data.bloodGroup as BloodGroup) || BloodGroup.UNKNOWN,
+    },
+    emergencyContact: data.emergencyName
+      ? {
+          name: data.emergencyName,
+          relationship: data.emergencyRelationship || "",
+          phone: data.emergencyPhone || "",
+        }
+      : undefined,
+    status: PatientStatus.ACTIVE,
+    nationalId: data.nationalId,
+    visits: [],
+  };
+}
+
+// =============================================================================
+// CREATE — register a new patient
+// =============================================================================
+export async function createPatientAction(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const rawData = extractFormData(formData);
+  const validated = addPatientSchema.safeParse(rawData);
+
+  if (!validated.success) {
+    return {
+      success: false,
+      errors: validated.error.flatten().fieldErrors as Record<string, string[]>,
+      message: "validationError",
+    };
+  }
+
+  try {
+    const newPatient = await createPatientActionDB(
+      buildPatientPayload(validated.data),
+    );
+    return {
+      success: true,
+      message: "addPatientSuccess",
+      data: newPatient,
+    };
+  } catch (error) {
+    console.error("[createPatientAction]", error);
+    return { success: false, message: "saveError" };
+  }
+}
+
+// =============================================================================
+// UPDATE — edit an existing patient
+// =============================================================================
+export async function updatePatientAction(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  // The patient's ID is injected as a hidden form field by AddPatientForm
+  const patientId = (formData.get("patientId") as string | null) ?? "";
+
+  if (!patientId) {
+    return { success: false, message: "saveError" };
+  }
+
+  const rawData = extractFormData(formData);
   const validated = addPatientSchema.safeParse(rawData);
 
   if (!validated.success) {
@@ -49,42 +134,41 @@ export async function createPatientAction(
 
   const { data } = validated;
 
-  const payload: Omit<Patient, "id" | "createdAt" | "updatedAt"> = {
+  // Build a Partial<Patient> payload — same shape as create but for an update
+  const payload: Partial<Patient> = {
     fullName: data.fullName,
-    gender: data.gender,
+    gender: data.gender as Gender,
     birthDate: data.birthDate as ISODateString,
     contactInfo: {
       phone: data.phone,
       city: data.city,
     },
     medicalHistory: {
-      conditions: data.medicalNotes ? [{ condition: data.medicalNotes, isActive: true }] : [],
+      conditions: data.medicalNotes
+        ? [{ condition: data.medicalNotes, isActive: true }]
+        : [],
       allergies: [],
-      currentMedications: data.currentMedications ? [data.currentMedications] : [],
-      bloodGroup: data.bloodGroup || BloodGroup.UNKNOWN,
+      currentMedications: data.currentMedications
+        ? [data.currentMedications]
+        : [],
+      bloodGroup: (data.bloodGroup as BloodGroup) || BloodGroup.UNKNOWN,
     },
-    emergencyContact: data.emergencyName ? {
-      name: data.emergencyName,
-      relationship: data.emergencyRelationship || "",
-      phone: data.emergencyPhone || "",
-    } : undefined,
+    emergencyContact: data.emergencyName
+      ? {
+          name: data.emergencyName,
+          relationship: data.emergencyRelationship || "",
+          phone: data.emergencyPhone || "",
+        }
+      : undefined,
     status: PatientStatus.ACTIVE,
     nationalId: data.nationalId,
-    visits: [],
   };
 
   try {
-    const newPatient = await createPatientActionDB(payload);
-    return {
-      success: true,
-      message: "addPatientSuccess",
-      data: newPatient,
-    };
+    await updatePatientActionDB(patientId, payload);
+    return { success: true, message: "editPatientSuccess" };
   } catch (error) {
-    console.error("Failed to create patient:", error);
-    return {
-      success: false,
-      message: "saveError",
-    };
+    console.error("[updatePatientAction]", error);
+    return { success: false, message: "saveError" };
   }
 }

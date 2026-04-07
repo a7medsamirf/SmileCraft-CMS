@@ -2,6 +2,7 @@
 
 // =============================================================================
 // Appointments — Booking Form Modal
+// Procedure chip-picker linked to odontogram tooth statuses + tooth number input
 // =============================================================================
 
 import React, { useActionState, useEffect, useRef, useState } from "react";
@@ -12,40 +13,65 @@ import {
   Phone,
   Calendar,
   Clock,
-  Stethoscope,
   Timer,
   FileText,
   CheckCircle2,
+  Hash,
 } from "lucide-react";
-import { bookAppointmentAction, BookingState } from "../actions/bookAppointmentAction";
+import {
+  bookAppointmentAction,
+  BookingState,
+} from "../actions/bookAppointmentAction";
 import { getAppointmentsByDateAction } from "../serverActions";
 import { AppointmentStatus } from "../types";
 import { cn } from "@/lib/utils";
+import {
+  PROCEDURE_DEFINITIONS,
+  PROCEDURE_CATEGORY_LABELS,
+  ProcedureDefinition,
+} from "../constants/procedures";
+import {
+  getToothPosition,
+  getToothType,
+  ToothPosition,
+  ToothType,
+} from "@/features/clinical/types/odontogram";
 
-// ── Procedures List ─────────────────────────────────────────────────────────
-const PROCEDURES = [
-  "حشو عصب",
-  "حشو تجميلي",
-  "خلع ضرس",
-  "خلع ضرس عقل",
-  "تنظيف وتلميع",
-  "تركيب تقويم",
-  "تبييض أسنان",
-  "تركيب تاج",
-  "زراعة أسنان",
-  "فحص دوري",
-  "علاج لثة",
-  "أشعة بانوراما",
+// ── Tooth position / type labels (Arabic) ───────────────────────────────────
+const POSITION_LABEL: Record<ToothPosition, string> = {
+  [ToothPosition.UPPER_RIGHT]: "فك علوي أيمن",
+  [ToothPosition.UPPER_LEFT]: "فك علوي أيسر",
+  [ToothPosition.LOWER_LEFT]: "فك سفلي أيسر",
+  [ToothPosition.LOWER_RIGHT]: "فك سفلي أيمن",
+};
+
+const TYPE_LABEL: Record<ToothType, string> = {
+  [ToothType.MOLAR]: "ضرس",
+  [ToothType.PREMOLAR]: "ضرس أمامي",
+  [ToothType.CANINE]: "ناب",
+  [ToothType.INCISOR]: "قاطع",
+};
+
+// ── Group procedures by category ─────────────────────────────────────────────
+const CATEGORY_ORDER: ProcedureDefinition["category"][] = [
+  "restorative",
+  "endodontic",
+  "prosthetic",
+  "surgical",
+  "preventive",
+  "cosmetic",
+  "periodontic",
 ];
 
-// ── Time Slots ──────────────────────────────────────────────────────────────
-const TIME_SLOTS = [
-  "09:00 ص", "09:30 ص", "10:00 ص", "10:30 ص", "11:00 ص", "11:30 ص",
-  "12:00 م", "12:30 م", "01:00 م", "01:30 م", "02:00 م", "02:30 م",
-  "03:00 م", "03:30 م", "04:00 م", "04:30 م", "05:00 م",
-];
+const groupedProcedures = CATEGORY_ORDER.reduce<
+  Record<string, ProcedureDefinition[]>
+>((acc, cat) => {
+  const items = PROCEDURE_DEFINITIONS.filter((p) => p.category === cat);
+  if (items.length > 0) acc[cat] = items;
+  return acc;
+}, {});
 
-// ── Durations ───────────────────────────────────────────────────────────────
+// ── Duration options ─────────────────────────────────────────────────────────
 const DURATIONS = [
   { value: "15", label: "١٥ دقيقة" },
   { value: "30", label: "٣٠ دقيقة" },
@@ -55,15 +81,33 @@ const DURATIONS = [
   { value: "120", label: "ساعتين" },
 ];
 
-// ── Initial State ───────────────────────────────────────────────────────────
-const initialState: BookingState = {
-  success: false,
-  errors: {},
-};
+// ── Time slots ───────────────────────────────────────────────────────────────
+const TIME_SLOTS = [
+  "09:00 ص",
+  "09:30 ص",
+  "10:00 ص",
+  "10:30 ص",
+  "11:00 ص",
+  "11:30 ص",
+  "12:00 م",
+  "12:30 م",
+  "01:00 م",
+  "01:30 م",
+  "02:00 م",
+  "02:30 م",
+  "03:00 م",
+  "03:30 م",
+  "04:00 م",
+  "04:30 م",
+  "05:00 م",
+];
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ── Initial form state ───────────────────────────────────────────────────────
+const initialState: BookingState = { success: false, errors: {} };
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Component
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface BookingFormProps {
   isOpen: boolean;
@@ -72,18 +116,41 @@ interface BookingFormProps {
 
 export function BookingForm({ isOpen, onClose }: BookingFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [state, formAction, isPending] = useActionState(bookAppointmentAction, initialState);
+  const [state, formAction, isPending] = useActionState(
+    bookAppointmentAction,
+    initialState,
+  );
+
+  // ── UI State ──────────────────────────────────────────────────────────────
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set());
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [selectedProcedure, setSelectedProcedure] =
+    useState<ProcedureDefinition | null>(null);
+  const [toothInput, setToothInput] = useState<string>("");
 
+  // Parse tooth number for live hint
+  const toothNum = toothInput ? parseInt(toothInput, 10) : null;
+  const isValidTooth = toothNum !== null && toothNum >= 1 && toothNum <= 32;
+
+  // Tooth position hint (uses clinical module helpers)
+  let toothHint = "";
+  if (isValidTooth && toothNum) {
+    try {
+      const pos = getToothPosition(toothNum);
+      const type = getToothType(toothNum);
+      toothHint = `${TYPE_LABEL[type]} — ${POSITION_LABEL[pos]}`;
+    } catch {
+      toothHint = "";
+    }
+  }
+
+  // ── Effects ───────────────────────────────────────────────────────────────
   // Auto-close on success
   useEffect(() => {
     if (state.success) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 1500);
+      const timer = setTimeout(onClose, 1500);
       return () => clearTimeout(timer);
     }
   }, [state.success, onClose]);
@@ -94,72 +161,74 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
       setSelectedTime("");
       setSelectedDate("");
       setBookedTimes(new Set());
+      setSelectedProcedure(null);
+      setToothInput("");
     }
   }, [isOpen]);
 
+  // Load booked slots when date changes
   useEffect(() => {
     if (!isOpen || !selectedDate) {
       setBookedTimes(new Set());
       return;
     }
-
     let isMounted = true;
-
-    const loadSlots = async () => {
+    (async () => {
       try {
         setIsLoadingSlots(true);
-        const dayAppointments = await getAppointmentsByDateAction(new Date(selectedDate));
+        const dayApts = await getAppointmentsByDateAction(
+          new Date(selectedDate),
+        );
         if (!isMounted) return;
-
-        const unavailableStatuses = new Set<AppointmentStatus>([
+        const unavailable = new Set<AppointmentStatus>([
           AppointmentStatus.SCHEDULED,
           AppointmentStatus.CONFIRMED,
           AppointmentStatus.IN_PROGRESS,
         ]);
-
-        const nextBooked = new Set(
-          dayAppointments
-            .filter((appointment) => unavailableStatuses.has(appointment.status))
-            .map((appointment) => appointment.time),
+        setBookedTimes(
+          new Set(
+            dayApts.filter((a) => unavailable.has(a.status)).map((a) => a.time),
+          ),
         );
-
-        setBookedTimes(nextBooked);
-      } catch (error) {
-        console.error("Failed to load booked slots:", error);
-        if (isMounted) {
-          setBookedTimes(new Set());
-        }
+      } catch {
+        if (isMounted) setBookedTimes(new Set());
       } finally {
-        if (isMounted) {
-          setIsLoadingSlots(false);
-        }
+        if (isMounted) setIsLoadingSlots(false);
       }
-    };
-
-    loadSlots();
+    })();
     return () => {
       isMounted = false;
     };
   }, [isOpen, selectedDate]);
 
+  // Deselect time if it becomes booked after a reload
   useEffect(() => {
-    if (selectedTime && bookedTimes.has(selectedTime)) {
-      setSelectedTime("");
-    }
+    if (selectedTime && bookedTimes.has(selectedTime)) setSelectedTime("");
   }, [bookedTimes, selectedTime]);
 
   if (!isOpen) return null;
 
+  // ── Input style helper ─────────────────────────────────────────────────────
+  const inputCls = (error?: string) =>
+    cn(
+      "w-full rounded-xl px-4 py-3 text-[13px] font-medium appearance-none",
+      "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700",
+      "text-slate-700 dark:text-slate-300 outline-none",
+      "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all",
+      error && "border-red-500",
+    );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         style={{ animation: "fadeIn 0.2s ease" }}
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal shell */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/20 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200/50 dark:border-slate-700/50"
@@ -176,7 +245,9 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                   حجز موعد جديد
                 </h2>
-                <p className="text-[12px] text-slate-500">أدخل بيانات المريض والموعد</p>
+                <p className="text-[12px] text-slate-500">
+                  أدخل بيانات المريض والإجراء والموعد
+                </p>
               </div>
             </div>
             <button
@@ -188,9 +259,8 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
           </div>
 
           {/* ── Form ── */}
-          <form ref={formRef} action={formAction} className="p-6 space-y-5">
-
-            {/* Row 1: Patient Name + Phone */}
+          <form ref={formRef} action={formAction} className="p-6 space-y-6">
+            {/* ── 1. Patient info ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 label="اسم المريض"
@@ -211,14 +281,14 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
               />
             </div>
 
-            {/* Row 2: Date + Duration */}
+            {/* ── 2. Date + Duration ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 label="التاريخ"
                 name="date"
                 icon={<Calendar className="w-4 h-4" />}
                 type="date"
-                onChange={(value) => setSelectedDate(value)}
+                onChange={(v) => setSelectedDate(v)}
                 error={state.errors?.date?.[0]}
                 disabled={isPending}
               />
@@ -234,63 +304,232 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                     name="duration"
                     disabled={isPending}
                     className={cn(
-                      "w-full rounded-xl px-4 py-3 text-[13px] font-medium appearance-none",
-                      "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700",
-                      "text-slate-700 dark:text-slate-300 outline-none pr-10",
-                      "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all",
-                      state.errors?.duration && "border-red-500",
+                      inputCls(state.errors?.duration?.[0]),
+                      "pr-10",
                     )}
                   >
                     <option value="">اختر المدة</option>
                     {DURATIONS.map((d) => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
                     ))}
                   </select>
                 </div>
                 {state.errors?.duration && (
-                  <p className="text-[11px] text-red-400 font-medium mt-1">{state.errors.duration[0]}</p>
+                  <p className="text-[11px] text-red-400 font-medium mt-1">
+                    {state.errors.duration[0]}
+                  </p>
                 )}
               </div>
             </div>
 
-            {/* Row 3: Procedure */}
+            {/* ── 3. Tooth Number ── */}
             <div>
-              <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
-                نوع الإجراء
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+                <Hash className="w-3.5 h-3.5" />
+                رقم السن (اختياري — ١ إلى ٣٢)
               </label>
-              <div className="relative">
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                  <Stethoscope className="w-4 h-4" />
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative w-32">
+                  <input
+                    type="number"
+                    name="toothNumber"
+                    min={1}
+                    max={32}
+                    value={toothInput}
+                    onChange={(e) => setToothInput(e.target.value)}
+                    placeholder="مثال: 14"
+                    disabled={isPending}
+                    className={cn(
+                      inputCls(),
+                      "text-center font-bold text-lg",
+                      isValidTooth && "border-blue-400 focus:border-blue-500",
+                    )}
+                  />
                 </div>
-                <select
-                  name="procedure"
-                  disabled={isPending}
-                  className={cn(
-                    "w-full rounded-xl px-4 py-3 text-[13px] font-medium appearance-none",
-                    "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700",
-                    "text-slate-700 dark:text-slate-300 outline-none pr-10",
-                    "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all",
-                    state.errors?.procedure && "border-red-500",
-                  )}
-                >
-                  <option value="">اختر الإجراء</option>
-                  {PROCEDURES.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
+
+                {/* Live position hint */}
+                {isValidTooth && toothHint && (
+                  <div className="flex items-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 px-3 py-2 border border-blue-100 dark:border-blue-800/40">
+                    {/* Mini tooth SVG indicator */}
+                    <svg
+                      viewBox="0 0 24 28"
+                      width="16"
+                      height="18"
+                      className="shrink-0"
+                    >
+                      <path
+                        d="M5 6 C5 2, 19 2, 19 6 C19 10, 22 14, 18 26 C15 26, 13 20, 12 20 C11 20, 9 26, 6 26 C2 14, 5 10, 5 6 Z"
+                        fill="#3b82f6"
+                        stroke="#1d4ed8"
+                        strokeWidth="1.5"
+                      />
+                    </svg>
+                    <div>
+                      <p className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                        سن #{toothNum}
+                      </p>
+                      <p className="text-[10px] text-blue-500 dark:text-blue-400">
+                        {toothHint}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {toothInput && !isValidTooth && (
+                  <p className="text-[11px] text-red-400 font-medium">
+                    الرقم يجب أن يكون بين ١ و٣٢
+                  </p>
+                )}
               </div>
+            </div>
+
+            {/* ── 4. Procedure Type — Visual Chip Picker ── */}
+            <div>
+              {/* Hidden inputs for form submission */}
+              <input
+                type="hidden"
+                name="procedure"
+                value={selectedProcedure?.labelAr ?? ""}
+              />
+              <input
+                type="hidden"
+                name="procedureKey"
+                value={selectedProcedure?.key ?? ""}
+              />
+
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
+                  نوع الإجراء
+                </label>
+                {/* Odontogram color legend — mirrors the dental chart */}
+                <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-400 font-medium">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#ef4444]" />
+                    تسوس
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#3b82f6]" />
+                    حشو
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#a855f7]" />
+                    عصب
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#fbbf24]" />
+                    تاج
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-[#94a3b8]" />
+                    خلع
+                  </span>
+                </div>
+              </div>
+
               {state.errors?.procedure && (
-                <p className="text-[11px] text-red-400 font-medium mt-1">{state.errors.procedure[0]}</p>
+                <p className="text-[11px] text-red-400 font-medium mb-2">
+                  {state.errors.procedure[0]}
+                </p>
+              )}
+
+              {/* Grouped chips */}
+              <div className="space-y-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 p-4">
+                {Object.entries(groupedProcedures).map(([category, procs]) => (
+                  <div key={category}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+                      {
+                        PROCEDURE_CATEGORY_LABELS[
+                          category as ProcedureDefinition["category"]
+                        ]
+                      }
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {procs.map((proc) => {
+                        const isSelected = selectedProcedure?.key === proc.key;
+                        return (
+                          <button
+                            key={proc.key}
+                            type="button"
+                            disabled={isPending}
+                            onClick={() =>
+                              setSelectedProcedure(isSelected ? null : proc)
+                            }
+                            className={cn(
+                              "relative flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] font-semibold transition-all duration-150",
+                              "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                              isSelected
+                                ? "bg-white dark:bg-slate-900 shadow-md text-slate-900 dark:text-white"
+                                : "bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200",
+                            )}
+                            style={{
+                              borderTopColor: isSelected
+                                ? proc.strokeColor
+                                : undefined,
+                              borderRightColor: isSelected
+                                ? proc.strokeColor
+                                : undefined,
+                              borderBottomColor: isSelected
+                                ? proc.strokeColor
+                                : undefined,
+                              borderLeftWidth: "3px",
+                              borderLeftColor: proc.color,
+                              boxShadow: isSelected
+                                ? `0 0 0 2px ${proc.color}40`
+                                : undefined,
+                            }}
+                          >
+                            {/* Color dot matching odontogram */}
+                            <span
+                              className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-white dark:ring-slate-800"
+                              style={{ backgroundColor: proc.color }}
+                            />
+                            {proc.labelAr}
+                            {/* Cost badge — only on selected chip */}
+                            {isSelected && (
+                              <span className="ms-1 rounded-full bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                {proc.estimatedCost.toLocaleString()} ج.م
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Selected summary bar */}
+              {selectedProcedure && (
+                <div
+                  className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold border"
+                  style={{
+                    backgroundColor: `${selectedProcedure.color}15`,
+                    borderColor: `${selectedProcedure.color}40`,
+                    color: selectedProcedure.strokeColor,
+                  }}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: selectedProcedure.color }}
+                  />
+                  تم اختيار: {selectedProcedure.labelAr}
+                  {isValidTooth && toothNum && (
+                    <span className="ms-1 opacity-75">• سن #{toothNum}</span>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Row 4: Time Slots Grid */}
+            {/* ── 5. Time Slots ── */}
             <div>
-              <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
-                <Clock className="w-3.5 h-3.5 inline-block me-1" />
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+                <Clock className="w-3.5 h-3.5" />
                 اختر الوقت
               </label>
               <input type="hidden" name="time" value={selectedTime} />
+
               {!selectedDate && (
                 <p className="text-[11px] text-amber-500 font-medium mb-2">
                   اختر التاريخ أولًا لعرض الأوقات المتاحة.
@@ -301,11 +540,13 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                   جاري تحميل الأوقات المتاحة...
                 </p>
               )}
+
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {TIME_SLOTS.map((slot) => {
                   const isSelected = selectedTime === slot;
                   const isBooked = bookedTimes.has(slot);
-                  const isDisabled = isPending || !selectedDate || isLoadingSlots || isBooked;
+                  const isDisabled =
+                    isPending || !selectedDate || isLoadingSlots || isBooked;
                   return (
                     <button
                       key={slot}
@@ -326,27 +567,33 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                   );
                 })}
               </div>
+
               {state.errors?.time && (
-                <p className="text-[11px] text-red-400 font-medium mt-1.5">{state.errors.time[0]}</p>
+                <p className="text-[11px] text-red-400 font-medium mt-1.5">
+                  {state.errors.time[0]}
+                </p>
               )}
-              {/* Legend */}
+
               <div className="flex items-center gap-4 mt-2">
                 <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> المختار
+                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500" />{" "}
+                  المختار
                 </span>
                 <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" /> متاح
+                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />{" "}
+                  متاح
                 </span>
                 <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-200 dark:bg-slate-700 line-through" /> محجوز
+                  <span className="w-2.5 h-2.5 rounded-sm bg-slate-200 dark:bg-slate-700" />{" "}
+                  محجوز
                 </span>
               </div>
             </div>
 
-            {/* Row 5: Notes */}
+            {/* ── 6. Notes ── */}
             <div>
-              <label className="block text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
-                <FileText className="w-3.5 h-3.5 inline-block me-1" />
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+                <FileText className="w-3.5 h-3.5" />
                 ملاحظات (اختياري)
               </label>
               <textarea
@@ -358,7 +605,7 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
               />
             </div>
 
-            {/* Form-Level Error */}
+            {/* ── Error / Success feedback ── */}
             {state.errors?.form && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                 <p className="text-[12.5px] text-red-400 text-center font-medium">
@@ -366,12 +613,12 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 </p>
               </div>
             )}
-
-            {/* Success */}
             {state.success && (
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <p className="text-[13px] text-emerald-400 font-bold">{state.message}</p>
+                <p className="text-[13px] text-emerald-400 font-bold">
+                  {state.message}
+                </p>
               </div>
             )}
 
@@ -413,18 +660,17 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
         </div>
       </div>
 
-      {/* CSS Animations */}
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn  { from { opacity: 0; }                             to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </>
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// FormField — Reusable Input Component
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// FormField — Reusable labelled input
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface FormFieldProps {
   label: string;
@@ -464,14 +710,15 @@ function FormField({
           placeholder={placeholder}
           dir={dir}
           disabled={disabled}
-          onChange={(event) => onChange?.(event.target.value)}
+          onChange={(e) => onChange?.(e.target.value)}
           className={cn(
-            "w-full rounded-xl px-4 py-3 text-[13px] font-medium",
+            "w-full rounded-xl px-4 py-3 pr-10 text-[13px] font-medium",
             "bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700",
-            "text-slate-700 dark:text-slate-300 outline-none pr-10",
+            "text-slate-700 dark:text-slate-300 outline-none",
             "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all",
             "placeholder:text-slate-400",
-            error && "border-red-500 focus:border-red-500 focus:ring-red-500/10",
+            error &&
+              "border-red-500 focus:border-red-500 focus:ring-red-500/10",
             disabled && "opacity-50 cursor-not-allowed",
           )}
         />

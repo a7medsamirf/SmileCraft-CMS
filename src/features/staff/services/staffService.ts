@@ -1,62 +1,16 @@
-import { StaffMember, LeaveRequest, StaffSchedule, PayrollRecord } from "../types";
+import {
+  StaffMember,
+  LeaveRequest,
+  StaffSchedule,
+  PayrollRecord,
+} from "../types";
 import { generateId } from "@/lib/utils/id";
+import { MOCK_STAFF } from "../mock/staff.mock";
 
 const STAFF_STORAGE_KEY = "dental_staff_data";
 const LEAVES_STORAGE_KEY = "dental_leaves_data";
 const SCHEDULES_STORAGE_KEY = "dental_staff_schedules";
 const PAYROLL_STORAGE_KEY = "dental_staff_payroll";
-
-const MOCK_STAFF: StaffMember[] = [
-  {
-    id: "1",
-    fullName: "Dr. Ahmed Samir",
-    role: "DOCTOR",
-    specialty: "Orthodontics",
-    certifications: ["BDS", "MDS Orthodontics"],
-    email: "ahmed@smilecraft.com",
-    phone: "+20 123 456 7890",
-    joinDate: "2022-01-15",
-    salary: 25000,
-    isActive: true,
-    avatarUrl: "/avatars/doctor1.jpg",
-  },
-  {
-    id: "2",
-    fullName: "Dr. Sarah Mahmoud",
-    role: "DOCTOR",
-    specialty: "Pediatric Dentistry",
-    certifications: ["BDS", "Pediatric Dentistry Certificate"],
-    email: "sarah@smilecraft.com",
-    phone: "+20 123 456 7891",
-    joinDate: "2022-06-01",
-    salary: 22000,
-    isActive: true,
-  },
-  {
-    id: "3",
-    fullName: "Nour Hassan",
-    role: "ASSISTANT",
-    specialty: "Dental Assistant",
-    certifications: ["Dental Assistant Certificate"],
-    email: "nour@smilecraft.com",
-    phone: "+20 123 456 7892",
-    joinDate: "2023-03-10",
-    salary: 8000,
-    isActive: true,
-  },
-  {
-    id: "4",
-    fullName: "Mariam Khaled",
-    role: "RECEPTIONIST",
-    specialty: "Receptionist",
-    certifications: [],
-    email: "mariam@smilecraft.com",
-    phone: "+20 123 456 7893",
-    joinDate: "2023-01-20",
-    salary: 7000,
-    isActive: true,
-  },
-];
 
 export const staffService = {
   getAllStaff: (): StaffMember[] => {
@@ -115,7 +69,9 @@ export const staffService = {
     return leaves.filter((l) => l.staffId === staffId);
   },
 
-  submitLeaveRequest: (leave: Omit<LeaveRequest, "id" | "status" | "requestedAt">): LeaveRequest => {
+  submitLeaveRequest: (
+    leave: Omit<LeaveRequest, "id" | "status" | "requestedAt">,
+  ): LeaveRequest => {
     const leaves = staffService.getAllLeaves();
     const newLeave: LeaveRequest = {
       ...leave,
@@ -151,9 +107,14 @@ export const staffService = {
   },
 
   // Staff Schedule
-  getStaffSchedule: (staffId: string, weekStart: string): StaffSchedule | undefined => {
+  getStaffSchedule: (
+    staffId: string,
+    weekStart: string,
+  ): StaffSchedule | undefined => {
     const schedules = staffService.getAllSchedules();
-    return schedules.find((s) => s.staffId === staffId && s.weekStart === weekStart);
+    return schedules.find(
+      (s) => s.staffId === staffId && s.weekStart === weekStart,
+    );
   },
 
   getAllSchedules: (): StaffSchedule[] => {
@@ -165,7 +126,8 @@ export const staffService = {
   saveStaffSchedule: (schedule: StaffSchedule): void => {
     const schedules = staffService.getAllSchedules();
     const index = schedules.findIndex(
-      (s) => s.staffId === schedule.staffId && s.weekStart === schedule.weekStart,
+      (s) =>
+        s.staffId === schedule.staffId && s.weekStart === schedule.weekStart,
     );
 
     if (index >= 0) {
@@ -207,12 +169,12 @@ export const staffService = {
     localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(records));
   },
 
-  generateMonthlyPayroll: (month: string): void => {
-    const staff = staffService.getAllStaff();
+  generateMonthlyPayroll: (month: string, staffList?: StaffMember[]): void => {
+    const activeStaff = staffList ?? staffService.getAllStaff();
     const existingRecords = staffService.getPayrollByMonth(month);
-    
-    staff.forEach(member => {
-      const exists = existingRecords.some(r => r.staffId === member.id);
+
+    activeStaff.forEach((member) => {
+      const exists = existingRecords.some((r) => r.staffId === member.id);
       if (!exists && member.isActive) {
         const record: PayrollRecord = {
           id: generateId(),
@@ -229,19 +191,31 @@ export const staffService = {
     });
   },
 
-  getPayrollSummary: (staffId: string): { baseSalary: number; bonuses: number; deductions: number; net: number } => {
+  getPayrollSummary: (
+    staffId: string,
+  ): {
+    baseSalary: number;
+    bonuses: number;
+    deductions: number;
+    net: number;
+  } => {
     const records = staffService.getPayrollByStaffId(staffId);
     if (records.length === 0) {
       const staff = staffService.getStaffById(staffId);
-      return { baseSalary: staff?.salary || 0, bonuses: 0, deductions: 0, net: staff?.salary || 0 };
+      return {
+        baseSalary: staff?.salary || 0,
+        bonuses: 0,
+        deductions: 0,
+        net: staff?.salary || 0,
+      };
     }
-    
+
     const latest = records.sort((a, b) => b.month.localeCompare(a.month))[0];
     return {
       baseSalary: latest.baseSalary,
       bonuses: latest.bonuses,
       deductions: latest.deductions,
-      net: latest.net
+      net: latest.net,
     };
   },
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
+
 import { Users, CalendarOff, DollarSign, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { StaffList } from "@/features/staff/components/StaffList";
@@ -30,7 +31,9 @@ export function StaffClient({ initialStaff }: StaffClientProps) {
 
   const handleAddStaff = async (data: Partial<StaffMember>) => {
     startTransition(async () => {
-      const created = await createStaffMemberAction(data as Omit<StaffMember, "id">);
+      const created = await createStaffMemberAction(
+        data as Omit<StaffMember, "id">,
+      );
       const normalized: StaffMember = {
         id: created.id,
         fullName: created.fullName,
@@ -64,15 +67,27 @@ export function StaffClient({ initialStaff }: StaffClientProps) {
         salary: updated.salary,
         isActive: updated.isActive,
       };
-      setStaff((prev) => prev.map((member) => (member.id === normalized.id ? normalized : member)));
+      setStaff((prev) =>
+        prev.map((member) =>
+          member.id === normalized.id ? normalized : member,
+        ),
+      );
       setEditingStaff(null);
       setActiveTab("list");
     });
   };
   const handleToggleStatus = (member: StaffMember) => {
     startTransition(async () => {
-      const updated = await updateStaffMemberAction(member.id, { isActive: !member.isActive });
-      setStaff((prev) => prev.map((item) => (item.id === member.id ? { ...item, isActive: updated.isActive } : item)));
+      const updated = await updateStaffMemberAction(member.id, {
+        isActive: !member.isActive,
+      });
+      setStaff((prev) =>
+        prev.map((item) =>
+          item.id === member.id
+            ? { ...item, isActive: updated.isActive }
+            : item,
+        ),
+      );
     });
   };
 
@@ -82,7 +97,6 @@ export function StaffClient({ initialStaff }: StaffClientProps) {
       setStaff((prev) => prev.filter((item) => item.id !== member.id));
     });
   };
-
 
   const handleEditClick = (staff: StaffMember) => {
     setEditingStaff(staff);
@@ -125,7 +139,9 @@ export function StaffClient({ initialStaff }: StaffClientProps) {
                       : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                  <Icon
+                    className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`}
+                  />
                   {tab.label}
                 </button>
               );
@@ -180,9 +196,9 @@ export function StaffClient({ initialStaff }: StaffClientProps) {
                 </div>
               )}
 
-              {activeTab === "leaves" && <LeaveManagement />}
+              {activeTab === "leaves" && <LeaveManagement staff={staff} />}
 
-              {activeTab === "payroll" && <PayrollManagement />}
+              {activeTab === "payroll" && <PayrollManagement staff={staff} />}
             </div>
           </main>
         </div>

@@ -1,27 +1,10 @@
 "use server";
 
-// =============================================================================
-// DENTAL CMS — Authentication: Login Server Action
-// app/[locale]/auth/login/loginAction.ts
-// =============================================================================
-
-import { z } from "zod";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-// -----------------------------------------------------------------------------
-// Validation Schema
-// -----------------------------------------------------------------------------
-
-import { loginSchema, type LoginFormData } from "./schema";
-
-// -----------------------------------------------------------------------------
-// Login Result Types
-// -----------------------------------------------------------------------------
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { loginSchema } from "./schema";
 
 export type LoginState = {
-  success: boolean;
-  message?: string;
   errors?: {
     email?: string[];
     password?: string[];
@@ -29,82 +12,26 @@ export type LoginState = {
   };
 };
 
-export async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignored when called from server component/action when setting cookies
-          }
-        },
-      },
-    }
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Login Server Action
-// -----------------------------------------------------------------------------
-
-export async function loginAction(data: LoginFormData): Promise<LoginState> {
-  // Parse data to be sure
-  const result = loginSchema.safeParse(data);
-
-  // Validation failed
-  if (!result.success) {
-    const fieldErrors = result.error.flatten().fieldErrors;
-    return {
-      success: false,
-      errors: {
-        email: fieldErrors.email,
-        password: fieldErrors.password,
-      },
-    };
-  }
-
-  // Valid data
-  const { email, password } = result.data;
-
-  const supabase = await createClient();
-
-  const { data: authData, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return {
-      success: false,
-      errors: {
-        form: ["البريد الإلكتروني أو كلمة المرور غير صحيحة"],
-      },
-    };
-  }
-
-  // Set the "auth_token" to satisfy existing middleware.ts logic 
-  const cookieStore = await cookies();
-  cookieStore.set("auth_token", authData.session?.access_token || "supabase_auth_secure_token", {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  });
-
-  return {
-    success: true,
-    message: "تم تسجيل الدخول بنجاح",
+export async function loginAction(
+  _prevState: LoginState,
+  formData: FormData
+): Promise<LoginState> {
+  const raw = {
+    email: (formData.get("email") as string | null) ?? "",
+    password: (formData.get("password") as string | null) ?? "",
   };
+  const parsed = loginSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+  if (error) {
+    return { errors: { form: ["البريد الإلكتروني أو كلمة المرور غير صحيحة"] } };
+  }
+  const locale = (formData.get("locale") as string | null) ?? "ar";
+  redirect(`/${locale}/dashboard`);
 }

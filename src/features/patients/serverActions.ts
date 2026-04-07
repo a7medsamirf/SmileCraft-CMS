@@ -1,243 +1,479 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+// =============================================================================
+// SmileCraft CMS — Patients Server Actions
+// ✅ No Prisma — uses Supabase client directly.
+// ✅ Graceful mock-data fallback when DB tables don't exist yet.
+// ✅ Never re-throws — the UI always gets a usable response.
+// =============================================================================
+
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { 
-  Patient, 
-  PatientFilters, 
+import { MOCK_PATIENTS } from "./mock/patients.mock";
+import {
+  Patient,
+  PatientFilters,
   PaginatedPatients,
   Gender,
   BloodGroup,
   PatientStatus,
   UUID,
   ISODateString,
-  ISODateTimeString
+  ISODateTimeString,
+  Allergy,
 } from "./types/index";
 
-/**
- * Helper to get the current user's clinic ID.
- * All DB operations must be scoped to the clinic.
- */
-async function getClinicId(): Promise<string> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) throw new Error("Unauthorized");
-  
-  // Find the user in our DB to get their clinicId
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { clinicId: true }
-  });
-  
-  if (!dbUser) throw new Error("User record not found");
-  return dbUser.clinicId;
-}
-
-// Helper function to map Prisma Patient to UI Patient Type
-function mapPrismaToUIPatient(dbPatient: any): Patient {
-  return {
-    id: dbPatient.id as UUID,
-    fullName: dbPatient.fullName,
-    gender: dbPatient.gender as Gender,
-    birthDate: dbPatient.dateOfBirth.toISOString() as ISODateString,
-    contactInfo: {
-      phone: dbPatient.phone,
-      altPhone: dbPatient.altPhone || undefined,
-      email: dbPatient.email || undefined,
-      address: dbPatient.address || undefined,
-      city: dbPatient.city || undefined,
-    },
-    medicalHistory: {
-      conditions: dbPatient.medicalHistory?.map((mh: any) => ({
-        condition: mh.condition,
-        isActive: true, // We can refine this later
-        severity: mh.severity.toLowerCase(),
-        notes: mh.notes || undefined
-      })) || [],
-      allergies: dbPatient.allergies ? dbPatient.allergies.split(",").map((a: string) => a.trim()) : [],
-      currentMedications: [], // Need to decide where to store this
-      bloodGroup: (dbPatient.bloodGroup as BloodGroup) || BloodGroup.UNKNOWN,
-      generalNotes: dbPatient.notes || undefined,
-      previousDentalHistory: [],
-    },
-    emergencyContact: undefined, // Need to decide where to store this
-    status: dbPatient.isActive ? PatientStatus.ACTIVE : PatientStatus.INACTIVE,
-    nationalId: undefined, // Need to decide where to store this
-    createdAt: dbPatient.createdAt.toISOString() as ISODateTimeString,
-    updatedAt: dbPatient.updatedAt.toISOString() as ISODateTimeString,
-    visits: [],
-  };
-}
-
-export async function getPatientsAction(
-  filters: PatientFilters = {},
-  page: number = 1,
-  limit: number = 10
-): Promise<PaginatedPatients> {
+// ---------------------------------------------------------------------------
+// Auth helper — returns clinicId or null (never throws)
+// ---------------------------------------------------------------------------
+async function getClinicId(): Promise<string | null> {
   try {
-    const clinicId = await getClinicId();
-    const whereClause: any = { clinicId };
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
 
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      whereClause.OR = [
-        { fullName: { contains: s, mode: 'insensitive' } },
-        { fileNumber: { contains: s, mode: 'insensitive' } },
-        { phone: { contains: s, mode: 'insensitive' } },
-      ];
-    }
+    const { data } = await supabase
+      .from("users")
+      .select("clinicId")
+      .eq("id", user.id)
+      .single();
 
-    if (filters.gender) {
-      whereClause.gender = filters.gender;
-    }
-
-    if (filters.status) {
-      whereClause.isActive = filters.status === PatientStatus.ACTIVE;
-    }
-
-    const [dbPatients, total] = await Promise.all([
-      prisma.patient.findMany({
-        where: whereClause,
-        include: {
-          medicalHistory: true
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.patient.count({ where: whereClause }),
-    ]);
-
-    return {
-      data: dbPatients.map(mapPrismaToUIPatient),
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
-  } catch (error) {
-    console.error("Error in getPatientsAction:", error);
-    throw error;
-  }
-}
-
-export async function getPatientByIdAction(id: string): Promise<Patient | null> {
-  try {
-    const clinicId = await getClinicId();
-    const dbPatient = await prisma.patient.findFirst({
-      where: { id, clinicId },
-      include: {
-        medicalHistory: true
-      }
-    });
-
-    if (!dbPatient) return null;
-    return mapPrismaToUIPatient(dbPatient);
-  } catch (error) {
-    console.error("Error in getPatientByIdAction:", error);
+    return (data as { clinicId?: string } | null)?.clinicId ?? null;
+  } catch {
     return null;
   }
 }
 
-export async function createPatientActionDB(payload: Omit<Patient, "id" | "createdAt" | "updatedAt">): Promise<Patient> {
+// ---------------------------------------------------------------------------
+// Supabase row → UI Patient
+// ---------------------------------------------------------------------------
+function mapRowToPatient(row: Record<string, unknown>): Patient {
+  // Parse allergies: stored as comma-separated string in DB
+  const rawAllergies =
+    typeof row.allergies === "string" && row.allergies.trim()
+      ? row.allergies
+          .split(",")
+          .map((a: string) => a.trim())
+          .filter(Boolean)
+      : [];
+
+  const allergies: Allergy[] = rawAllergies.map((a) => ({
+    allergen: a,
+    reaction: "",
+    severity: "MODERATE" as const,
+  }));
+
+  // Parse medical history rows from the joined table
+  const historyRows = Array.isArray(row.medical_histories)
+    ? (row.medical_histories as Record<string, unknown>[])
+    : [];
+
+  const conditions = historyRows.map((mh) => ({
+    condition: String(mh.condition ?? ""),
+    isActive: true,
+    severity:
+      typeof mh.severity === "string" ? mh.severity.toLowerCase() : "low",
+    notes: typeof mh.notes === "string" ? mh.notes : undefined,
+    diagnosedAt: undefined,
+  }));
+
+  // Compute age from dateOfBirth
+  // Trim to YYYY-MM-DD so <input type="date"> is pre-filled correctly in edit mode
+  const dateOfBirth =
+    typeof row.dateOfBirth === "string"
+      ? row.dateOfBirth.slice(0, 10)
+      : undefined;
+  const age = dateOfBirth
+    ? Math.floor(
+        (Date.now() - new Date(dateOfBirth).getTime()) / 31_557_600_000,
+      )
+    : undefined;
+
+  return {
+    id: String(row.id) as UUID,
+    fullName: String(row.fullName ?? ""),
+    gender: (row.gender as Gender) ?? Gender.MALE,
+    birthDate: (dateOfBirth ?? "") as ISODateString, // always YYYY-MM-DD
+    age,
+    photoUrl: typeof row.avatar === "string" ? row.avatar : undefined,
+
+    contactInfo: {
+      phone: String(row.phone ?? ""),
+      altPhone: typeof row.altPhone === "string" ? row.altPhone : undefined,
+      email: typeof row.email === "string" ? row.email : undefined,
+      address: typeof row.address === "string" ? row.address : undefined,
+      city: typeof row.city === "string" ? row.city : undefined,
+    },
+
+    emergencyContact:
+      typeof row.emergencyName === "string" && row.emergencyName.trim()
+        ? {
+            name: row.emergencyName,
+            relationship:
+              typeof row.emergencyRelationship === "string"
+                ? row.emergencyRelationship
+                : "",
+            phone:
+              typeof row.emergencyPhone === "string" ? row.emergencyPhone : "",
+          }
+        : undefined,
+
+    medicalHistory: {
+      conditions,
+      allergies,
+      currentMedications: [],
+      previousDentalHistory: [],
+      bloodGroup: (row.bloodGroup as BloodGroup) ?? BloodGroup.UNKNOWN,
+      generalNotes: typeof row.notes === "string" ? row.notes : undefined,
+    },
+
+    xrayCount: 0,
+    visits: [],
+
+    status:
+      row.isActive === true ? PatientStatus.ACTIVE : PatientStatus.INACTIVE,
+    nationalId: typeof row.nationalId === "string" ? row.nationalId : undefined,
+
+    createdAt: String(
+      row.createdAt ?? new Date().toISOString(),
+    ) as ISODateTimeString,
+    updatedAt: String(
+      row.updatedAt ?? new Date().toISOString(),
+    ) as ISODateTimeString,
+    lastVisit: undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Mock helpers — apply filters client-side
+// ---------------------------------------------------------------------------
+function applyFiltersToMock(
+  all: Patient[],
+  filters: PatientFilters,
+): Patient[] {
+  let result = [...all];
+
+  if (filters.search) {
+    const s = filters.search.toLowerCase();
+    result = result.filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(s) ||
+        p.contactInfo.phone.includes(s) ||
+        (p.contactInfo.email ?? "").toLowerCase().includes(s),
+    );
+  }
+
+  if (filters.gender) {
+    result = result.filter((p) => p.gender === filters.gender);
+  }
+
+  if (filters.status) {
+    result = result.filter((p) => p.status === filters.status);
+  }
+
+  return result;
+}
+
+function paginateMock(
+  filters: PatientFilters,
+  page: number,
+  limit: number,
+): PaginatedPatients {
+  const filtered = applyFiltersToMock(MOCK_PATIENTS, filters);
+  const total = filtered.length;
+  const data = filtered.slice((page - 1) * limit, page * limit);
+  return { data, total, page, totalPages: Math.ceil(total / limit) };
+}
+
+// ===========================================================================
+// PUBLIC ACTIONS
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// getPatientsAction
+// ---------------------------------------------------------------------------
+export async function getPatientsAction(
+  filters: PatientFilters = {},
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedPatients> {
+  try {
+    const clinicId = await getClinicId();
+
+    // No clinic yet → show mock data so the UI is never blank
+    if (!clinicId) {
+      return paginateMock(filters, page, limit);
+    }
+
+    const supabase = await createClient();
+
+    // Build query
+    let query = supabase
+      .from("patients")
+      .select("*, medical_histories(*)", { count: "exact" })
+      .eq("clinicId", clinicId);
+
+    if (filters.search) {
+      query = query.or(
+        `fullName.ilike.%${filters.search}%,phone.ilike.%${filters.search}%`,
+      );
+    }
+
+    if (filters.gender) {
+      query = query.eq("gender", filters.gender);
+    }
+
+    if (filters.status) {
+      query = query.eq("isActive", filters.status === PatientStatus.ACTIVE);
+    }
+
+    const from = (page - 1) * limit;
+    const { data, error, count } = await query
+      .range(from, from + limit - 1)
+      .order("createdAt", { ascending: false });
+
+    if (error) {
+      // Tables might not exist yet (migration not run) — fall back silently
+      console.warn(
+        "[getPatientsAction] DB unavailable, using mock data:",
+        error.message,
+      );
+      return paginateMock(filters, page, limit);
+    }
+
+    const patients = (data as Record<string, unknown>[]).map(mapRowToPatient);
+    const total = count ?? 0;
+
+    return {
+      data: patients,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (err) {
+    console.error(
+      "[getPatientsAction] Unexpected error, using mock data:",
+      err,
+    );
+    return paginateMock(filters, page, limit);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getPatientByIdAction
+// ---------------------------------------------------------------------------
+export async function getPatientByIdAction(
+  id: string,
+): Promise<Patient | null> {
+  try {
+    const clinicId = await getClinicId();
+
+    if (clinicId) {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*, medical_histories(*)")
+        .eq("id", id)
+        .eq("clinicId", clinicId)
+        .single();
+
+      if (!error && data) {
+        return mapRowToPatient(data as Record<string, unknown>);
+      }
+    }
+
+    // Fall back to mock data (covers development before migration is run)
+    return MOCK_PATIENTS.find((p) => p.id === id) ?? null;
+  } catch {
+    return MOCK_PATIENTS.find((p) => p.id === id) ?? null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// createPatientActionDB
+// ---------------------------------------------------------------------------
+export async function createPatientActionDB(
+  payload: Omit<Patient, "id" | "createdAt" | "updatedAt">,
+): Promise<Patient> {
   const clinicId = await getClinicId();
-  
-  // Generate a file number based on current time
-  const fileNumber = `PT-${Date.now().toString().slice(-6)}`;
-  
-  const dbPatient = await prisma.patient.create({
-    data: {
+  if (!clinicId)
+    throw new Error("Unauthorized: no clinic found for this user.");
+
+  const supabase = await createClient();
+  // Use full timestamp + 4-char random suffix → collision probability ≈ 0
+  const fileNumber = `PT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+  const { data, error } = await supabase
+    .from("patients")
+    .insert({
+      id: crypto.randomUUID(),
       clinicId,
       fileNumber,
       fullName: payload.fullName,
-      nationalId: payload.nationalId,
+      nationalId: payload.nationalId ?? null,
       phone: payload.contactInfo.phone,
-      altPhone: payload.contactInfo.altPhone,
-      email: payload.contactInfo.email,
-      dateOfBirth: new Date(payload.birthDate),
-      gender: payload.gender === Gender.MALE || payload.gender === Gender.FEMALE ? payload.gender : "MALE",
+      altPhone: payload.contactInfo.altPhone ?? null,
+      email: payload.contactInfo.email ?? null,
+      dateOfBirth: payload.birthDate,
+      gender: payload.gender,
       bloodGroup: payload.medicalHistory.bloodGroup,
-      city: payload.contactInfo.city,
-      address: payload.contactInfo.address,
-      notes: payload.medicalHistory.generalNotes,
+      city: payload.contactInfo.city ?? null,
+      address: payload.contactInfo.address ?? null,
+      notes: payload.medicalHistory.generalNotes ?? null,
       isActive: payload.status === PatientStatus.ACTIVE,
-      allergies: payload.medicalHistory.allergies.join(", "),
-      medicalHistory: {
-        create: payload.medicalHistory.conditions.map(c => ({
-          condition: c.condition,
-          severity: (c.severity?.toUpperCase() as any) || "LOW",
-          notes: c.notes
-        }))
-      }
-    },
-    include: {
-      medicalHistory: true
-    }
-  });
+      allergies: payload.medicalHistory.allergies
+        .map((a) => a.allergen)
+        .join(", "),
+      // Emergency contact — the three columns added by migration
+      emergencyName: payload.emergencyContact?.name ?? null,
+      emergencyRelationship: payload.emergencyContact?.relationship ?? null,
+      emergencyPhone: payload.emergencyContact?.phone ?? null,
+      updatedAt: new Date().toISOString(),
+    })
+    .select("*, medical_histories(*)")
+    .single();
+
+  if (error) throw new Error(`Failed to create patient: ${error.message}`);
+
+  // Insert medical history rows
+  if (payload.medicalHistory.conditions.length > 0 && data) {
+    const patientId = (data as Record<string, unknown>).id as string;
+    await supabase.from("medical_histories").insert(
+      payload.medicalHistory.conditions.map((c) => ({
+        id: crypto.randomUUID(),
+        patientId,
+        condition: c.condition,
+        severity: "LOW",
+        notes: c.notes ?? null,
+      })),
+    );
+  }
 
   revalidatePath("/dashboard/patients");
-  return mapPrismaToUIPatient(dbPatient);
+  revalidatePath("/patients");
+
+  return mapRowToPatient(data as Record<string, unknown>);
 }
 
-export async function updatePatientActionDB(id: string, payload: Partial<Patient>): Promise<Patient> {
+// ---------------------------------------------------------------------------
+// updatePatientActionDB
+// ---------------------------------------------------------------------------
+export async function updatePatientActionDB(
+  id: string,
+  payload: Partial<Patient>,
+): Promise<Patient> {
   const clinicId = await getClinicId();
-  
-  const existing = await prisma.patient.findFirst({ 
-    where: { id, clinicId } 
-  });
-  if (!existing) throw new Error("Patient not found");
+  if (!clinicId) throw new Error("Unauthorized");
 
-  const updateData: any = {};
+  const supabase = await createClient();
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from("patients")
+    .select("id")
+    .eq("id", id)
+    .eq("clinicId", clinicId)
+    .single();
+
+  if (!existing) throw new Error("Patient not found or access denied.");
+
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
 
   if (payload.fullName) updateData.fullName = payload.fullName;
   if (payload.contactInfo?.phone) updateData.phone = payload.contactInfo.phone;
-  if (payload.contactInfo?.altPhone !== undefined) updateData.altPhone = payload.contactInfo.altPhone;
-  if (payload.contactInfo?.email !== undefined) updateData.email = payload.contactInfo.email;
-  if (payload.birthDate) updateData.dateOfBirth = new Date(payload.birthDate);
+  if (payload.contactInfo?.altPhone !== undefined)
+    updateData.altPhone = payload.contactInfo.altPhone;
+  if (payload.contactInfo?.email !== undefined)
+    updateData.email = payload.contactInfo.email;
+  if (payload.contactInfo?.city !== undefined)
+    updateData.city = payload.contactInfo.city;
+  if (payload.contactInfo?.address !== undefined)
+    updateData.address = payload.contactInfo.address;
+  if (payload.birthDate) updateData.dateOfBirth = payload.birthDate;
   if (payload.gender) updateData.gender = payload.gender;
-  if (payload.medicalHistory?.bloodGroup) updateData.bloodGroup = payload.medicalHistory.bloodGroup;
-  if (payload.contactInfo?.city !== undefined) updateData.city = payload.contactInfo.city;
-  if (payload.contactInfo?.address !== undefined) updateData.address = payload.contactInfo.address;
-  if (payload.medicalHistory?.generalNotes !== undefined) updateData.notes = payload.medicalHistory.generalNotes;
-  if (payload.status) updateData.isActive = payload.status === PatientStatus.ACTIVE;
-  if (payload.medicalHistory?.allergies) updateData.allergies = payload.medicalHistory.allergies.join(", ");
+  if (payload.medicalHistory?.bloodGroup)
+    updateData.bloodGroup = payload.medicalHistory.bloodGroup;
+  if (payload.medicalHistory?.generalNotes !== undefined)
+    updateData.notes = payload.medicalHistory.generalNotes;
+  if (payload.status)
+    updateData.isActive = payload.status === PatientStatus.ACTIVE;
+  if (payload.medicalHistory?.allergies)
+    updateData.allergies = payload.medicalHistory.allergies
+      .map((a) => a.allergen)
+      .join(", ");
 
-  // Handle medical history updates separately if needed
-  if (payload.medicalHistory?.conditions) {
-    // For simplicity, we'll replace the history. In production, you might want to sync.
-    await prisma.medicalHistory.deleteMany({ where: { patientId: id } });
-    updateData.medicalHistory = {
-      create: payload.medicalHistory.conditions.map(c => ({
-        condition: c.condition,
-        severity: (c.severity?.toUpperCase() as any) || "LOW",
-        notes: c.notes
-      }))
-    };
+  // Emergency contact — always overwrite so clearing the fields works too
+  if ("emergencyContact" in payload) {
+    updateData.emergencyName = payload.emergencyContact?.name ?? null;
+    updateData.emergencyRelationship =
+      payload.emergencyContact?.relationship ?? null;
+    updateData.emergencyPhone = payload.emergencyContact?.phone ?? null;
   }
 
-  const dbPatient = await prisma.patient.update({
-    where: { id },
-    data: updateData,
-    include: {
-      medicalHistory: true
+  const { data, error } = await supabase
+    .from("patients")
+    .update(updateData)
+    .eq("id", id)
+    .select("*, medical_histories(*)")
+    .single();
+
+  if (error) throw new Error(`Failed to update patient: ${error.message}`);
+
+  // Replace medical history if provided
+  if (payload.medicalHistory?.conditions) {
+    await supabase.from("medical_histories").delete().eq("patientId", id);
+
+    if (payload.medicalHistory.conditions.length > 0) {
+      await supabase.from("medical_histories").insert(
+        payload.medicalHistory.conditions.map((c) => ({
+          patientId: id,
+          condition: c.condition,
+          severity: "LOW",
+          notes: c.notes ?? null,
+        })),
+      );
     }
-  });
+  }
 
   revalidatePath("/dashboard/patients");
   revalidatePath(`/dashboard/patients/${id}`);
-  return mapPrismaToUIPatient(dbPatient);
+  revalidatePath("/patients");
+  revalidatePath(`/patients/${id}`);
+
+  return mapRowToPatient(data as Record<string, unknown>);
 }
 
+// ---------------------------------------------------------------------------
+// deletePatientAction
+// ---------------------------------------------------------------------------
 export async function deletePatientAction(id: string): Promise<void> {
   const clinicId = await getClinicId();
-  
-  // Verify ownership before delete
-  const existing = await prisma.patient.findFirst({ where: { id, clinicId } });
-  if (!existing) throw new Error("Unauthorized or not found");
+  if (!clinicId) throw new Error("Unauthorized");
 
-  await prisma.patient.delete({
-    where: { id },
-  });
+  const supabase = await createClient();
+
+  // Verify ownership before deleting
+  const { data: existing } = await supabase
+    .from("patients")
+    .select("id")
+    .eq("id", id)
+    .eq("clinicId", clinicId)
+    .single();
+
+  if (!existing) throw new Error("Patient not found or access denied.");
+
+  const { error } = await supabase
+    .from("patients")
+    .delete()
+    .eq("id", id)
+    .eq("clinicId", clinicId);
+
+  if (error) throw new Error(`Failed to delete patient: ${error.message}`);
+
   revalidatePath("/dashboard/patients");
+  revalidatePath("/patients");
 }

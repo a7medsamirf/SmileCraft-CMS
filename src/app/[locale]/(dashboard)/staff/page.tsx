@@ -1,20 +1,13 @@
 import React from "react";
+import type { Metadata } from "next";
 import { StaffClient } from "@/features/staff/components/StaffClient";
 import { getStaffMembersAction } from "@/features/staff/serverActions";
-import type { StaffMember } from "@/features/staff/types";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "الموظفين | SmileCraft CMS",
 };
 
 export default async function StaffPage() {
-  let initialStaff: StaffMember[] = [];
-
-  try {
-    initialStaff = await getStaffMembersAction();
-  } catch (error) {
-    console.error("Failed to load staff list:", error);
-  }
-
+  const initialStaff = await getStaffMembersAction();
   return <StaffClient initialStaff={initialStaff} />;
 }

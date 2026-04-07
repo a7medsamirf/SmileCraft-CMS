@@ -16,8 +16,10 @@ const bookingSchema = z.object({
   date: z.string().min(1, "التاريخ مطلوب"),
   time: z.string().min(1, "الوقت مطلوب"),
   procedure: z.string().min(1, "نوع الإجراء مطلوب"),
+  procedureKey: z.string().optional(),
   duration: z.string().min(1, "المدة مطلوبة"),
   notes: z.string().optional(),
+  toothNumber: z.string().optional(), // "1"–"32" or empty string
 });
 
 export type BookingState = {
@@ -27,25 +29,39 @@ export type BookingState = {
 };
 
 function isPrismaInitError(error: unknown): boolean {
-  return error instanceof Error && error.name === "PrismaClientInitializationError";
+  return (
+    error instanceof Error && error.name === "PrismaClientInitializationError"
+  );
 }
 
-function isPrismaMissingColumnError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2022";
+function isPrismaMissingColumnError(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2022"
+  );
 }
 
 async function getClinicId(): Promise<string> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
-  console.log("[bookAppointmentAction] auth user", { id: user.id, email: user.email });
+  console.log("[bookAppointmentAction] auth user", {
+    id: user.id,
+    email: user.email,
+  });
 
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: { clinicId: true },
   });
   if (dbUser) {
-    console.log("[bookAppointmentAction] existing db user found", { clinicId: dbUser.clinicId });
+    console.log("[bookAppointmentAction] existing db user found", {
+      clinicId: dbUser.clinicId,
+    });
     return dbUser.clinicId;
   }
 
@@ -62,7 +78,10 @@ async function getClinicId(): Promise<string> {
     });
   }
 
-  const metadata = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const metadata = (user.user_metadata ?? {}) as {
+    full_name?: string;
+    name?: string;
+  };
   const fullName =
     metadata.full_name?.trim() ||
     metadata.name?.trim() ||
@@ -82,7 +101,10 @@ async function getClinicId(): Promise<string> {
     },
   });
 
-  console.log("[bookAppointmentAction] bootstrapped db user", { clinicId: clinic.id, userId: user.id });
+  console.log("[bookAppointmentAction] bootstrapped db user", {
+    clinicId: clinic.id,
+    userId: user.id,
+  });
   return clinic.id;
 }
 
@@ -96,8 +118,10 @@ export async function bookAppointmentAction(
     date: formData.get("date"),
     time: formData.get("time"),
     procedure: formData.get("procedure"),
+    procedureKey: formData.get("procedureKey"),
     duration: formData.get("duration"),
     notes: formData.get("notes"),
+    toothNumber: formData.get("toothNumber"),
   });
 
   if (!result.success) {
@@ -117,18 +141,20 @@ export async function bookAppointmentAction(
       time: result.data.time,
       procedure: result.data.procedure,
     });
-    
+
     // 1. Find or create patient
     let patient = await prisma.patient.findFirst({
       where: {
         clinicId,
-        phone: result.data.phone
-      }
+        phone: result.data.phone,
+      },
     });
 
     if (!patient) {
       const fileNumber = `PT-${Date.now().toString().slice(-6)}`;
-      console.log("[bookAppointmentAction] patient not found, creating", { fileNumber });
+      console.log("[bookAppointmentAction] patient not found, creating", {
+        fileNumber,
+      });
       patient = await prisma.patient.create({
         data: {
           clinicId,
@@ -137,9 +163,11 @@ export async function bookAppointmentAction(
           phone: result.data.phone,
           dateOfBirth: new Date(), // Placeholder for quick booking
           gender: "MALE", // Placeholder
-        }
+        },
       });
-      console.log("[bookAppointmentAction] patient created", { patientId: patient.id });
+      console.log("[bookAppointmentAction] patient created", {
+        patientId: patient.id,
+      });
     }
 
     // 2. Prevent double-booking for the same clinic/date/time
@@ -176,14 +204,18 @@ export async function bookAppointmentAction(
         patientId: patient.id,
         date: appointmentDate,
         startTime: result.data.time,
-        // Calculate optional end time based on duration (assuming duration is in mins)
-        // For now, mapping procedure to type/reason
-        type: result.data.procedure,
+        // Store procedureKey as the canonical type; fall back to Arabic label for old records
+        type: result.data.procedureKey || result.data.procedure,
         notes: result.data.notes,
+        // Reuse the existing 'reason' column to store the tooth number (1–32)
+        reason: result.data.toothNumber?.trim() || null,
         status: "SCHEDULED",
-      }
+      },
     });
-    console.log("[bookAppointmentAction] appointment created", { patientId: patient.id, clinicId });
+    console.log("[bookAppointmentAction] appointment created", {
+      patientId: patient.id,
+      clinicId,
+    });
 
     revalidatePath("/dashboard/calendar");
     revalidatePath("/dashboard/appointments");

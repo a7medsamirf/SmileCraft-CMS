@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { getPatientsAction } from "@/features/patients/serverActions";
 import { MOCK_PATIENTS } from "@/features/patients/mock/patients.mock";
 import { Patient } from "@/features/patients/types";
-import { Search, X, User, Phone } from "lucide-react";
+import { Search, X, Phone, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
 
@@ -12,28 +13,60 @@ interface PatientSearchProps {
   selectedPatientId?: string;
 }
 
-export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProps) {
+export function PatientSearch({
+  onSelect,
+  selectedPatientId,
+}: PatientSearchProps) {
   const t = useTranslations("Clinical");
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [results, setResults] = useState<Patient[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Filter patients by name or phone
-  const filteredPatients = useMemo(() => {
-    if (!query.trim()) return MOCK_PATIENTS;
-    const q = query.trim().toLowerCase();
-    return MOCK_PATIENTS.filter(
-      (p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        p.contactInfo.phone.includes(q) ||
-        p.contactInfo.altPhone?.includes(q),
-    );
+  // ── Live search with 300 ms debounce ────────────────────────────────────
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    debounceTimer.current = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const result = await getPatientsAction({ search: query.trim() }, 1, 15);
+        setResults(result.data);
+      } catch {
+        // DB unavailable — filter mock data locally
+        const q = query.trim().toLowerCase();
+        setResults(
+          MOCK_PATIENTS.filter(
+            (p) =>
+              p.fullName.toLowerCase().includes(q) ||
+              p.contactInfo.phone.includes(q) ||
+              (p.contactInfo.altPhone ?? "").includes(q),
+          ).slice(0, 15),
+        );
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
   }, [query]);
 
-  // Close dropdown on outside click
+  // ── Close on outside click ───────────────────────────────────────────────
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
         setIsFocused(false);
       }
     };
@@ -46,9 +79,16 @@ export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProp
       onSelect(patient);
       setQuery("");
       setIsFocused(false);
+      setResults([]);
     },
     [onSelect],
   );
+
+  const handleClear = useCallback(() => {
+    setQuery("");
+    setIsFocused(false);
+    setResults([]);
+  }, []);
 
   const showDropdown = isFocused && query.trim().length > 0;
 
@@ -63,21 +103,25 @@ export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProp
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           placeholder={t("searchPatientPlaceholder")}
-          className="w-full rounded-2xl border border-slate-200 bg-white py-3 pe-4 ps-11 text-sm font-medium text-slate-900 
-            placeholder:text-slate-400 
-            focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 
-            dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-600 
-            dark:focus:border-blue-600 dark:focus:ring-blue-500/20 
+          className="w-full rounded-2xl border border-slate-200 bg-white py-3 pe-10 ps-11 text-sm font-medium text-slate-900
+            placeholder:text-slate-400
+            focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10
+            dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-600
+            dark:focus:border-blue-600 dark:focus:ring-blue-500/20
             transition-all duration-200"
         />
-        {query && (
+        {/* Trailing icon: spinner while searching, X button when done */}
+        {isSearching ? (
+          <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500 animate-spin" />
+        ) : query ? (
           <button
-            onClick={() => { setQuery(""); setIsFocused(false); }}
+            onClick={handleClear}
             className="absolute end-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            aria-label="Clear search"
           >
             <X className="h-4 w-4" />
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Results Dropdown */}
@@ -90,13 +134,18 @@ export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProp
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden"
           >
-            {filteredPatients.length === 0 ? (
+            {isSearching ? (
+              <div className="flex items-center justify-center gap-2 p-4 text-sm text-slate-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t("searchingPatients")}
+              </div>
+            ) : results.length === 0 ? (
               <div className="p-4 text-center text-sm text-slate-500">
                 {t("noPatientResults")}
               </div>
             ) : (
               <div className="max-h-64 overflow-y-auto py-1">
-                {filteredPatients.map((patient) => {
+                {results.map((patient) => {
                   const isSelected = patient.id === selectedPatientId;
                   return (
                     <button
@@ -109,11 +158,13 @@ export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProp
                       }`}
                     >
                       {/* Avatar */}
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                        isSelected
-                          ? "bg-blue-500 text-white"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                      }`}>
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                          isSelected
+                            ? "bg-blue-500 text-white"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                        }`}
+                      >
                         {patient.fullName.charAt(0)}
                       </div>
 
@@ -131,7 +182,7 @@ export function PatientSearch({ onSelect, selectedPatientId }: PatientSearchProp
                       {/* Age Badge */}
                       {patient.age && (
                         <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                          {patient.age} {t("years") || "سنة"}
+                          {patient.age} {t("years")}
                         </span>
                       )}
                     </button>

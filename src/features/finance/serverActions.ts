@@ -36,14 +36,13 @@ export async function getInvoicesAction(patientId?: string) {
     include: {
       patient: {
         select: { fullName: true }
-      },
-      payments: true
+      }
     },
     orderBy: { createdAt: "desc" }
   });
 
   return invoices.map(inv => ({
-    id: apt.id,
+    id: inv.id,
     patientId: inv.patientId,
     patientName: inv.patient.fullName,
     totalAmount: Number(inv.totalAmount),

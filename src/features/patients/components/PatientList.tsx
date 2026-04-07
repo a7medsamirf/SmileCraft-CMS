@@ -9,12 +9,17 @@ import { Button } from "@/components/ui/Button";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { AddPatientModal } from "./AddPatientModal";
+import type { Patient } from "../types";
 
 export function PatientList() {
   const t = useTranslations("Patients");
   const router = useRouter();
-  const { patients, isLoading, total, filters, setFilters } = usePatients();
+  const { patients, isLoading, total, filters, setFilters, refresh } =
+    usePatients();
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
+  const [editingPatient, setEditingPatient] = React.useState<Patient | null>(
+    null,
+  );
 
   return (
     <div className="w-full mx-auto space-y-5 animate-in fade-in duration-500">
@@ -39,9 +44,23 @@ export function PatientList() {
         </Button>
       </div>
 
+      {/* Create modal */}
       <AddPatientModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          refresh();
+        }}
+      />
+
+      {/* Edit modal — opens with the selected patient's data pre-filled */}
+      <AddPatientModal
+        isOpen={!!editingPatient}
+        patient={editingPatient ?? undefined}
+        onClose={() => {
+          setEditingPatient(null);
+          refresh();
+        }}
       />
 
       {/* Filters and Search Bar */}
@@ -70,8 +89,25 @@ export function PatientList() {
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <div
               key={i}
-              className="h-64 rounded-3xl bg-slate-100 animate-pulse"
-            />
+              className="rounded-3xl border border-slate-100 bg-white p-4 shadow-none dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="space-y-5">
+                {/* مكان الصورة */}
+                <div className="h-35 rounded-2xl bg-slate-200 dark:bg-slate-800"></div>
+
+                {/* الأسطر النصية */}
+                <div className="space-y-3">
+                  <div className="h-4 w-3/4 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                  <div className="h-4 w-1/2 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                </div>
+
+                {/* الجزء السفلي */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="h-7 w-20 rounded-lg bg-slate-100 dark:bg-slate-800/50"></div>
+                  <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-slate-800/50"></div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       ) : patients.length === 0 ? (
@@ -102,6 +138,7 @@ export function PatientList() {
               onClick={(id) =>
                 router.push({ pathname: "/patients/[id]", params: { id } })
               }
+              onEdit={(p) => setEditingPatient(p)}
             />
           ))}
         </div>

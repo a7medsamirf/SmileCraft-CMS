@@ -12,10 +12,12 @@ import {
   FileText,
   ActivitySquare,
   Pill,
+  Pencil,
 } from "lucide-react";
 import { MedicalAlerts } from "./MedicalAlerts";
 import { TreatmentTimeline } from "./TreatmentTimeline";
 import { PatientMediaGallery } from "./PatientMediaGallery";
+import { AddPatientModal } from "./AddPatientModal";
 
 interface ProfileLayoutProps {
   patient: Patient;
@@ -29,13 +31,21 @@ export function ProfileLayout({
   onUpdatePatientHistory,
 }: ProfileLayoutProps) {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const statusLabel = PATIENT_STATUS_LABELS[patient.status];
 
   return (
     <div className="w-full mx-auto space-y-5 animate-in fade-in duration-500">
+      {/* Edit modal */}
+      <AddPatientModal
+        isOpen={isEditOpen}
+        patient={patient}
+        onClose={() => setIsEditOpen(false)}
+      />
+
       {/* 1. Profile Header Hero */}
-      <div className="relative overflow-hidden glass-card p-6 md:p-8  backdrop-blur-xl ">
+      <div className="relative overflow-hidden glass-card p-6 md:p-8 backdrop-blur-xl">
         {/* Subtle background blob */}
         <div className="absolute -inset-inline-end-20 -top-20 h-48 w-48 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-600/20 pointer-events-none" />
 
@@ -52,7 +62,7 @@ export function ProfileLayout({
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <div className="flex flex-col items-center gap-3 md:flex-row">
+            <div className="flex flex-col items-center gap-3 md:flex-row md:flex-wrap">
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
                 {patient.fullName}
               </h1>
@@ -62,6 +72,14 @@ export function ProfileLayout({
               <span className="text-xs font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                 ID: #{patient.nationalId?.slice(-6) || "---"}
               </span>
+              {/* Edit button */}
+              <button
+                onClick={() => setIsEditOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                تعديل البيانات
+              </button>
             </div>
             <p className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm font-medium text-slate-600 dark:text-slate-400">
               <span className="flex items-center gap-1">
