@@ -18,6 +18,7 @@ export const routing = defineRouting({
     "/clinical": { en: '/clinical', ar: '/clinical' },
     "/staff": { en: '/staff', ar: '/staff' },
     "/appointments": { en: '/appointments', ar: '/appointments' },
+    "/appointments/queue": { en: "/appointments/queue", ar: "/appointments/queue" },
     "/finance": { en: '/finance', ar: '/finance' },
     "/dashboard": { en: '/dashboard', ar: '/dashboard' },
     "/patients/[id]": { en: '/patients/[id]', ar: '/patients/[id]' },
@@ -26,6 +27,7 @@ export const routing = defineRouting({
     "/patients/edit/[id]": { en: '/patients/edit/[id]', ar: '/patients/edit/[id]' },
     "/patients/delete/[id]": { en: '/patients/delete/[id]', ar: '/patients/delete/[id]' },
     "/patients/view/[id]": { en: '/patients/view/[id]', ar: '/patients/view/[id]' },
+    "/profile": { en: '/profile', ar: '/profile' },
     
  },  
 

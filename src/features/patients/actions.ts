@@ -1,6 +1,10 @@
 "use server";
 
-import { createPatientActionDB, updatePatientActionDB } from "./serverActions";
+import {
+  createPatientActionDB,
+  updatePatientActionDB,
+  deletePatientAction,
+} from "./serverActions";
 import { addPatientSchema } from "./schemas/addPatientSchema";
 import {
   Patient,
@@ -170,5 +174,24 @@ export async function updatePatientAction(
   } catch (error) {
     console.error("[updatePatientAction]", error);
     return { success: false, message: "saveError" };
+  }
+}
+
+// =============================================================================
+// DELETE — soft delete a patient (sets isActive = false)
+// =============================================================================
+export async function deletePatientActionWrapper(
+  patientId: string,
+): Promise<ActionState> {
+  if (!patientId) {
+    return { success: false, message: "saveError" };
+  }
+
+  try {
+    await deletePatientAction(patientId);
+    return { success: true, message: "deletePatientSuccess" };
+  } catch (error) {
+    console.error("[deletePatientAction]", error);
+    return { success: false, message: "deletePatientError" };
   }
 }

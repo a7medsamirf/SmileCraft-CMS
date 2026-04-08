@@ -1,20 +1,23 @@
 // =============================================================================
-// DENTAL CMS — Clinical Module: Server Actions
+// DENTAL CMS — Clinical Module: Client Action Coordinators
 // features/clinical/actions.ts
 //
-// React 19 Server Actions for treatment plan status management.
-// Currently simulates server latency + persists to localStorage.
+// "use client" async functions that coordinate UI state updates.
+// Actual DB writes are delegated to serverActions.ts (Supabase/Prisma).
+// Zero localStorage usage — all persistence goes through server actions.
 // =============================================================================
 
 "use client";
 
-import { PlanItem, TreatmentStatus, CompletionRecord, InvoiceMode } from "./types/treatmentPlan";
 import {
-  saveTreatmentPlan,
-  saveCompletionRecord,
-  fetchTreatmentPlan,
-} from "./services/clinicalService";
+  PlanItem,
+  TreatmentStatus,
+  CompletionRecord,
+  InvoiceMode,
+} from "./types/treatmentPlan";
 import { generateId } from "@/lib/utils/id";
+import { updateTreatmentStatusAction } from "./serverActions";
+import { fetchTreatmentPlan } from "./services/clinicalService";
 
 // ---------------------------------------------------------------------------
 // Action State Types
@@ -35,7 +38,12 @@ export interface InvoiceActionState {
 }
 
 // ---------------------------------------------------------------------------
-// Server Action: Update Treatment Item Status
+// updateTreatmentItemStatus
+//
+// Finds the item in the local plan snapshot, builds the updated PlanItem,
+// then delegates the actual DB write to updateTreatmentStatusAction.
+// The caller (useSessionProgress) is responsible for building and persisting
+// the CompletionRecord via saveTreatmentHistoryAction.
 // ---------------------------------------------------------------------------
 
 export async function updateTreatmentItemStatus(
@@ -43,59 +51,37 @@ export async function updateTreatmentItemStatus(
   itemId: string,
   newStatus: TreatmentStatus,
 ): Promise<StatusUpdateState> {
-  try {
-    // Simulate network latency
-    await new Promise((resolve) => setTimeout(resolve, 400));
+  const itemIndex = plan.findIndex((p) => p.id === itemId);
+  if (itemIndex === -1) {
+    return { success: false, message: "itemNotFound" };
+  }
 
-    const itemIndex = plan.findIndex((p) => p.id === itemId);
-    if (itemIndex === -1) {
-      return { success: false, message: "itemNotFound" };
-    }
+  const item = plan[itemIndex];
 
-    const item = plan[itemIndex];
-    const previousStatus = item.status;
-
-    // Build the updated item
-    const updatedItem: PlanItem = {
-      ...item,
-      status: newStatus,
-      completedAt: newStatus === TreatmentStatus.COMPLETED
+  const updatedItem: PlanItem = {
+    ...item,
+    status: newStatus,
+    completedAt:
+      newStatus === TreatmentStatus.COMPLETED
         ? new Date().toISOString()
         : undefined,
-    };
+  };
 
-    // Build the updated plan
-    const updatedPlan = [...plan];
-    updatedPlan[itemIndex] = updatedItem;
+  // Persist to DB via server action (handles Supabase write + revalidatePath)
+  await updateTreatmentStatusAction(itemId, newStatus);
 
-    // Persist the updated plan
-    await saveTreatmentPlan(updatedPlan);
-
-    // Create and persist the completion record (audit trail)
-    const record: CompletionRecord = {
-      id: generateId(),
-      planItemId: itemId,
-      toothId: item.toothId,
-      procedure: item.procedure,
-      previousStatus,
-      newStatus,
-      timestamp: new Date().toISOString(),
-    };
-    await saveCompletionRecord(record);
-
-    return {
-      success: true,
-      message: "statusUpdated",
-      updatedItem,
-    };
-  } catch (error) {
-    console.error("Failed to update treatment item status:", error);
-    return { success: false, message: "statusUpdateError" };
-  }
+  return {
+    success: true,
+    message: "statusUpdated",
+    updatedItem,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Server Action: Submit Invoice (with mode selection)
+// submitInvoiceAction
+//
+// Converts the current treatment plan into an invoice.
+// Supports two modes: "ALL" (full plan) or "COMPLETED_ONLY".
 // ---------------------------------------------------------------------------
 
 export async function submitInvoiceAction(
@@ -110,6 +96,8 @@ export async function submitInvoiceAction(
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Load the current plan
+    // Note: fetchTreatmentPlan() is a stub returning null post-migration.
+    // This action will be re-wired to a DB-backed plan source in Phase 3.
     const plan = await fetchTreatmentPlan();
     if (!plan || plan.length === 0) {
       return { success: false, message: "emptyPlanError" };
@@ -120,15 +108,19 @@ export async function submitInvoiceAction(
     }
 
     // Filter items based on mode
-    const invoiceItems = mode === "COMPLETED_ONLY"
-      ? plan.filter((item) => item.status === TreatmentStatus.COMPLETED)
-      : plan;
+    const invoiceItems =
+      mode === "COMPLETED_ONLY"
+        ? plan.filter((item) => item.status === TreatmentStatus.COMPLETED)
+        : plan;
 
     if (invoiceItems.length === 0) {
       return { success: false, message: "noCompletedItems" };
     }
 
-    const total = invoiceItems.reduce((sum, item) => sum + item.estimatedCost, 0);
+    const total = invoiceItems.reduce(
+      (sum, item) => sum + item.estimatedCost,
+      0,
+    );
     const invoiceId = `INV-${Math.floor(Math.random() * 10000)}`;
 
     return {
@@ -143,3 +135,9 @@ export async function submitInvoiceAction(
     return { success: false, message: "invoiceError" };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Re-export generateId so callers that previously imported it from here
+// don't need to update their import paths.
+// ---------------------------------------------------------------------------
+export { generateId };

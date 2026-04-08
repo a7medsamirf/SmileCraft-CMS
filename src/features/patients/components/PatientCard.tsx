@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Activity,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 import { useTranslations } from "next-intl";
@@ -19,9 +20,11 @@ interface PatientCardProps {
   onClick?: (id: string) => void;
   /** Called when the pencil button is clicked — opens the edit modal */
   onEdit?: (patient: Patient) => void;
+  /** Called when the trash button is clicked — triggers deletion */
+  onDelete?: (patient: Patient) => void;
 }
 
-export function PatientCard({ patient, onClick, onEdit }: PatientCardProps) {
+export function PatientCard({ patient, onClick, onEdit, onDelete }: PatientCardProps) {
   const t = useTranslations("Patients");
   const statusLabel = PATIENT_STATUS_LABELS[patient.status];
 
@@ -140,6 +143,23 @@ export function PatientCard({ patient, onClick, onEdit }: PatientCardProps) {
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
+
+          {/* Delete button */}
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(patient);
+              }}
+              title="حذف المريض"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"

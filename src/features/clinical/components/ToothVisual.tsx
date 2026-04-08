@@ -8,6 +8,7 @@ import {
   TOOTH_STATUS_LABELS,
 } from "../types/odontogram";
 import { useTranslations, useLocale } from "next-intl";
+import { Plus } from "lucide-react";
 
 interface ColorOverride {
   fill: string;
@@ -19,6 +20,8 @@ interface ToothVisualProps {
   onStatusChange: (id: number, newStatus: ToothStatus) => void;
   /** Optional callback fired when the user clicks a tooth — opens the case panel */
   onCaseOpen?: (tooth: Tooth) => void;
+  /** Optional callback fired when the user requests a booking for this tooth */
+  onBookAppointment?: (tooth: Tooth) => void;
   /** Optional color override from completed treatment (useOptimistic) */
   colorOverride?: ColorOverride;
   /** When true, renders an emerald indicator dot to signal an existing clinical case */
@@ -59,11 +62,13 @@ export const ToothVisual = React.memo(
     tooth,
     onStatusChange,
     onCaseOpen,
+    onBookAppointment,
     colorOverride,
     hasClinicalCase = false,
     fromAppointment = false,
   }: ToothVisualProps) => {
     const t = useTranslations("Clinical");
+    const appointmentT = useTranslations("Appointments");
     const locale = useLocale();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -93,6 +98,14 @@ export const ToothVisual = React.memo(
       [tooth.id, onStatusChange],
     );
 
+    const handleBookClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onBookAppointment?.(tooth);
+      },
+      [onBookAppointment, tooth],
+    );
+
     // Click-outside listener for the popover
     React.useEffect(() => {
       if (!isOpen) return;
@@ -108,14 +121,14 @@ export const ToothVisual = React.memo(
         {/* ── Appointment-sourced indicator (amber, start side) ── */}
         {fromAppointment && !colorOverride && (
           <span
-            className="absolute -top-0.5 -inset-s-0.5 z-10 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-900 shadow-sm"
+            className="absolute top-0 z-10 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-900 shadow-sm"
             title="مُحدَّث من موعد محجوز"
           />
         )}
 
         {/* ── Clinical case indicator (emerald, end side) ── */}
         {hasClinicalCase && (
-          <span className="absolute -top-0.5 -inset-e-0.5 z-10 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 shadow-sm" />
+          <span className="absolute top-0 z-10 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 shadow-sm" />
         )}
 
         {/* ── Status-picker popover ───────────────────────────────────────── */}
@@ -137,6 +150,18 @@ export const ToothVisual = React.memo(
               </button>
             ))}
           </div>
+        )}
+
+        {/* ── Book appointment quick action ───────────────────────────── */}
+        {onBookAppointment && (
+          <button
+            type="button"
+            onClick={handleBookClick}
+            title={appointmentT("bookAppointment")}
+            className="absolute top-0 inset-inline-end-0 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm opacity-0 transition-opacity duration-200 hover:bg-blue-500 hover:text-white focus:opacity-100 focus:outline-none dark:bg-slate-900/90 dark:text-slate-200 dark:hover:bg-blue-500 group-hover:opacity-100"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         )}
 
         {/* ── SVG Tooth element ───────────────────────────────────────────── */}
@@ -207,7 +232,8 @@ export const ToothVisual = React.memo(
       prevProps.colorOverride?.fill === nextProps.colorOverride?.fill &&
       prevProps.colorOverride?.stroke === nextProps.colorOverride?.stroke &&
       prevProps.hasClinicalCase === nextProps.hasClinicalCase &&
-      prevProps.fromAppointment === nextProps.fromAppointment // ← NEW
+      prevProps.fromAppointment === nextProps.fromAppointment &&
+      prevProps.onBookAppointment === nextProps.onBookAppointment
     );
   },
 );

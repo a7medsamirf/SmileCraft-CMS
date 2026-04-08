@@ -1,12 +1,8 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(dir:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run:*)",
-      "Bash(npx tsc:*)",
-      "Bash(ls:*)",
-      "Bash(curl -s http://localhost:3000/ar/auth/login)"
-    ]
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+    "ANTHROPIC_AUTH_TOKEN": "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",
+    "ANTHROPIC_API_KEY": "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",
+    "ANTHROPIC_MODEL": "qwen/qwen3.6-plus:free"
   }
 }

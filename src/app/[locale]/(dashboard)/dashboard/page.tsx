@@ -10,6 +10,7 @@ import { OutstandingBalances } from "@/features/dashboard/components/Outstanding
 import { DailyAgenda } from "@/features/appointments/components/DailyAgenda";
 import { getTranslations } from "next-intl/server";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { resolveUserFullName } from "@/lib/supabase-utils";
 
 export const metadata = {
   title: "لوحة التحكم | SmileCraft CMS",
@@ -18,14 +19,15 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const t = await getTranslations("Dashboard");
+  const userName = await resolveUserFullName();
 
   return (
-    <PageTransition loadingText={t("greeting")}>
+    <PageTransition loadingText={t("greeting", { name: userName || "Doctor" })}>
       <div className="w-full mx-auto space-y-5">
         {/* ── Greeting Header ── */}
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            {t("greeting")}
+            {t("greeting", { name: userName || "Doctor" })}
           </h1>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             {t("summary")}

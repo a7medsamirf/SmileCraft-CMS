@@ -1,4 +1,5 @@
 export type ServiceCategory = "SURGERY" | "COSMETIC" | "PEDIATRICS" | "GENERAL";
+export type ProcedureType = "TEETH_CLEANING" | "FILLING" | "EXTRACTION" | "ROOT_CANAL" | "CROWN" | "BRACES" | "BLEACHING" | "EXAMINATION" | "XRAY" | "OTHER";
 
 export interface DentalService {
   id: string;
@@ -6,6 +7,7 @@ export interface DentalService {
   category: ServiceCategory;
   price: number;
   duration: number; // in minutes
+  procedureType: ProcedureType;
 }
 
 export type PermissionRole = "ADMIN" | "RECEPTIONIST" | "ACCOUNTANT";
@@ -29,6 +31,8 @@ export interface ClinicInfo {
   phone: string;
   email: string;
   slotDuration: number;
+  logoUrl?: string;
+  faviconUrl?: string;
 }
 
 export interface NotificationSettings {
@@ -43,5 +47,12 @@ export interface ClinicSettings {
   businessHours: BusinessDay[];
   lastBackup: string | null;
   clinicInfo: ClinicInfo;
+  notifications: NotificationSettings;
+}
+
+export interface InitialSettingsData {
+  services: DentalService[];
+  hours: BusinessDay[];
+  clinicInfo: ClinicInfo | null;
   notifications: NotificationSettings;
 }

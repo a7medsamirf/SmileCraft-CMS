@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Plus, Edit2, Check, X, Filter } from "lucide-react";
+import { Search, Plus, Edit2, Check, X, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useClinicSettings } from "../hooks/useClinicSettings";
 import { ServiceCategory, DentalService } from "../types";
+import { ServiceModal } from "./ServiceModal";
+import { deleteServiceAction } from "../serverActions";
 
 export function ServiceList() {
   const t = useTranslations("Settings.services");
@@ -17,6 +19,8 @@ export function ServiceList() {
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editService, setEditService] = useState<DentalService | null>(null);
 
   const filteredServices = services.filter((s) => {
     const matchesSearch = s.name
@@ -40,13 +44,47 @@ export function ServiceList() {
     setEditingId(null);
   };
 
+  const handleOpenAddModal = () => {
+    setEditService(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (service: DentalService) => {
+    setEditService(service);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditService(null);
+  };
+
+  const handleModalSuccess = () => {
+    window.location.reload();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm(t("confirmDelete"))) {
+      try {
+        await deleteServiceAction(id);
+        window.location.reload();
+      } catch {
+        console.error("Failed to delete service");
+      }
+    }
+  };
+
   return (
+    
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">
           {t("title")}
         </h2>
-        <Button className="rounded-2xl shadow-blue-500/20 shadow-lg">
+        <Button
+          onClick={handleOpenAddModal}
+          className="rounded-2xl shadow-blue-500/20 shadow-lg"
+        >
           <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
           {t("add")}
         </Button>
@@ -86,9 +124,10 @@ export function ServiceList() {
             <tr>
               <th className="px-6 py-4">{t("name")}</th>
               <th className="px-6 py-4">{t("category")}</th>
+              <th className="px-6 py-4">{t("procedureType")}</th>
               <th className="px-6 py-4">{t("price")}</th>
               <th className="px-6 py-4">{t("duration")}</th>
-              <th className="px-6 py-4 text-center">{t("edit")}</th>
+              <th className="px-6 py-4 text-center">{t("actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -105,6 +144,11 @@ export function ServiceList() {
                     {t(
                       `filter${service.category.charAt(0) + service.category.slice(1).toLowerCase()}`,
                     )}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    {t(`procedureTypes.${service.procedureType}`)}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -137,35 +181,52 @@ export function ServiceList() {
                   {service.duration} {t("duration").split("(")[0].trim()}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {editingId === service.id ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleSavePrice(service.id)}
-                        className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                      >
-                        <Check className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleStartEdit(service)}
-                      className="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <div className="flex items-center justify-center gap-1">
+                    {editingId === service.id ? (
+                      <>
+                        <button
+                          onClick={() => handleSavePrice(service.id)}
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                        >
+                          <Check className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditModal(service)}
+                          className="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(service.id)}
+                          className="p-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <ServiceModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        editService={editService}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 }

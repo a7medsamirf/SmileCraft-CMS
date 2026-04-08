@@ -10,10 +10,12 @@ import { DataExport } from "@/features/settings/components/DataExport";
 import { GeneralSettings } from "@/features/settings/components/GeneralSettings";
 import { NotificationSettings } from "@/features/settings/components/NotificationSettings";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { SettingsProvider } from "../context/SettingsContext";
+import { InitialSettingsData } from "../types";
 
 type SettingsTab = "general" | "services" | "permissions" | "schedule" | "notifications" | "backup";
 
-export function SettingsClient() {
+export function SettingsClient({ initialData }: { initialData: InitialSettingsData }) {
   const t = useTranslations("Settings");
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
 
@@ -39,7 +41,8 @@ export function SettingsClient() {
   };
 
   return (
-    <PageTransition loadingText={t("title")}>
+    <SettingsProvider initialData={initialData}>
+      <PageTransition loadingText={t("title")}>
       <div className="w-full mx-auto pb-20">
         <div className="mb-10">
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
@@ -84,5 +87,6 @@ export function SettingsClient() {
         </div>
       </div>
     </PageTransition>
+    </SettingsProvider>
   );
 }

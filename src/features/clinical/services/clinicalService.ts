@@ -1,125 +1,80 @@
 // =============================================================================
-// DENTAL CMS — Clinical Module: Clinical Service
+// DENTAL CMS — Clinical Module: Clinical Service (DEPRECATED STUB)
 // features/clinical/services/clinicalService.ts
 //
-// Manages persistence for:
-// 1. MouthMap (odontogram state)
-// 2. Treatment Plan (PlanItem[] with statuses)
-// 3. Completion History (CompletionRecord[] audit trail)
+// ⚠️  DEPRECATED: This file is intentionally a no-op stub.
+//     All persistence is now handled by serverActions.ts via Supabase/Prisma.
+//     These exports are kept ONLY for backward-compatibility with any remaining
+//     import sites (e.g. clinicalApiService.ts) while the migration is in
+//     progress.  DO NOT add new localStorage logic here.
+//
+// Replacements:
+//   saveMouthMap()         → saveMouthMapAction(patientId, mouthMap)
+//   fetchMouthMap()        → getPatientClinicalDataAction(patientId).mouthMap
+//   saveTreatmentPlan()    → replaceTreatmentPlanAction(patientId, plan)
+//   fetchTreatmentPlan()   → getPatientClinicalDataAction(patientId).treatments
+//   saveCompletionRecord() → saveTreatmentHistoryAction(patientId, history)
+//   fetchCompletionHistory()→ getTreatmentHistoryAction(patientId)
 // =============================================================================
 
 import { MouthMap, generateEmptyMouthMap } from "../types/odontogram";
 import { PlanItem, CompletionRecord } from "../types/treatmentPlan";
 
-const STORAGE_KEY = "smilecraft_clinical_state";
-const PLAN_STORAGE_KEY = "smilecraft_treatment_plan";
-const HISTORY_STORAGE_KEY = "smilecraft_completion_history";
-
 // ---------------------------------------------------------------------------
-// Mouth Map Persistence
+// Mouth Map — no-ops
 // ---------------------------------------------------------------------------
 
 /**
- * Saves the mouth map to local storage.
+ * @deprecated Use saveMouthMapAction(patientId, mouthMap) from serverActions.ts
  */
-export async function saveMouthMap(mouthMap: MouthMap): Promise<void> {
-  // Simulate network latency
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mouthMap));
-  }
+export async function saveMouthMap(_mouthMap: MouthMap): Promise<void> {
+  // no-op: persistence is handled by saveMouthMapAction in serverActions.ts
 }
 
 /**
- * Loads the mouth map from local storage.
- * If no data is found, returns an empty (healthy) mouth map.
+ * @deprecated Use getPatientClinicalDataAction(patientId) from serverActions.ts
  */
 export async function fetchMouthMap(): Promise<MouthMap> {
-  // Simulate network latency
-  await new Promise((resolve) => setTimeout(resolve, 600));
-
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse clinical state:", e);
-      }
-    }
-  }
-  
+  // no-op: returns a safe empty map so callers don't crash
   return generateEmptyMouthMap();
 }
 
 // ---------------------------------------------------------------------------
-// Treatment Plan Persistence
+// Treatment Plan — no-ops
 // ---------------------------------------------------------------------------
 
 /**
- * Saves the treatment plan items to local storage.
+ * @deprecated Use replaceTreatmentPlanAction(patientId, plan) from serverActions.ts
  */
-export async function saveTreatmentPlan(plan: PlanItem[]): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(plan));
-  }
+export async function saveTreatmentPlan(_plan: PlanItem[]): Promise<void> {
+  // no-op: persistence is handled by replaceTreatmentPlanAction in serverActions.ts
 }
 
 /**
- * Loads the treatment plan from local storage.
- * Returns null if no persisted plan exists (signal to generate fresh from mouthMap).
+ * @deprecated Use getPatientClinicalDataAction(patientId) from serverActions.ts
  */
 export async function fetchTreatmentPlan(): Promise<PlanItem[] | null> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem(PLAN_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse treatment plan:", e);
-      }
-    }
-  }
-
+  // no-op: always returns null so callers fall through to DB-backed logic
   return null;
 }
 
 // ---------------------------------------------------------------------------
-// Completion History Persistence
+// Completion History — no-ops
 // ---------------------------------------------------------------------------
 
 /**
- * Appends a new completion record and saves the full history.
+ * @deprecated Use saveTreatmentHistoryAction(patientId, history) from serverActions.ts
  */
-export async function saveCompletionRecord(record: CompletionRecord): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
-  if (typeof window !== "undefined") {
-    const existing = await fetchCompletionHistory();
-    const updated = [record, ...existing]; // newest first
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
-  }
+export async function saveCompletionRecord(
+  _record: CompletionRecord,
+): Promise<void> {
+  // no-op: persistence is handled by saveTreatmentHistoryAction in serverActions.ts
 }
 
 /**
- * Loads the completion history from local storage.
+ * @deprecated Use getTreatmentHistoryAction(patientId) from serverActions.ts
  */
 export async function fetchCompletionHistory(): Promise<CompletionRecord[]> {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse completion history:", e);
-      }
-    }
-  }
-
+  // no-op: returns empty array so callers don't crash
   return [];
 }

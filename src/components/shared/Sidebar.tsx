@@ -23,6 +23,8 @@ import {
   LogOut,
   UserCheck,
   Loader2,
+  CalendarCheck,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/[locale]/(auth)/logoutAction";
@@ -47,14 +49,23 @@ function LogoutButton() {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ 
+  userName,
+  clinicName,
+  clinicLogo
+}: { 
+  userName?: string | null;
+  clinicName?: string;
+  clinicLogo?: string;
+}) {
   const t = useTranslations("Sidebar");
 
   const NAV_LINKS = [
     { name: t("dashboard"), href: "/dashboard", icon: LayoutDashboard },
     { name: t("patients"), href: "/patients", icon: Users },
+    { name: t("appointments"), href: "/appointments", icon: CalendarCheck },
+    { name: t("calendar"), href: "/calendar", icon: Calendar },
     { name: t("clinical"), href: "/clinical", icon: Stethoscope },
-    { name: t("appointments"), href: "/calendar", icon: Calendar },
     { name: t("staff"), href: "/staff", icon: UserCheck },
     { name: t("finance"), href: "/billing", icon: Wallet },
     { name: t("settings"), href: "/settings", icon: Settings },
@@ -86,12 +97,16 @@ export function Sidebar() {
     <>
       {/* Mobile Top Header */}
       <div className="md:hidden sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
-        <div className="flex items-center gap-2">
-          <Dna className="h-6 w-6 text-blue-600" />
+        <Link href="/" className="flex items-center gap-2">
+          {clinicLogo ? (
+            <img src={clinicLogo} alt="Logo" className="h-6 w-6 object-contain" />
+          ) : (
+            <Dna className="h-6 w-6 text-blue-600" />
+          )}
           <span className="font-bold text-slate-900 dark:text-white">
-            {t("shortAppName")}
+            {clinicName || t("shortAppName")}
           </span>
-        </div>
+        </Link>
         <button
           onClick={toggleSidebar}
           className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -127,14 +142,18 @@ export function Sidebar() {
       >
         <div>
           {/* Logo Area */}
-          <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-800/50">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30">
-              <Dna className="h-6 w-6" />
+          <Link href="/" className="flex h-20 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-800/50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 overflow-hidden">
+              {clinicLogo ? (
+                <img src={clinicLogo} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <Dna className="h-6 w-6" />
+              )}
             </div>
             <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              {t("appName")}
+              {clinicName || t("appName")}
             </span>
-          </div>
+          </Link>
 
           <div className="flex w-full flex-col gap-2 px-3 py-4">
             {NAV_LINKS.map((link) => {
@@ -200,15 +219,20 @@ export function Sidebar() {
           )}
 
           {/* User Profile */}
-          <div className="flex items-center gap-3 rounded-2xl border bg-slate-50 p-3 dark:bg-slate-900">
-            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 rounded-2xl border bg-slate-50 p-3 dark:bg-slate-900 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-blue-500/30 group"
+          >
+            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+              <User className="w-5 h-5 text-blue-600" />
+            </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">
-                {t("drName")}
+              <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                {t("drName", { name: userName || "Doctor" })}
               </span>
               <span className="text-xs text-slate-500">{t("drTitle")}</span>
             </div>
-          </div>
+          </Link>
 
           {/* Logout Button */}
           <form action={logoutAction} className="w-full">

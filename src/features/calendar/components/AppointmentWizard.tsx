@@ -7,7 +7,12 @@
 // Drag-and-Drop Appointment Booking Wizard with React 19 useOptimistic
 // =============================================================================
 
-import React, { useState, useMemo, useCallback, startTransition } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  startTransition,
+} from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -20,10 +25,21 @@ import {
 } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "next-intl";
-import { Calendar, Clock, User, CheckCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { patientService } from "@/features/patients/services/patientService";
+import {
+  Calendar,
+  Clock,
+  User,
+  CheckCircle,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Stethoscope,
+} from "lucide-react";
+import { getPatientsAction } from "@/features/patients/serverActions";
 import { Patient } from "@/features/patients/types";
 import { AppointmentStatus } from "@/features/appointments/types";
+import { getServicesAction } from "@/features/settings/serverActions";
+import { DentalService } from "@/features/settings/types";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -73,12 +89,12 @@ const TIME_SLOTS: TimeSlot[] = [
 ];
 
 const PROCEDURES = [
-  { id: "consultation", name: "استشارة أولية", duration: 15 },
-  { id: "cleaning", name: "تنظيف وتلميع", duration: 30 },
-  { id: "filling", name: "حشو عصب", duration: 45 },
-  { id: "extraction", name: "خلع", duration: 20 },
-  { id: "crown", name: "تاج", duration: 60 },
-  { id: "orthodontics", name: "تقويم", duration: 30 },
+  { id: "consultation", name: "استشارة أولية", duration: 15, procedureType: "EXAMINATION" },
+  { id: "cleaning", name: "تنظيف وتلميع", duration: 30, procedureType: "TEETH_CLEANING" },
+  { id: "filling", name: "حشو عصب", duration: 45, procedureType: "FILLING" },
+  { id: "extraction", name: "خلع", duration: 20, procedureType: "EXTRACTION" },
+  { id: "crown", name: "تاج", duration: 60, procedureType: "CROWN" },
+  { id: "orthodontics", name: "تقويم", duration: 30, procedureType: "BRACES" },
 ];
 
 // Simulated async save to localStorage
@@ -116,12 +132,17 @@ function PatientCard({ patient, onDragStart }: PatientCardProps) {
         "bg-white/10 backdrop-blur-3xl",
         "p-4 cursor-grab active:cursor-grabbing",
         "transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/10",
-        "dark:border-slate-700/50 dark:bg-slate-800/40"
+        "dark:border-slate-700/50 dark:bg-slate-800/40",
       )}
     >
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white font-bold shadow-lg">
-          {patient.fullName.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()}
+          {patient.fullName
+            .split(" ")
+            .slice(0, 2)
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-900 dark:text-white truncate">
@@ -180,7 +201,7 @@ function TimeSlotCard({ slot, isOver, onDrop }: TimeSlotCardProps) {
         isOver && slot.available
           ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-white/10 scale-[1.02]"
           : "",
-        "dark:border-slate-700/50 dark:bg-slate-800/40"
+        "dark:border-slate-700/50 dark:bg-slate-800/40",
       )}
     >
       <div className="flex items-center gap-3">
@@ -189,13 +210,15 @@ function TimeSlotCard({ slot, isOver, onDrop }: TimeSlotCardProps) {
             "flex h-10 w-10 items-center justify-center rounded-full",
             slot.available
               ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-              : "bg-slate-500/20 text-slate-400"
+              : "bg-slate-500/20 text-slate-400",
           )}
         >
           <Clock className="h-5 w-5" />
         </div>
         <div>
-          <p className="font-semibold text-slate-900 dark:text-white">{slot.label}</p>
+          <p className="font-semibold text-slate-900 dark:text-white">
+            {slot.label}
+          </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {slot.available ? "متاح" : "محجوز"}
           </p>
@@ -222,15 +245,18 @@ export function AppointmentWizard() {
   const [currentStep, setCurrentStep] = useState<WizardStep>("select-patient");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [selectedProcedure, setSelectedProcedure] = useState<typeof PROCEDURES[0] | null>(null);
+  const [selectedProcedure, setSelectedProcedure] = useState<
+    { id: string; name: string; duration: number; procedureType?: string } | null
+  >(null);
   const [draggedPatient, setDraggedPatient] = useState<Patient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // React 19 useOptimistic for instant feedback
-  const [optimisticAppointments, setOptimisticAppointments] = React.useOptimistic<
-    OptimisticAppointment[],
-    { appointment: OptimisticAppointment }
-  >([], (state, action) => [...state, action.appointment]);
+  const [optimisticAppointments, setOptimisticAppointments] =
+    React.useOptimistic<
+      OptimisticAppointment[],
+      { appointment: OptimisticAppointment }
+    >([], (state, action) => [...state, action.appointment]);
 
   // DND Sensors
   const sensors = useSensors(
@@ -238,11 +264,20 @@ export function AppointmentWizard() {
       activationConstraint: {
         distance: 8,
       },
-    })
+    }),
   );
 
-  // Patients from localStorage
-  const patients = useMemo(() => patientService.getPatients(), []);
+  // Patients from DB — loaded asynchronously on mount
+  const [patients, setPatients] = useState<Patient[]>([]);
+  useEffect(() => {
+    getPatientsAction({}, 1, 100).then((result) => setPatients(result.data));
+  }, []);
+
+  // Services from DB — loaded on mount
+  const [services, setServices] = useState<DentalService[]>([]);
+  useEffect(() => {
+    getServicesAction().then((data) => setServices(data));
+  }, []);
 
   // Handlers
   const handleDragStart = useCallback((patient: Patient) => {
@@ -262,17 +297,20 @@ export function AppointmentWizard() {
       }
       setDraggedPatient(null);
     },
-    [draggedPatient]
+    [draggedPatient],
   );
 
-  const handleSlotDrop = useCallback((slot: TimeSlot) => {
-    if (draggedPatient && slot.available) {
-      setSelectedPatient(draggedPatient);
-      setSelectedSlot(slot);
-      setCurrentStep("confirm");
-    }
-    setDraggedPatient(null);
-  }, [draggedPatient]);
+  const handleSlotDrop = useCallback(
+    (slot: TimeSlot) => {
+      if (draggedPatient && slot.available) {
+        setSelectedPatient(draggedPatient);
+        setSelectedSlot(slot);
+        setCurrentStep("confirm");
+      }
+      setDraggedPatient(null);
+    },
+    [draggedPatient],
+  );
 
   const handleQuickBook = useCallback((patient: Patient) => {
     setSelectedPatient(patient);
@@ -315,7 +353,12 @@ export function AppointmentWizard() {
       setSelectedProcedure(null);
       setCurrentStep("select-patient");
     }
-  }, [selectedPatient, selectedSlot, selectedProcedure, setOptimisticAppointments]);
+  }, [
+    selectedPatient,
+    selectedSlot,
+    selectedProcedure,
+    setOptimisticAppointments,
+  ]);
 
   const handleReset = useCallback(() => {
     setSelectedPatient(null);
@@ -342,9 +385,21 @@ export function AppointmentWizard() {
 
   // Step indicators
   const steps: { id: WizardStep; label: string; icon: React.ReactNode }[] = [
-    { id: "select-patient", label: "اختر المريض", icon: <User className="h-4 w-4" /> },
-    { id: "select-time", label: "اختر الوقت", icon: <Clock className="h-4 w-4" /> },
-    { id: "confirm", label: "تأكيد", icon: <CheckCircle className="h-4 w-4" /> },
+    {
+      id: "select-patient",
+      label: "اختر المريض",
+      icon: <User className="h-4 w-4" />,
+    },
+    {
+      id: "select-time",
+      label: "اختر الوقت",
+      icon: <Clock className="h-4 w-4" />,
+    },
+    {
+      id: "confirm",
+      label: "تأكيد",
+      icon: <CheckCircle className="h-4 w-4" />,
+    },
   ];
 
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
@@ -379,7 +434,7 @@ export function AppointmentWizard() {
                 "flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300",
                 index <= currentStepIndex
                   ? "bg-emerald-500 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400",
               )}
             >
               {step.icon}
@@ -425,7 +480,10 @@ export function AppointmentWizard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {patients.map((patient) => (
                     <div key={patient.id} className="space-y-3">
-                      <PatientCard patient={patient} onDragStart={handleDragStart} />
+                      <PatientCard
+                        patient={patient}
+                        onDragStart={handleDragStart}
+                      />
                       <Button
                         variant="outline"
                         className="w-full rounded-xl text-xs"
@@ -454,7 +512,11 @@ export function AppointmentWizard() {
               <div className="glass-card p-4 rounded-2xl flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 font-bold">
-                    {selectedPatient?.fullName.split(" ").slice(0, 2).map((n) => n[0]).join("")}
+                    {selectedPatient?.fullName
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((n) => n[0])
+                      .join("")}
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">
@@ -488,10 +550,54 @@ export function AppointmentWizard() {
                 </div>
               </div>
 
+              {/* Service Selection */}
+              <div className="glass-card p-6 rounded-3xl">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5 text-emerald-500" />
+                  الخدمات المتاحة
+                </h3>
+                {services.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+                    لا توجد خدمات متاحة. أضف خدمات من الإعدادات أولاً.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {services.map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => setSelectedProcedure({
+                          id: service.id,
+                          name: service.name,
+                          duration: service.duration,
+                          procedureType: service.procedureType,
+                        })}
+                        className={cn(
+                          "p-4 rounded-xl border transition-all duration-200 text-right",
+                          selectedProcedure?.id === service.id
+                            ? "border-emerald-400 bg-emerald-500/10 ring-2 ring-emerald-400/50"
+                            : "border-white/20 bg-white/10 hover:border-emerald-300/50",
+                          "dark:border-slate-700/50 dark:bg-slate-800/40",
+                        )}
+                      >
+                        <p className="font-medium text-slate-900 dark:text-white text-sm truncate">
+                          {service.name}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {service.duration} دقيقة · {service.price} ج.م
+                        </p>
+                        <span className="mt-2 inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                          {service.procedureType.replace("_", " ")}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Procedure Selection */}
               <div className="glass-card p-6 rounded-3xl">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                  نوع الإجراء
+                  أنواع الإجراءات
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {PROCEDURES.map((proc) => (
@@ -503,7 +609,7 @@ export function AppointmentWizard() {
                         selectedProcedure?.id === proc.id
                           ? "border-emerald-400 bg-emerald-500/10 ring-2 ring-emerald-400/50"
                           : "border-white/20 bg-white/10 hover:border-emerald-300/50",
-                        "dark:border-slate-700/50 dark:bg-slate-800/40"
+                        "dark:border-slate-700/50 dark:bg-slate-800/40",
                       )}
                     >
                       <p className="font-medium text-slate-900 dark:text-white text-sm">
@@ -559,23 +665,37 @@ export function AppointmentWizard() {
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-slate-800/50">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">المريض</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+                    المريض
+                  </span>
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {selectedPatient?.fullName}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-slate-800/50">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">الوقت</span>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+                    الوقت
+                  </span>
                   <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <Clock className="h-4 w-4" />
                     {selectedSlot?.label}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 dark:bg-slate-800/50">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm">الإجراء</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {selectedProcedure?.name} ({selectedProcedure?.duration} دقيقة)
+                  <span className="text-slate-500 dark:text-slate-400 text-sm">
+                    الإجراء
                   </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-semibold text-slate-900 dark:text-white">
+                      {selectedProcedure?.name} ({selectedProcedure?.duration}{" "}
+                      دقيقة)
+                    </span>
+                    {selectedProcedure?.procedureType && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                        {selectedProcedure.procedureType.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

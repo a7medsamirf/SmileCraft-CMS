@@ -10,6 +10,8 @@ import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { AddPatientModal } from "./AddPatientModal";
 import type { Patient } from "../types";
+import { deletePatientAction } from "../serverActions";
+import { toast } from "react-hot-toast";
 
 export function PatientList() {
   const t = useTranslations("Patients");
@@ -20,6 +22,19 @@ export function PatientList() {
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(
     null,
   );
+
+  const handleDelete = async (patient: Patient) => {
+    if (confirm(t("deleteConfirm") || "هل أنت متأكد من حذف هذا المريض؟")) {
+      try {
+        await deletePatientAction(patient.id);
+        toast.success(t("deleteSuccess") || "تم حذف المريض بنجاح");
+        refresh();
+      } catch (error) {
+        console.error(error);
+        toast.error(t("deleteError") || "حدث خطأ أثناء الحذف");
+      }
+    }
+  };
 
   return (
     <div className="w-full mx-auto space-y-5 animate-in fade-in duration-500">
@@ -139,6 +154,7 @@ export function PatientList() {
                 router.push({ pathname: "/patients/[id]", params: { id } })
               }
               onEdit={(p) => setEditingPatient(p)}
+              onDelete={handleDelete}
             />
           ))}
         </div>

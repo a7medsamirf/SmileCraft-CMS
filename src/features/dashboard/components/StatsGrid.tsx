@@ -6,7 +6,8 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { getAppointmentStatsAction } from "@/features/appointments/serverActions";
 
 interface StatCardProps {
   title: string;
@@ -79,12 +80,17 @@ function StatCard({
   );
 }
 
-export function StatsGrid() {
-  const t = useTranslations("Dashboard");
+export async function StatsGrid() {
+  const t = await getTranslations("Dashboard");
+  
+  // Fetch real statistics for today's appointments
+  const today = new Date();
+  const appointmentStats = await getAppointmentStatsAction(today, today);
+
   const stats: StatCardProps[] = [
     {
       title: t("todayAppointments"),
-      value: "24",
+      value: appointmentStats.todayTotal.toString(),
       subtext: t("vsYesterday"),
       trend: "up",
       trendValue: "+12%",

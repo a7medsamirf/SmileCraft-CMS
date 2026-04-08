@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Patient, PatientFilters, PaginationParams } from "../types/index";
 import { DEFAULT_PAGE_SIZE } from "../constants";
 import { getPatientsAction } from "../serverActions";
@@ -18,21 +18,36 @@ interface UsePatientsReturn {
   refresh: () => void;
 }
 
-const DEFAULT_FILTERS: PatientFilters = {};
 const DEFAULT_PAGINATION: PaginationParams = { page: 1, limit: DEFAULT_PAGE_SIZE };
 
 export function usePatients(): UsePatientsReturn {
-  const [filters, setFiltersState] = useState<PatientFilters>(DEFAULT_FILTERS);
+  const [filters, setFiltersState] = useState<PatientFilters>({});
   const [pagination, setPagination] = useState<PaginationParams>(DEFAULT_PAGINATION);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Stable refs for filters and pagination to avoid re-fetching on object reference changes
+  const filtersRef = useRef(filters);
+  const paginationRef = useRef(pagination);
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
   const fetchPatients = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await getPatientsAction(filters, pagination.page, pagination.limit);
+      const result = await getPatientsAction(
+        filtersRef.current,
+        paginationRef.current.page,
+        paginationRef.current.limit,
+      );
       setPatients(result.data);
       setTotal(result.total);
       setTotalPages(result.totalPages);
@@ -41,7 +56,7 @@ export function usePatients(): UsePatientsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, pagination.page, pagination.limit]);
+  }, []);
 
   useEffect(() => {
     fetchPatients();
@@ -57,7 +72,7 @@ export function usePatients(): UsePatientsReturn {
   }, []);
 
   const resetFilters = useCallback(() => {
-    setFiltersState(DEFAULT_FILTERS);
+    setFiltersState({});
     setPagination(DEFAULT_PAGINATION);
   }, []);
 

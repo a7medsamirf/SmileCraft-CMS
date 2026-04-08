@@ -131,6 +131,44 @@ export async function getAppointmentsByDateAction(
   }
 }
 
+export async function getAppointmentStatsAction(
+  monthDate: Date,
+  selectedDate: Date
+): Promise<{ monthlyTotal: number; todayTotal: number }> {
+  try {
+    const clinicId = await getClinicId();
+
+    const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const [monthlyTotal, todayTotal] = await Promise.all([
+      prisma.appointment.count({
+        where: {
+          clinicId,
+          date: { gte: startOfMonth, lte: endOfMonth },
+        },
+      }),
+      prisma.appointment.count({
+        where: {
+          clinicId,
+          date: { gte: startOfDay, lte: endOfDay },
+        },
+      }),
+    ]);
+
+    return { monthlyTotal, todayTotal };
+  } catch (error) {
+    console.error("Error in getAppointmentStatsAction:", error);
+    return { monthlyTotal: 0, todayTotal: 0 };
+  }
+}
+
+
 export async function createAppointmentActionDB(payload: {
   patientId: string;
   date: Date;

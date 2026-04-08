@@ -4,19 +4,31 @@
 //
 // Custom hook managing treatment plan state with React 19 useOptimistic.
 // Provides instant visual feedback on the Odontogram when status changes.
+//
+// Persistence is fully DB-backed via serverActions.ts — zero localStorage.
 // =============================================================================
 
 "use client";
 
-import { useOptimistic, useCallback, useState, useEffect, startTransition } from "react";
-import { MouthMap, ToothStatus } from "../types/odontogram";
-import { PlanItem, TreatmentStatus, CompletionRecord } from "../types/treatmentPlan";
-import { updateTreatmentItemStatus } from "../actions";
 import {
-  saveTreatmentPlan,
-  fetchTreatmentPlan,
-  fetchCompletionHistory,
-} from "../services/clinicalService";
+  useOptimistic,
+  useCallback,
+  useState,
+  useEffect,
+  startTransition,
+} from "react";
+import { MouthMap, ToothStatus } from "../types/odontogram";
+import {
+  PlanItem,
+  TreatmentStatus,
+  CompletionRecord,
+} from "../types/treatmentPlan";
+import {
+  replaceTreatmentPlanAction,
+  saveTreatmentHistoryAction,
+  getTreatmentHistoryAction,
+  updateTreatmentStatusAction,
+} from "../serverActions";
 import { generateId } from "@/lib/utils/id";
 import { useTranslations } from "next-intl";
 
@@ -45,8 +57,11 @@ interface UseSessionProgressReturn {
   odontogramOverrides: Map<number, OdontogramColorOverride>;
   /** Whether the hook has loaded initial data */
   isLoaded: boolean;
-  /** Generate a fresh plan from the current mouthMap */
-  regeneratePlan: (mouthMap: MouthMap, t: ReturnType<typeof useTranslations>) => void;
+  /** Generate a fresh plan from the current mouthMap and persist to DB */
+  regeneratePlan: (
+    mouthMap: MouthMap,
+    t: ReturnType<typeof useTranslations>,
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,22 +71,22 @@ interface UseSessionProgressReturn {
 // ---------------------------------------------------------------------------
 
 const COMPLETED_COLOR_MAP: Record<string, OdontogramColorOverride> = {
-  procedureCleaning:  { fill: "#3b82f6", stroke: "#1d4ed8" },   // Blue → Filling done
-  procedureReview:    { fill: "#3b82f6", stroke: "#1d4ed8" },   // Blue → Filling reviewed
-  procedureRootCanal: { fill: "#a855f7", stroke: "#7e22ce" },   // Purple → Root canal done
-  procedureCrown:     { fill: "#fbbf24", stroke: "#d97706" },   // Amber → Crown placed
+  procedureCleaning: { fill: "#3b82f6", stroke: "#1d4ed8" }, // Blue  → Filling done
+  procedureReview: { fill: "#3b82f6", stroke: "#1d4ed8" }, // Blue  → Filling reviewed
+  procedureRootCanal: { fill: "#a855f7", stroke: "#7e22ce" }, // Purple→ Root canal done
+  procedureCrown: { fill: "#fbbf24", stroke: "#d97706" }, // Amber → Crown placed
 };
 
 // ---------------------------------------------------------------------------
 // Procedure Key → Target ToothStatus mapping
-// Used to calculate the final odontogram color when procedure completes.
+// Used to calculate the final odontogram color when a procedure completes.
 // ---------------------------------------------------------------------------
 
 const PROCEDURE_TO_STATUS: Record<string, ToothStatus> = {
-  procedureCleaning:  ToothStatus.FILLING,
-  procedureReview:    ToothStatus.FILLING,
+  procedureCleaning: ToothStatus.FILLING,
+  procedureReview: ToothStatus.FILLING,
   procedureRootCanal: ToothStatus.ROOT_CANAL,
-  procedureCrown:     ToothStatus.CROWN,
+  procedureCrown: ToothStatus.CROWN,
 };
 
 // ---------------------------------------------------------------------------
@@ -131,7 +146,11 @@ function generatePlanFromMouthMap(
 // Hook: useSessionProgress
 // ---------------------------------------------------------------------------
 
-export function useSessionProgress(mouthMap: MouthMap): UseSessionProgressReturn {
+export function useSessionProgress(
+  mouthMap: MouthMap,
+  patientId: string,
+  initialPlan?: PlanItem[],
+): UseSessionProgressReturn {
   const t = useTranslations("Clinical");
   const [isLoaded, setIsLoaded] = useState(false);
   const [state, setState] = useState<SessionProgressState>({
@@ -175,82 +194,183 @@ export function useSessionProgress(mouthMap: MouthMap): UseSessionProgressReturn
     },
   );
 
-  // Load initial data
+  // ---------------------------------------------------------------------------
+  // Load initial data from DB
+  // Priority: initialPlan prop (from getPatientClinicalDataAction) → generate
+  //           from mouthMap if no plan exists for this patient.
+  // History is always loaded from DB regardless of plan source.
+  // ---------------------------------------------------------------------------
   useEffect(() => {
-    const load = async () => {
-      const [savedPlan, savedHistory] = await Promise.all([
-        fetchTreatmentPlan(),
-        fetchCompletionHistory(),
-      ]);
+    // Don't attempt to load if there is no patient selected yet
+    if (!patientId) {
+      setState({ plan: [], history: [] });
+      setIsLoaded(false);
+      return;
+    }
 
-      if (savedPlan && savedPlan.length > 0) {
-        setState({ plan: savedPlan, history: savedHistory });
+    let cancelled = false;
+
+    const load = async () => {
+      // 1. Determine the starting plan
+      let plan: PlanItem[];
+
+      if (initialPlan && initialPlan.length > 0) {
+        // DB-persisted plan was passed in from the parent component — use it
+        plan = initialPlan;
       } else {
-        // Generate fresh plan from mouthMap
-        const freshPlan = generatePlanFromMouthMap(mouthMap, t);
-        setState({ plan: freshPlan, history: savedHistory });
-        if (freshPlan.length > 0) {
-          await saveTreatmentPlan(freshPlan);
+        // No persisted plan → generate a fresh one from the odontogram state
+        const nonHealthyTeeth = mouthMap.filter(
+          (tooth) =>
+            tooth.status !== ToothStatus.HEALTHY &&
+            tooth.status !== ToothStatus.MISSING,
+        );
+
+        if (nonHealthyTeeth.length > 0) {
+          const freshPlan = generatePlanFromMouthMap(mouthMap, t);
+          // Persist the generated plan so it gets real DB IDs
+          plan = await replaceTreatmentPlanAction(patientId, freshPlan);
+        } else {
+          plan = [];
         }
       }
-      setIsLoaded(true);
+
+      // 2. Load audit history from DB
+      const history = await getTreatmentHistoryAction(patientId);
+
+      if (!cancelled) {
+        setState({ plan, history });
+        setIsLoaded(true);
+      }
     };
 
-    if (mouthMap.length > 0) {
-      load();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(mouthMap)]);
+    setIsLoaded(false);
+    load().catch((err) => {
+      console.warn("[useSessionProgress] load error:", err);
+      if (!cancelled) setIsLoaded(true);
+    });
 
-  // Regenerate plan (called when mouthMap changes from ClinicalClient)
+    return () => {
+      cancelled = true;
+    };
+    // Re-run whenever the patient changes or the parent passes a new initialPlan.
+    // JSON.stringify(mouthMap) guards against reference instability.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, JSON.stringify(initialPlan)]);
+
+  // ---------------------------------------------------------------------------
+  // regeneratePlan
+  // Called when the clinician manually edits the odontogram (handleStatusChange).
+  // Discards the old PLANNED treatments and writes fresh ones to the DB.
+  // ---------------------------------------------------------------------------
   const regeneratePlan = useCallback(
-    (newMouthMap: MouthMap, translator: ReturnType<typeof useTranslations>) => {
+    async (
+      newMouthMap: MouthMap,
+      translator: ReturnType<typeof useTranslations>,
+    ) => {
+      if (!patientId) return;
+
       const freshPlan = generatePlanFromMouthMap(newMouthMap, translator);
+
+      // Optimistically set the generated plan so the UI updates instantly
       setState((prev) => ({ ...prev, plan: freshPlan }));
-      saveTreatmentPlan(freshPlan);
+
+      try {
+        // Persist to DB — returns items with real UUIDs from the database
+        const persistedPlan = await replaceTreatmentPlanAction(
+          patientId,
+          freshPlan,
+        );
+        setState((prev) => ({ ...prev, plan: persistedPlan }));
+      } catch (err) {
+        console.warn(
+          "[useSessionProgress] regeneratePlan persist failed:",
+          err,
+        );
+        // Keep the optimistic state so the UI stays functional
+      }
     },
-    [],
+    [patientId],
   );
 
-  // Update a treatment item status
+  // ---------------------------------------------------------------------------
+  // updateItemStatus
+  // Applies an optimistic update immediately, then persists the status change
+  // to the DB and appends a CompletionRecord to the patient's history.
+  // ---------------------------------------------------------------------------
   const updateItemStatus = useCallback(
     (itemId: string, newStatus: TreatmentStatus) => {
       startTransition(() => {
-        // Optimistic update — UI changes instantly
+        // ── 1. Optimistic UI update ──────────────────────────────────────────
         addOptimisticUpdate({ itemId, newStatus });
 
-        // Fire-and-forget the actual server action
-        updateTreatmentItemStatus(state.plan, itemId, newStatus).then((result) => {
-          if (result.success && result.updatedItem) {
-            // Sync the confirmed state
-            setState((prev) => {
-              const updatedPlan = prev.plan.map((item) =>
-                item.id === itemId ? result.updatedItem! : item,
+        // ── 2. Persist to DB (fire-and-forget inside the transition) ─────────
+        const persist = async () => {
+          // Write the status change to the treatments table
+          await updateTreatmentStatusAction(itemId, newStatus);
+
+          // Build a CompletionRecord for the audit trail
+          const targetItem = state.plan.find((p) => p.id === itemId);
+          if (!targetItem) return;
+
+          const newRecord: CompletionRecord = {
+            id: generateId(),
+            planItemId: itemId,
+            toothId: targetItem.toothId,
+            procedure: targetItem.procedure,
+            previousStatus: targetItem.status,
+            newStatus,
+            timestamp: new Date().toISOString(),
+          };
+
+          // Commit the confirmed state and build the new history list
+          setState((prev) => {
+            const updatedPlan = prev.plan.map((item) =>
+              item.id === itemId
+                ? {
+                    ...item,
+                    status: newStatus,
+                    completedAt:
+                      newStatus === TreatmentStatus.COMPLETED
+                        ? new Date().toISOString()
+                        : undefined,
+                  }
+                : item,
+            );
+
+            const updatedHistory: CompletionRecord[] = [
+              newRecord,
+              ...prev.history,
+            ];
+
+            // Persist the updated history to DB (non-blocking)
+            if (patientId) {
+              saveTreatmentHistoryAction(patientId, updatedHistory).catch(
+                (err) =>
+                  console.warn(
+                    "[useSessionProgress] saveTreatmentHistoryAction failed:",
+                    err,
+                  ),
               );
+            }
 
-              const newRecord: CompletionRecord = {
-                id: generateId(),
-                planItemId: itemId,
-                toothId: result.updatedItem!.toothId,
-                procedure: result.updatedItem!.procedure,
-                previousStatus: prev.plan.find((p) => p.id === itemId)?.status ?? TreatmentStatus.PLANNED,
-                newStatus,
-                timestamp: new Date().toISOString(),
-              };
+            return { plan: updatedPlan, history: updatedHistory };
+          });
+        };
 
-              return {
-                plan: updatedPlan,
-                history: [newRecord, ...prev.history],
-              };
-            });
-          }
+        persist().catch((err) => {
+          console.warn(
+            "[useSessionProgress] updateItemStatus persist failed:",
+            err,
+          );
         });
       });
     },
-    [state.plan, addOptimisticUpdate],
+    [state.plan, patientId, addOptimisticUpdate],
   );
 
-  // Calculate odontogram color overrides from completed items
+  // ---------------------------------------------------------------------------
+  // Derive odontogram color overrides from all COMPLETED items
+  // ---------------------------------------------------------------------------
   const odontogramOverrides = new Map<number, OdontogramColorOverride>();
   for (const item of optimisticState.plan) {
     if (item.status === TreatmentStatus.COMPLETED && item.procedureKey) {
@@ -271,4 +391,7 @@ export function useSessionProgress(mouthMap: MouthMap): UseSessionProgressReturn
   };
 }
 
+// ---------------------------------------------------------------------------
+// Named re-exports consumed by other modules
+// ---------------------------------------------------------------------------
 export { generatePlanFromMouthMap, PROCEDURE_TO_STATUS };

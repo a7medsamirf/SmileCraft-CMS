@@ -109,6 +109,16 @@ export function AddPatientForm({
     }
   }, [state.success, onSuccess]);
 
+  // ── Prevent double-tap submission on final step ────────────────────────
+  const [isSubmitReady, setIsSubmitReady] = React.useState(false);
+  React.useEffect(() => {
+    if (step === totalSteps) {
+      setIsSubmitReady(false);
+      const timer = setTimeout(() => setIsSubmitReady(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [step]);
+
   // ── Step navigation ─────────────────────────────────────────────────────
   const nextStep = async () => {
     let fields: (keyof ClientAddPatientFormData)[] = [];
@@ -129,9 +139,17 @@ export function AddPatientForm({
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
-  // ── Prevent Enter from submitting before the final step ─────────────────
+  // ── Prevent Enter from submitting prematurely or blocking textarea newlines ──
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key === "Enter" && step !== totalSteps) {
+    // Allow Enter key to create new lines in textareas (e.g., currentMedications)
+    if (e.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+    
+    // Prevent Enter from submitting the form directly unless they specifically
+    // trigger it via the submit button, keeping them from accidentally submitting 
+    // step 3 prematurely.
+    if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) {
       e.preventDefault();
     }
   };
@@ -240,7 +258,7 @@ export function AddPatientForm({
          * Inactive panels are hidden via opacity:0 + pointerEvents:none
          * and animated via Framer Motion's `animate` prop.
          */}
-        <div className="relative min-h-[380px]">
+        <div className="relative min-h-[300px]">
           {/* ── STEP 1: Basic Info ────────────────────────────────────────── */}
           <motion.div
             initial={false}
@@ -481,7 +499,7 @@ export function AddPatientForm({
           ) : (
             <Button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !isSubmitReady}
               className="rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 shadow-lg px-10"
             >
               {isPending

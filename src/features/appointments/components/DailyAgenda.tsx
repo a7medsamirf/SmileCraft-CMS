@@ -46,10 +46,10 @@ export function DailyAgenda({ selectedDate = new Date() }: DailyAgendaProps) {
         const data = await getAppointmentsByDateAction(selectedDate);
         if (isMounted) {
           setAppointments(data);
-          setIsLoading(false);
         }
       } catch (error) {
         console.error("Failed to fetch appointments:", error);
+      } finally {
         if (isMounted) {
           setIsLoading(false);
         }
@@ -59,7 +59,7 @@ export function DailyAgenda({ selectedDate = new Date() }: DailyAgendaProps) {
     return () => {
       isMounted = false;
     };
-  }, [selectedDate.toDateString()]);
+  }, [selectedDate.toDateString(), t]);
 
   return (
     <div className="glass-card p-6 min-h-[400px] flex flex-col">
@@ -89,9 +89,9 @@ export function DailyAgenda({ selectedDate = new Date() }: DailyAgendaProps) {
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-slate-950/50 backdrop-blur-[1px] z-10">
             <div className="flex flex-col items-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-              <p className="text-sm font-medium text-slate-500">
-                جاري التحميل...
-              </p>
+          <p className="text-sm font-medium text-slate-500">
+            {t("loading")}
+          </p>
             </div>
           </div>
         ) : (

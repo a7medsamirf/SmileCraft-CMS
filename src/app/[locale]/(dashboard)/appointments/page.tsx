@@ -5,39 +5,56 @@
 // =============================================================================
 
 import React, { useState } from "react";
+import { Link } from "@/i18n/routing";
 import { DailyAgenda } from "@/features/appointments/components/DailyAgenda";
 import { BookingForm } from "@/features/appointments/components/BookingForm";
-import { CalendarCheck, Plus } from "lucide-react";
+import { CalendarCheck, Plus, Activity } from "lucide-react";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { useTranslations } from "next-intl";
 
 export default function AppointmentsPage() {
+  const t = useTranslations("Appointments");
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   return (
     <PageTransition>
-      <div className="w-full" dir="rtl">
+      <div className="w-full">
+        
         <div className="mb-8 flex items-end justify-between">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
               <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
                 <CalendarCheck className="h-6 w-6 text-white" />
               </div>
-              إدارة المواعيد
+              {t("title")}
             </h1>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
               قائمة المواعيد اليومية، متابعة الحجوزات، وإدارة وقت العيادة.
             </p>
           </div>
 
-          {/* Book Appointment Button */}
-          <button
-            onClick={() => setIsBookingOpen(true)}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
-          >
-            <Plus className="w-5 h-5" />
-            حجز موعد جديد
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Live Queue Link */}
+            <Link
+              href="/appointments/queue"
+              className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-sm px-5 py-3 rounded-xl transition-all border border-blue-100 shadow-sm"
+            >
+              <Activity className="w-5 h-5" />
+              {t("queueTitle")}
+            </Link>
+
+            {/* Book Appointment Button */}
+            <button
+              onClick={() => setIsBookingOpen(true)}
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              {t("bookAppointment")}
+            </button>
+          </div>
         </div>
+        
+
 
         <div className="space-y-5">
           <DailyAgenda />

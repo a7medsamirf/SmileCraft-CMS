@@ -4,7 +4,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -324,9 +324,18 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-2xl shadow-emerald-500/20 shadow-lg"
+          className="rounded-2xl shadow-emerald-500/20 shadow-lg gap-2 flex items-center justify-center transition-all"
         >
-          {isSubmitting ? t("saving") : initialData ? t("update") : t("create")}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>{t("saving")}</span>
+            </>
+          ) : initialData ? (
+            t("update")
+          ) : (
+            t("create")
+          )}
         </Button>
       </div>
     </form>

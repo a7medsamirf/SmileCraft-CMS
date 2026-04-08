@@ -1,266 +1,156 @@
-import { InventoryItem, InventoryTransaction, InventoryAlert, StockStatus } from "../types";
-import { generateId } from "@/lib/utils/id";
+// =============================================================================
+// DENTAL CMS — Inventory Module: Pure Compute Stub Service
+// features/inventory/services/inventoryService.ts
+//
+// DEPRECATED: This file is now a NO-OP stub. All persistence is handled by
+// server actions in inventory/serverActions.ts.
+//
+// These exports exist only for backward compatibility with components that
+// import from "services/inventoryService". The functions below are pure
+// compute helpers that operate on client-side state passed to them.
+// =============================================================================
 
-const INVENTORY_STORAGE_KEY = "dental_inventory_data";
-const TRANSACTIONS_STORAGE_KEY = "dental_inventory_transactions";
-const ALERTS_STORAGE_KEY = "dental_inventory_alerts";
+import { InventoryItem, StockStatus, InventoryCategory } from "../types";
 
-const MOCK_INVENTORY: InventoryItem[] = [
-  {
-    id: "1",
-    name: "Lidocaine 2% with Epinephrine",
-    category: "ANESTHETICS",
-    quantity: 25,
-    minQuantity: 10,
-    unitPrice: 45,
-    unit: "carpule",
-    supplier: "Dental Supply Co.",
-    expiryDate: "2027-06-15",
-    batchNumber: "LID-2024-001",
-    location: "Cabinet A-1",
-  },
-  {
-    id: "2",
-    name: "Composite Resin - A2 Shade",
-    category: "MATERIALS",
-    quantity: 8,
-    minQuantity: 5,
-    unitPrice: 350,
-    unit: "syringe",
-    supplier: "3M Dental",
-    expiryDate: "2026-12-01",
-    batchNumber: "COMP-A2-2024",
-    location: "Cabinet B-2",
-  },
-  {
-    id: "3",
-    name: "Sterilization Pouches (Large)",
-    category: "STERILIZATION",
-    quantity: 150,
-    minQuantity: 50,
-    unitPrice: 2,
-    unit: "piece",
-    supplier: "MediPack",
-    location: "Storage Room",
-  },
-  {
-    id: "4",
-    name: "Extraction Forceps #151",
-    category: "INSTRUMENTS",
-    quantity: 3,
-    minQuantity: 2,
-    unitPrice: 850,
-    unit: "piece",
-    supplier: "Hu-Friedy",
-    location: "Instrument Tray 1",
-  },
-  {
-    id: "5",
-    name: "Surgical Sutures 3-0 Silk",
-    category: "MATERIALS",
-    quantity: 4,
-    minQuantity: 10,
-    unitPrice: 25,
-    unit: "pack",
-    supplier: "Ethicon",
-    expiryDate: "2028-03-20",
-    batchNumber: "SILK-3-0-2024",
-    location: "Cabinet B-1",
-  },
-];
+/**
+ * Compute the stock status for a single item.
+ * @param item - The inventory item to evaluate
+ * @returns Computed stock status (IN_STOCK, LOW_STOCK, OUT_OF_STOCK, EXPIRED)
+ */
+export function getStockStatus(item: InventoryItem): StockStatus {
+  // Check expiry first
+  if (item.expiryDate && new Date(item.expiryDate) < new Date()) {
+    return "EXPIRED";
+  }
+  // Out of stock
+  if (item.quantity === 0) {
+    return "OUT_OF_STOCK";
+  }
+  // Low stock warning
+  if (item.quantity <= item.minQuantity) {
+    return "LOW_STOCK";
+  }
+  return "IN_STOCK";
+}
 
-export const inventoryService = {
-  getAllItems: (): InventoryItem[] => {
-    if (typeof window === "undefined") return MOCK_INVENTORY;
-    const stored = localStorage.getItem(INVENTORY_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : MOCK_INVENTORY;
-  },
+/**
+ * Compute total inventory value.
+ * @param items - Array of inventory items to calculate value for
+ * @returns Sum of (quantity × unitPrice) for all items
+ */
+export function getInventoryValue(items: InventoryItem[]): number {
+  return items.reduce(
+    (total, item) => total + item.quantity * item.unitPrice,
+    0,
+  );
+}
 
-  getItemById: (id: string): InventoryItem | undefined => {
-    const items = inventoryService.getAllItems();
-    return items.find((item) => item.id === id);
-  },
+/**
+ * Get all low stock items from a list.
+ * @param items - Array of inventory items to filter
+ * @returns Items where quantity ≤ minQuantity
+ */
+export function getLowStockItems(items: InventoryItem[]): InventoryItem[] {
+  return items.filter((item) => item.quantity <= item.minQuantity);
+}
 
-  getItemsByCategory: (category: string): InventoryItem[] => {
-    const items = inventoryService.getAllItems();
-    return category === "ALL" ? items : items.filter((item) => item.category === category);
-  },
+/**
+ * Get all expiring items within the specified days (or 30 default).
+ * @param items - Array of inventory items to filter
+ * @param days - Number of days from now to check expiration (default: 30)
+ * @returns Items expiring within the given timeframe
+ */
+export function getExpiringItems(
+  items: InventoryItem[],
+  days = 30,
+): InventoryItem[] {
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
-  saveItem: (item: InventoryItem): void => {
-    const items = inventoryService.getAllItems();
-    const index = items.findIndex((i) => i.id === item.id);
+  return items.filter((item) => {
+    if (!item.expiryDate) return false;
+    const expiryDate = new Date(item.expiryDate);
+    return expiryDate <= futureDate && expiryDate > now;
+  });
+}
 
-    if (index >= 0) {
-      items[index] = item;
-    } else {
-      items.push(item);
-    }
+/**
+ * Stub export for backward compatibility — always returns empty array.
+ */
+export function getAllItems(): InventoryItem[] {
+  return [];
+}
 
-    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(items));
-    inventoryService.checkAlerts(item);
-  },
+/**
+ * Stub export — always returns undefined.
+ */
+export function getItemById(_id: string): InventoryItem | undefined {
+  return undefined;
+}
 
-  deleteItem: (id: string): void => {
-    const items = inventoryService.getAllItems();
-    const filtered = items.filter((i) => i.id !== id);
-    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(filtered));
-  },
+/**
+ * Stub export — category filter is a no-op.
+ */
+export function getItemsByCategory(
+  _category: InventoryCategory | "ALL" = "ALL",
+): InventoryItem[] {
+  return [];
+}
 
-  updateQuantity: (id: string, quantityChange: number, reason: string, type: "IN" | "OUT"): void => {
-    const item = inventoryService.getItemById(id);
-    if (!item) return;
+/**
+ * Stub export — do nothing.
+ */
+export function saveItem(_item: InventoryItem): void {}
 
-    item.quantity = Math.max(0, item.quantity + quantityChange);
-    item.lastRestocked = type === "IN" ? new Date().toISOString() : item.lastRestocked;
-    inventoryService.saveItem(item);
+/**
+ * Stub export — do nothing.
+ */
+export function deleteItem(_id: string): void {}
 
-    // Record transaction
-    const transactions = inventoryService.getTransactions();
-    transactions.push({
-      id: generateId(),
-      itemId: id,
-      type,
-      quantity: Math.abs(quantityChange),
-      reason,
-      date: new Date().toISOString(),
-      performedBy: "current_user", // In real app, get from auth context
-    });
-    localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(transactions));
-  },
+/**
+ * Stub export — do nothing.
+ */
+export function updateQuantity(
+  _id: string,
+  _quantityChange: number,
+  _reason: string,
+  _type: "IN" | "OUT",
+): void {}
 
-  getStockStatus: (item: InventoryItem): StockStatus => {
-    if (item.expiryDate && new Date(item.expiryDate) < new Date()) {
-      return "EXPIRED";
-    }
-    if (item.quantity === 0) {
-      return "OUT_OF_STOCK";
-    }
-    if (item.quantity <= item.minQuantity) {
-      return "LOW_STOCK";
-    }
-    return "IN_STOCK";
-  },
+/**
+ * Stub export — always returns empty array.
+ */
+export function getAlerts(): never[] {
+  return [];
+}
 
-  // Alerts
-  checkAlerts: (item?: InventoryItem): void => {
-    const items = item ? [item] : inventoryService.getAllItems();
-    const existingAlerts = inventoryService.getAlerts();
-    const newAlerts: InventoryAlert[] = [];
+/**
+ * Stub export — do nothing.
+ */
+export function acknowledgeAlert(_alertId: string): void {}
 
-    items.forEach((i) => {
-      const status = inventoryService.getStockStatus(i);
+/**
+ * Stub export — do nothing.
+ */
+export function clearAcknowledgedAlerts(): void {}
 
-      if (status === "LOW_STOCK") {
-        newAlerts.push({
-          id: generateId(),
-          itemId: i.id,
-          itemName: i.name,
-          type: "LOW_STOCK",
-          message: `Low stock: ${i.name} (${i.quantity} ${i.unit} remaining)`,
-          createdAt: new Date().toISOString(),
-          acknowledged: false,
-        });
-      } else if (status === "OUT_OF_STOCK") {
-        newAlerts.push({
-          id: generateId(),
-          itemId: i.id,
-          itemName: i.name,
-          type: "OUT_OF_STOCK",
-          message: `Out of stock: ${i.name}`,
-          createdAt: new Date().toISOString(),
-          acknowledged: false,
-        });
-      }
+/**
+ * Stub export — always returns zero.
+ */
+export function getInventoryValueStub(): number {
+  return 0;
+}
 
-      // Check expiry (30 days warning)
-      if (i.expiryDate) {
-        const expiryDate = new Date(i.expiryDate);
-        const thirtyDaysFromNow = new Date();
-        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+/**
+ * Stub export — always returns empty array.
+ */
+export function getLowStockItemsStub(): InventoryItem[] {
+  return [];
+}
 
-        if (expiryDate < thirtyDaysFromNow && expiryDate > new Date()) {
-          newAlerts.push({
-            id: generateId(),
-            itemId: i.id,
-            itemName: i.name,
-            type: "EXPIRING_SOON",
-            message: `Expiring soon: ${i.name} (expires ${expiryDate.toLocaleDateString()})`,
-            createdAt: new Date().toISOString(),
-            acknowledged: false,
-          });
-        } else if (expiryDate < new Date()) {
-          newAlerts.push({
-            id: generateId(),
-            itemId: i.id,
-            itemName: i.name,
-            type: "EXPIRED",
-            message: `Expired: ${i.name} (expired ${expiryDate.toLocaleDateString()})`,
-            createdAt: new Date().toISOString(),
-            acknowledged: false,
-          });
-        }
-      }
-    });
-
-    // Merge with existing unacknowledged alerts
-    const unacknowledged = existingAlerts.filter((a) => !a.acknowledged);
-    const allAlerts = [...unacknowledged, ...newAlerts];
-    localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(allAlerts));
-  },
-
-  getAlerts: (): InventoryAlert[] => {
-    if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem(ALERTS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
-
-  acknowledgeAlert: (alertId: string): void => {
-    const alerts = inventoryService.getAlerts();
-    const alert = alerts.find((a) => a.id === alertId);
-    if (alert) {
-      alert.acknowledged = true;
-      localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(alerts));
-    }
-  },
-
-  clearAcknowledgedAlerts: (): void => {
-    const alerts = inventoryService.getAlerts();
-    const unacknowledged = alerts.filter((a) => !a.acknowledged);
-    localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(unacknowledged));
-  },
-
-  // Transactions
-  getTransactions: (): InventoryTransaction[] => {
-    if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem(TRANSACTIONS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
-
-  getTransactionsByItem: (itemId: string): InventoryTransaction[] => {
-    const transactions = inventoryService.getTransactions();
-    return transactions.filter((t) => t.itemId === itemId);
-  },
-
-  // Reports
-  getInventoryValue: (): number => {
-    const items = inventoryService.getAllItems();
-    return items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
-  },
-
-  getLowStockItems: (): InventoryItem[] => {
-    const items = inventoryService.getAllItems();
-    return items.filter((item) => item.quantity <= item.minQuantity);
-  },
-
-  getExpiringItems: (days: number = 30): InventoryItem[] => {
-    const items = inventoryService.getAllItems();
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + days);
-
-    return items.filter((item) => {
-      if (!item.expiryDate) return false;
-      const expiryDate = new Date(item.expiryDate);
-      return expiryDate <= futureDate && expiryDate > new Date();
-    });
-  },
-};
+/**
+ * Stub export — always returns empty array.
+ */
+export function getExpiringItemsStub(days = 30): InventoryItem[] {
+  return [];
+}

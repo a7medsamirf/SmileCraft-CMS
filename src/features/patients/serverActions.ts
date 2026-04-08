@@ -123,7 +123,10 @@ function mapRowToPatient(row: Record<string, unknown>): Patient {
     medicalHistory: {
       conditions,
       allergies,
-      currentMedications: [],
+      currentMedications:
+        typeof row.currentMedications === "string" && row.currentMedications.trim()
+          ? row.currentMedications.split(",").map((m) => m.trim()).filter(Boolean)
+          : [],
       previousDentalHistory: [],
       bloodGroup: (row.bloodGroup as BloodGroup) ?? BloodGroup.UNKNOWN,
       generalNotes: typeof row.notes === "string" ? row.notes : undefined,
@@ -213,7 +216,8 @@ export async function getPatientsAction(
     let query = supabase
       .from("patients")
       .select("*, medical_histories(*)", { count: "exact" })
-      .eq("clinicId", clinicId);
+      .eq("clinicId", clinicId)
+      .is("deletedAt", null);
 
     if (filters.search) {
       query = query.or(
@@ -277,6 +281,7 @@ export async function getPatientByIdAction(
         .select("*, medical_histories(*)")
         .eq("id", id)
         .eq("clinicId", clinicId)
+        .is("deletedAt", null)
         .single();
 
       if (!error && data) {
@@ -326,6 +331,7 @@ export async function createPatientActionDB(
       allergies: payload.medicalHistory.allergies
         .map((a) => a.allergen)
         .join(", "),
+      currentMedications: payload.medicalHistory.currentMedications.join(", "),
       // Emergency contact — the three columns added by migration
       emergencyName: payload.emergencyContact?.name ?? null,
       emergencyRelationship: payload.emergencyContact?.relationship ?? null,
@@ -405,6 +411,8 @@ export async function updatePatientActionDB(
     updateData.allergies = payload.medicalHistory.allergies
       .map((a) => a.allergen)
       .join(", ");
+  if (payload.medicalHistory?.currentMedications)
+    updateData.currentMedications = payload.medicalHistory.currentMedications.join(", ");
 
   // Emergency contact — always overwrite so clearing the fields works too
   if ("emergencyContact" in payload) {
@@ -466,14 +474,16 @@ export async function deletePatientAction(id: string): Promise<void> {
 
   if (!existing) throw new Error("Patient not found or access denied.");
 
+  // Soft delete: set deletedAt to current timestamp
   const { error } = await supabase
     .from("patients")
-    .delete()
+    .update({ deletedAt: new Date().toISOString(), isActive: false, updatedAt: new Date().toISOString() })
     .eq("id", id)
     .eq("clinicId", clinicId);
 
   if (error) throw new Error(`Failed to delete patient: ${error.message}`);
 
+  // Revalidate to update UI
   revalidatePath("/dashboard/patients");
   revalidatePath("/patients");
 }

@@ -25,9 +25,10 @@
 // src/app/[locale]/(dashboard)/appointments/queue/page.tsx
 // =============================================================================
 
-import { CalendarCheck } from "lucide-react";
+import { ArrowRight, CalendarCheck } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { Link } from "@/i18n/routing";
 
 import { PageTransition } from "@/components/ui/PageTransition";
 import { TodayQueueUI } from "@/features/appointments/components/TodayQueueUI";
@@ -75,19 +76,28 @@ export default async function AppointmentsQueuePage({ params }: PageProps) {
   // ── 3. Render ────────────────────────────────────────────────────────────
   return (
     <PageTransition>
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-6">
         {/* ── Page Header ──────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="flex items-center gap-3 text-3xl font-extrabold text-slate-900 dark:text-white">
-              <span className="rounded-xl bg-blue-600 p-2 shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
-                <CalendarCheck className="h-6 w-6 text-white" />
-              </span>
-              {t("queueTitle")}
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              {t("queueSubtitle")}
-            </p>
+          <div className="flex items-start gap-4">
+            <Link
+              href="/appointments"
+              className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-all hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900 shadow-sm"
+              title="العودة للمواعيد"
+            >
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="flex items-center gap-3 text-3xl font-extrabold text-slate-900 dark:text-white">
+                <span className="rounded-xl bg-blue-600 p-2 shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
+                  <CalendarCheck className="h-6 w-6 text-white" />
+                </span>
+                {t("queueTitle")}
+              </h1>
+              <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+                {t("queueSubtitle")}
+              </p>
+            </div>
           </div>
 
           {/* Live indicator — visible hint that Realtime is active */}

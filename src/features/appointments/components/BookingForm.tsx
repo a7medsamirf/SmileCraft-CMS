@@ -17,6 +17,7 @@ import {
   FileText,
   CheckCircle2,
   Hash,
+  Stethoscope,
 } from "lucide-react";
 import {
   bookAppointmentAction,
@@ -25,6 +26,7 @@ import {
 import { getAppointmentsByDateAction } from "../serverActions";
 import { AppointmentStatus } from "../types";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import {
   PROCEDURE_DEFINITIONS,
   PROCEDURE_CATEGORY_LABELS,
@@ -36,6 +38,8 @@ import {
   ToothPosition,
   ToothType,
 } from "@/features/clinical/types/odontogram";
+import { getServicesAction } from "@/features/settings/serverActions";
+import { DentalService } from "@/features/settings/types";
 
 // ── Tooth position / type labels (Arabic) ───────────────────────────────────
 const POSITION_LABEL: Record<ToothPosition, string> = {
@@ -112,9 +116,22 @@ const initialState: BookingState = { success: false, errors: {} };
 interface BookingFormProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultValues?: {
+    patientName?: string;
+    phone?: string;
+    toothNumber?: number;
+    date?: string;
+    procedureKey?: string;
+    procedure?: string;
+  };
 }
 
-export function BookingForm({ isOpen, onClose }: BookingFormProps) {
+export function BookingForm({
+  isOpen,
+  onClose,
+  defaultValues,
+}: BookingFormProps) {
+  const t = useTranslations("Settings.services");
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(
     bookAppointmentAction,
@@ -123,12 +140,61 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>(
+    defaultValues?.date ?? "",
+  );
   const [bookedTimes, setBookedTimes] = useState<Set<string>>(new Set());
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [selectedProcedure, setSelectedProcedure] =
-    useState<ProcedureDefinition | null>(null);
-  const [toothInput, setToothInput] = useState<string>("");
+  const [selectedProcedure, setSelectedProcedure] = useState<
+    ProcedureDefinition | null
+  >(
+    defaultValues?.procedureKey
+      ? PROCEDURE_DEFINITIONS.find((p) => p.key === defaultValues.procedureKey) ?? null
+      : null,
+  );
+  const [patientName, setPatientName] = useState<string>(
+    defaultValues?.patientName ?? "",
+  );
+  const [phone, setPhone] = useState<string>(defaultValues?.phone ?? "");
+  const [toothInput, setToothInput] = useState<string>(
+    defaultValues?.toothNumber?.toString() ?? "",
+  );
+  const [services, setServices] = useState<DentalService[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [selectedService, setSelectedService] = useState<DentalService | null>(null);
+
+  // Load services from DB on mount
+  useEffect(() => {
+    if (!isOpen) return;
+    let isMounted = true;
+    (async () => {
+      try {
+        setIsLoadingServices(true);
+        const data = await getServicesAction();
+        if (isMounted) setServices(data);
+      } catch {
+        if (isMounted) setServices([]);
+      } finally {
+        if (isMounted) setIsLoadingServices(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  // When a service is selected, auto-select the matching procedure
+  useEffect(() => {
+    if (selectedService) {
+      const matchingProc = PROCEDURE_DEFINITIONS.find(
+        (p) => p.key.toLowerCase().includes(selectedService.procedureType.toLowerCase()) ||
+               selectedService.procedureType.toLowerCase().includes(p.key.replace("procedure", "").toLowerCase())
+      );
+      if (matchingProc) {
+        setSelectedProcedure(matchingProc);
+      }
+    }
+  }, [selectedService]);
 
   // Parse tooth number for live hint
   const toothNum = toothInput ? parseInt(toothInput, 10) : null;
@@ -159,12 +225,19 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
   useEffect(() => {
     if (isOpen) {
       setSelectedTime("");
-      setSelectedDate("");
+      setSelectedDate(defaultValues?.date ?? "");
       setBookedTimes(new Set());
-      setSelectedProcedure(null);
-      setToothInput("");
+      setSelectedProcedure(
+        defaultValues?.procedureKey
+          ? PROCEDURE_DEFINITIONS.find((p) => p.key === defaultValues.procedureKey) ?? null
+          : null,
+      );
+      setToothInput(defaultValues?.toothNumber?.toString() ?? "");
+      setPatientName(defaultValues?.patientName ?? "");
+      setPhone(defaultValues?.phone ?? "");
+      setSelectedService(null);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultValues]);
 
   // Load booked slots when date changes
   useEffect(() => {
@@ -269,6 +342,8 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 placeholder="أدخل اسم المريض"
                 error={state.errors?.patientName?.[0]}
                 disabled={isPending}
+                value={patientName}
+                onChange={setPatientName}
               />
               <FormField
                 label="رقم الهاتف"
@@ -278,16 +353,83 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
                 dir="ltr"
                 error={state.errors?.phone?.[0]}
                 disabled={isPending}
+                value={phone}
+                onChange={setPhone}
               />
             </div>
 
-            {/* ── 2. Date + Duration ── */}
+            {/* ── 2. Service Selection ── */}
+            <div>
+              <label className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+                <Stethoscope className="w-3.5 h-3.5" />
+                الخدمة (اختياري)
+              </label>
+              {isLoadingServices ? (
+                <p className="text-[11px] text-slate-500 font-medium">جاري تحميل الخدمات...</p>
+              ) : services.length === 0 ? (
+                <p className="text-[11px] text-slate-500 font-medium">لا توجد خدمات متاحة</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {services.map((service) => {
+                    const isSelected = selectedService?.id === service.id;
+                    return (
+                      <button
+                        key={service.id}
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedService(null);
+                            setSelectedProcedure(null);
+                          } else {
+                            setSelectedService(service);
+                          }
+                        }}
+                        className={cn(
+                          "relative flex flex-col items-start rounded-xl border px-3 py-2.5 text-[11px] font-medium transition-all duration-150",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                          isSelected
+                            ? "bg-blue-50 dark:bg-blue-900/20 border-blue-400 shadow-md text-slate-900 dark:text-white"
+                            : "bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:border-blue-300",
+                        )}
+                      >
+                        <span className="font-semibold truncate w-full">{service.name}</span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">
+                          {service.price} {t("currency") || "ج.م"} · {service.duration} دقيقة
+                        </span>
+                        {service.procedureType && (
+                          <span className="mt-1 inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700 dark:text-emerald-300">
+                            {service.procedureType.replace("_", " ")}
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="absolute top-1 end-1 h-2 w-2 rounded-full bg-blue-500" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Selected service summary */}
+              {selectedService && (
+                <div className="mt-2 flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/40 text-blue-700 dark:text-blue-300">
+                  <Stethoscope className="w-3.5 h-3.5 shrink-0" />
+                  <span>الخدمة: {selectedService.name}</span>
+                  <span className="opacity-60">·</span>
+                  <span>نوع الإجراء: {selectedService.procedureType}</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── 3. Date + Duration ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 label="التاريخ"
                 name="date"
                 icon={<Calendar className="w-4 h-4" />}
                 type="date"
+                value={selectedDate}
                 onChange={(v) => setSelectedDate(v)}
                 error={state.errors?.date?.[0]}
                 disabled={isPending}
@@ -391,12 +533,16 @@ export function BookingForm({ isOpen, onClose }: BookingFormProps) {
               <input
                 type="hidden"
                 name="procedure"
-                value={selectedProcedure?.labelAr ?? ""}
+                value={
+                  selectedProcedure?.labelAr ?? defaultValues?.procedure ?? ""
+                }
               />
               <input
                 type="hidden"
                 name="procedureKey"
-                value={selectedProcedure?.key ?? ""}
+                value={
+                  selectedProcedure?.key ?? defaultValues?.procedureKey ?? ""
+                }
               />
 
               <div className="flex items-center justify-between mb-3">
@@ -681,6 +827,7 @@ interface FormFieldProps {
   dir?: string;
   error?: string;
   disabled?: boolean;
+  value?: string;
   onChange?: (value: string) => void;
 }
 
@@ -693,6 +840,7 @@ function FormField({
   dir,
   error,
   disabled,
+  value,
   onChange,
 }: FormFieldProps) {
   return (
@@ -707,6 +855,7 @@ function FormField({
         <input
           name={name}
           type={type}
+          value={value}
           placeholder={placeholder}
           dir={dir}
           disabled={disabled}

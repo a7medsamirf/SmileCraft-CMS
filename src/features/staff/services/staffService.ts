@@ -1,221 +1,73 @@
+// DEPRECATED: Use server actions from staff/serverActions.ts instead.
+// This stub exists to prevent import errors in legacy code.
+
 import {
   StaffMember,
   LeaveRequest,
   StaffSchedule,
   PayrollRecord,
 } from "../types";
-import { generateId } from "@/lib/utils/id";
-import { MOCK_STAFF } from "../mock/staff.mock";
-
-const STAFF_STORAGE_KEY = "dental_staff_data";
-const LEAVES_STORAGE_KEY = "dental_leaves_data";
-const SCHEDULES_STORAGE_KEY = "dental_staff_schedules";
-const PAYROLL_STORAGE_KEY = "dental_staff_payroll";
 
 export const staffService = {
-  getAllStaff: (): StaffMember[] => {
-    if (typeof window === "undefined") return MOCK_STAFF;
-    const stored = localStorage.getItem(STAFF_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : MOCK_STAFF;
-  },
+  getAllStaff: (): StaffMember[] => [],
 
-  getStaffById: (id: string): StaffMember | undefined => {
-    const staff = staffService.getAllStaff();
-    return staff.find((s) => s.id === id);
-  },
+  getStaffById: (_id: string): StaffMember | undefined => undefined,
 
-  getStaffByRole: (role: string): StaffMember[] => {
-    const staff = staffService.getAllStaff();
-    return staff.filter((s) => s.role === role);
-  },
+  getStaffByRole: (_role: string): StaffMember[] => [],
 
-  saveStaff: (staff: StaffMember): void => {
-    const allStaff = staffService.getAllStaff();
-    const index = allStaff.findIndex((s) => s.id === staff.id);
+  saveStaff: (_staff: StaffMember): void => {},
 
-    if (index >= 0) {
-      allStaff[index] = staff;
-    } else {
-      allStaff.push(staff);
-    }
+  deleteStaff: (_id: string): void => {},
 
-    localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(allStaff));
-  },
+  toggleStaffStatus: (_id: string): void => {},
 
-  deleteStaff: (id: string): void => {
-    const allStaff = staffService.getAllStaff();
-    const filtered = allStaff.filter((s) => s.id !== id);
-    localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(filtered));
-  },
+  getAllLeaves: (): LeaveRequest[] => [],
 
-  toggleStaffStatus: (id: string): void => {
-    const allStaff = staffService.getAllStaff();
-    const staff = allStaff.find((s) => s.id === id);
-    if (staff) {
-      staff.isActive = !staff.isActive;
-      staffService.saveStaff(staff);
-    }
-  },
-
-  // Leave Management
-  getAllLeaves: (): LeaveRequest[] => {
-    if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem(LEAVES_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
-
-  getLeavesByStaffId: (staffId: string): LeaveRequest[] => {
-    const leaves = staffService.getAllLeaves();
-    return leaves.filter((l) => l.staffId === staffId);
-  },
+  getLeavesByStaffId: (_staffId: string): LeaveRequest[] => [],
 
   submitLeaveRequest: (
-    leave: Omit<LeaveRequest, "id" | "status" | "requestedAt">,
+    _leave: Omit<LeaveRequest, "id" | "status" | "requestedAt">,
   ): LeaveRequest => {
-    const leaves = staffService.getAllLeaves();
-    const newLeave: LeaveRequest = {
-      ...leave,
-      id: generateId(),
-      status: "PENDING",
-      requestedAt: new Date().toISOString(),
-    };
-    leaves.push(newLeave);
-    localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leaves));
-    return newLeave;
+    throw new Error("Use createLeaveRequestAction from staff/serverActions.ts");
   },
 
-  approveLeaveRequest: (leaveId: string, reviewedBy: string): void => {
-    const leaves = staffService.getAllLeaves();
-    const leave = leaves.find((l) => l.id === leaveId);
-    if (leave) {
-      leave.status = "APPROVED";
-      leave.reviewedAt = new Date().toISOString();
-      leave.reviewedBy = reviewedBy;
-      localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leaves));
-    }
-  },
+  approveLeaveRequest: (_leaveId: string, _reviewedBy: string): void => {},
 
-  rejectLeaveRequest: (leaveId: string, reviewedBy: string): void => {
-    const leaves = staffService.getAllLeaves();
-    const leave = leaves.find((l) => l.id === leaveId);
-    if (leave) {
-      leave.status = "REJECTED";
-      leave.reviewedAt = new Date().toISOString();
-      leave.reviewedBy = reviewedBy;
-      localStorage.setItem(LEAVES_STORAGE_KEY, JSON.stringify(leaves));
-    }
-  },
+  rejectLeaveRequest: (_leaveId: string, _reviewedBy: string): void => {},
 
-  // Staff Schedule
+  getAllSchedules: (): StaffSchedule[] => [],
+
   getStaffSchedule: (
-    staffId: string,
-    weekStart: string,
-  ): StaffSchedule | undefined => {
-    const schedules = staffService.getAllSchedules();
-    return schedules.find(
-      (s) => s.staffId === staffId && s.weekStart === weekStart,
-    );
-  },
+    _staffId: string,
+    _weekStart: string,
+  ): StaffSchedule | undefined => undefined,
 
-  getAllSchedules: (): StaffSchedule[] => {
-    if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem(SCHEDULES_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
+  saveStaffSchedule: (_schedule: StaffSchedule): void => {},
 
-  saveStaffSchedule: (schedule: StaffSchedule): void => {
-    const schedules = staffService.getAllSchedules();
-    const index = schedules.findIndex(
-      (s) =>
-        s.staffId === schedule.staffId && s.weekStart === schedule.weekStart,
-    );
+  getAllPayrollRecords: (): PayrollRecord[] => [],
 
-    if (index >= 0) {
-      schedules[index] = schedule;
-    } else {
-      schedules.push(schedule);
-    }
+  getPayrollByStaffId: (_staffId: string): PayrollRecord[] => [],
 
-    localStorage.setItem(SCHEDULES_STORAGE_KEY, JSON.stringify(schedules));
-  },
+  getPayrollByMonth: (_month: string): PayrollRecord[] => [],
 
-  // Payroll
-  getAllPayrollRecords: (): PayrollRecord[] => {
-    if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem(PAYROLL_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  },
+  savePayrollRecord: (_record: PayrollRecord): void => {},
 
-  getPayrollByStaffId: (staffId: string): PayrollRecord[] => {
-    const records = staffService.getAllPayrollRecords();
-    return records.filter((r) => r.staffId === staffId);
-  },
-
-  getPayrollByMonth: (month: string): PayrollRecord[] => {
-    const records = staffService.getAllPayrollRecords();
-    return records.filter((r) => r.month === month);
-  },
-
-  savePayrollRecord: (record: PayrollRecord): void => {
-    const records = staffService.getAllPayrollRecords();
-    const index = records.findIndex((r) => r.id === record.id);
-
-    if (index >= 0) {
-      records[index] = record;
-    } else {
-      records.push(record);
-    }
-
-    localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(records));
-  },
-
-  generateMonthlyPayroll: (month: string, staffList?: StaffMember[]): void => {
-    const activeStaff = staffList ?? staffService.getAllStaff();
-    const existingRecords = staffService.getPayrollByMonth(month);
-
-    activeStaff.forEach((member) => {
-      const exists = existingRecords.some((r) => r.staffId === member.id);
-      if (!exists && member.isActive) {
-        const record: PayrollRecord = {
-          id: generateId(),
-          staffId: member.id,
-          month,
-          baseSalary: member.salary,
-          bonuses: 0,
-          deductions: 0,
-          net: member.salary,
-          status: "PENDING",
-        };
-        staffService.savePayrollRecord(record);
-      }
-    });
-  },
+  generateMonthlyPayroll: (
+    _month: string,
+    _staffList?: StaffMember[],
+  ): void => {},
 
   getPayrollSummary: (
-    staffId: string,
+    _staffId: string,
   ): {
     baseSalary: number;
     bonuses: number;
     deductions: number;
     net: number;
-  } => {
-    const records = staffService.getPayrollByStaffId(staffId);
-    if (records.length === 0) {
-      const staff = staffService.getStaffById(staffId);
-      return {
-        baseSalary: staff?.salary || 0,
-        bonuses: 0,
-        deductions: 0,
-        net: staff?.salary || 0,
-      };
-    }
-
-    const latest = records.sort((a, b) => b.month.localeCompare(a.month))[0];
-    return {
-      baseSalary: latest.baseSalary,
-      bonuses: latest.bonuses,
-      deductions: latest.deductions,
-      net: latest.net,
-    };
-  },
+  } => ({
+    baseSalary: 0,
+    bonuses: 0,
+    deductions: 0,
+    net: 0,
+  }),
 };

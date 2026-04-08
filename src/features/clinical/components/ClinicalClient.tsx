@@ -12,7 +12,8 @@ import { ToothCasePanel } from "@/features/clinical/components/ToothCasePanel";
 import { PlanBuilder } from "@/features/clinical/components/PlanBuilder";
 import { PatientSearch } from "@/features/clinical/components/PatientSearch";
 import { PatientMiniProfile } from "@/features/clinical/components/PatientMiniProfile";
-import { saveMouthMap } from "@/features/clinical/services/clinicalService";
+import { BookingForm } from "@/features/appointments/components/BookingForm";
+import type { PlanItem } from "@/features/clinical/types/treatmentPlan";
 import { PATIENT_TEETH_MAP } from "@/features/clinical/mock/patientTeeth.mock";
 import { useSessionProgress } from "@/features/clinical/hooks/useSessionProgress";
 import type { ClinicalCase } from "@/features/clinical/types/clinicalCase";
@@ -59,6 +60,11 @@ export function ClinicalClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  // Treatments loaded from DB for the selected patient — passed into the hook
+  // so it skips the "generate from mouthMap" path when a plan already exists.
+  const [initialPlan, setInitialPlan] = useState<PlanItem[] | undefined>(
+    undefined,
+  );
 
   // ── Clinical case state ────────────────────────────────────────────────────
   const [selectedTooth, setSelectedTooth] = useState<Tooth | null>(null);
@@ -68,7 +74,12 @@ export function ClinicalClient() {
   const [appointmentTeeth, setAppointmentTeeth] = useState<AppointmentTooth[]>(
     [],
   );
-
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingDefaults, setBookingDefaults] = useState<{
+    patientName?: string;
+    phone?: string;
+    toothNumber?: number;
+  }>({});
   // Session Progress Tracking hook
   const {
     optimisticPlan,
@@ -76,7 +87,7 @@ export function ClinicalClient() {
     updateItemStatus,
     odontogramOverrides,
     regeneratePlan,
-  } = useSessionProgress(mouthMap);
+  } = useSessionProgress(mouthMap, selectedPatient?.id ?? "", initialPlan);
 
   // ── Patient selection ──────────────────────────────────────────────────────
   const handleSelectPatient = useCallback(async (patient: Patient) => {
@@ -86,6 +97,7 @@ export function ClinicalClient() {
     setSelectedTooth(null);
     setTeethWithCases(new Set());
     setAppointmentTeeth([]);
+    setInitialPlan(undefined); // reset so stale plan from previous patient is cleared
 
     try {
       // 1. Load clinical mouthMap from Supabase (or fall back to mock/empty)
@@ -94,6 +106,9 @@ export function ClinicalClient() {
         clinicalData?.mouthMap ??
         PATIENT_TEETH_MAP[patient.id] ??
         generateEmptyMouthMap();
+
+      // Pass DB-persisted treatments into the hook so it skips regeneration
+      setInitialPlan(clinicalData?.treatments ?? []);
 
       // 2. Load appointments that have a tooth number
       const aptTeeth = await getPatientAppointmentsWithTeethAction(patient.id);
@@ -142,6 +157,7 @@ export function ClinicalClient() {
     setSelectedTooth(null);
     setTeethWithCases(new Set());
     setAppointmentTeeth([]);
+    setInitialPlan(undefined);
   }, []);
 
   // ── Odontogram interactions ────────────────────────────────────────────────
@@ -160,6 +176,18 @@ export function ClinicalClient() {
     setSelectedTooth(tooth);
   }, []);
 
+  const handleBookAppointment = useCallback(
+    (tooth: Tooth) => {
+      setBookingDefaults({
+        patientName: selectedPatient?.fullName ?? "",
+        phone: selectedPatient?.contactInfo.phone ?? "",
+        toothNumber: tooth.id,
+      });
+      setIsBookingOpen(true);
+    },
+    [selectedPatient],
+  );
+
   const handleCaseSaved = useCallback((saved: ClinicalCase) => {
     // Add/keep the tooth number in the badge set so its dot persists
     setTeethWithCases((prev) => new Set([...prev, saved.toothNumber]));
@@ -171,7 +199,6 @@ export function ClinicalClient() {
     setIsSaving(true);
     try {
       await saveMouthMapAction(selectedPatient.id, mouthMap);
-      await saveMouthMap(mouthMap);
       setLastSaved(new Date());
     } catch (err) {
       console.error("[ClinicalClient] Save failed:", err);
@@ -370,6 +397,7 @@ export function ClinicalClient() {
                               tooth={tooth}
                               onStatusChange={handleStatusChange}
                               onCaseOpen={handleCaseOpen}
+                              onBookAppointment={handleBookAppointment}
                               colorOverride={odontogramOverrides.get(tooth.id)}
                               hasClinicalCase={teethWithCases.has(tooth.id)}
                               fromAppointment={
@@ -397,6 +425,7 @@ export function ClinicalClient() {
                               tooth={tooth}
                               onStatusChange={handleStatusChange}
                               onCaseOpen={handleCaseOpen}
+                              onBookAppointment={handleBookAppointment}
                               colorOverride={odontogramOverrides.get(tooth.id)}
                               hasClinicalCase={teethWithCases.has(tooth.id)}
                               fromAppointment={
@@ -442,6 +471,12 @@ export function ClinicalClient() {
                     />
                   )}
                 </AnimatePresence>
+
+                <BookingForm
+                  isOpen={isBookingOpen}
+                  onClose={() => setIsBookingOpen(false)}
+                  defaultValues={bookingDefaults}
+                />
               </>
             )}
           </motion.div>

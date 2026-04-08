@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MouthMap, generateEmptyMouthMap } from "./types/odontogram";
-import { PlanItem, TreatmentStatus } from "./types/treatmentPlan";
+import {
+  PlanItem,
+  TreatmentStatus,
+  CompletionRecord,
+} from "./types/treatmentPlan";
 import { PATIENT_TEETH_MAP } from "./mock/patientTeeth.mock";
 import type { ClinicalCase, ClinicalCasePayload } from "./types/clinicalCase";
 
@@ -332,6 +336,123 @@ export async function getPatientClinicalCaseSummaryAction(
       Number((r as Record<string, unknown>).toothNumber),
     );
   } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// replaceTreatmentPlanAction
+// Deletes all PLANNED treatments for the patient and inserts fresh ones.
+// Returns the inserted PlanItems with their DB-assigned IDs.
+// ---------------------------------------------------------------------------
+export async function replaceTreatmentPlanAction(
+  patientId: string,
+  plan: PlanItem[],
+): Promise<PlanItem[]> {
+  try {
+    const { supabase, user } = await getSupabaseUser();
+    if (!supabase || !user) return plan;
+
+    // Delete all existing PLANNED treatments for this patient
+    await supabase
+      .from("treatments")
+      .delete()
+      .eq("patientId", patientId)
+      .eq("status", TreatmentStatus.PLANNED);
+
+    if (plan.length === 0) return [];
+
+    // Build insert rows — assign fresh UUIDs so the caller gets back real DB IDs
+    const rows = plan.map((item) => ({
+      id: crypto.randomUUID(),
+      patientId,
+      toothNumber: item.toothId.toString(),
+      procedureName: item.procedure,
+      procedureType: item.procedureKey,
+      cost: item.estimatedCost,
+      status: TreatmentStatus.PLANNED,
+    }));
+
+    const { data, error } = await supabase
+      .from("treatments")
+      .insert(rows)
+      .select();
+
+    if (error) {
+      console.warn("[replaceTreatmentPlanAction] Insert error:", error.message);
+      // Return original plan with original IDs as fallback
+      return plan;
+    }
+
+    // Map returned rows back to PlanItem shape
+    const inserted: PlanItem[] = (data ?? rows).map((t) => ({
+      id: t.id as string,
+      toothId: t.toothNumber ? parseInt(t.toothNumber as string, 10) : 0,
+      procedure: (t.procedureName as string) ?? "",
+      procedureKey: (t.procedureType as string) ?? "",
+      estimatedCost: Number(t.cost ?? 0),
+      status: TreatmentStatus.PLANNED,
+    }));
+
+    revalidatePath("/dashboard/clinical");
+    return inserted;
+  } catch (err) {
+    console.warn("[replaceTreatmentPlanAction] Failed:", err);
+    return plan; // fallback: return original plan so UI stays functional
+  }
+}
+
+// ---------------------------------------------------------------------------
+// saveTreatmentHistoryAction
+// Persists the completion audit trail (max 50 records) to the patient's
+// treatmentHistory JSONB column.
+// ---------------------------------------------------------------------------
+export async function saveTreatmentHistoryAction(
+  patientId: string,
+  history: CompletionRecord[],
+): Promise<void> {
+  try {
+    const { supabase, user } = await getSupabaseUser();
+    if (!supabase || !user) return;
+
+    // Cap at 50 most-recent entries (caller provides newest-first order)
+    const capped = history.slice(0, 50);
+
+    await supabase
+      .from("patients")
+      .update({
+        treatmentHistory: capped as unknown as Record<string, unknown>[],
+      })
+      .eq("id", patientId);
+  } catch (err) {
+    console.warn("[saveTreatmentHistoryAction] Failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getTreatmentHistoryAction
+// Reads the patient's treatmentHistory JSONB column and returns it as a
+// typed CompletionRecord[].  Falls back to [] on any error or missing data.
+// ---------------------------------------------------------------------------
+export async function getTreatmentHistoryAction(
+  patientId: string,
+): Promise<CompletionRecord[]> {
+  try {
+    const { supabase, user } = await getSupabaseUser();
+    if (!supabase || !user) return [];
+
+    const { data, error } = await supabase
+      .from("patients")
+      .select("treatmentHistory")
+      .eq("id", patientId)
+      .single();
+
+    if (error || !data?.treatmentHistory) return [];
+
+    const raw = data.treatmentHistory;
+    return Array.isArray(raw) ? (raw as CompletionRecord[]) : [];
+  } catch (err) {
+    console.warn("[getTreatmentHistoryAction] Failed:", err);
     return [];
   }
 }

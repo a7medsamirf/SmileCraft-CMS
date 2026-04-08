@@ -35,20 +35,23 @@ const dmSans = DM_Sans({
   variable: '--font-dmSans',
 });
 
+import { getClinicInfoAction } from "@/features/settings/serverActions";
+
 // Metadata
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Navbar" }); 
+  const clinicInfo = await getClinicInfoAction();
+  
+  const clinicName = clinicInfo?.name || "SmileCraft CMS";
   
   return {
     title: {
-      default: "SmileCraft CMS | Dental Clinic Management System",
-       template: `%s`
-     /*  template: `%s | ${t("Metadata.title")}` */
+      default: `${clinicName} | Dental Clinic Management System`,
+      template: `%s | ${clinicName}`
     },
     description: "Dental Clinic Management System",
     icons: {
-      icon: '/assets/images/logo/favicon.ico',
+      icon: clinicInfo?.faviconUrl || '/assets/images/logo/favicon.ico',
     },
   }
 }
