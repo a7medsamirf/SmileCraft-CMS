@@ -143,16 +143,16 @@ export function Sidebar({
         <div>
           {/* Logo Area */}
           <Link href="/" className="flex h-20 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-800/50">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/30 overflow-hidden">
+            <div className="flex w-50 items-center justify-center rounded-xl  overflow-hidden">
               {clinicLogo ? (
                 <img src={clinicLogo} alt="Logo" className="h-full w-full object-cover" />
               ) : (
-                <Dna className="h-6 w-6" />
+                 <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                 {clinicName || t("appName")}
+            </span> 
               )}
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              {clinicName || t("appName")}
-            </span>
+          
           </Link>
 
           <div className="flex w-full flex-col gap-2 px-3 py-4">
@@ -174,7 +174,7 @@ export function Sidebar({
                   {isActive && (
                     <motion.div
                       layoutId="active-indicator"
-                      className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20"
+                      className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20 ltr:border-l-4 rtl:border-r-4 border-blue-600"
                       initial={false}
                       transition={{
                         type: "spring",

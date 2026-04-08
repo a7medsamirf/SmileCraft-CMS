@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
+import Logo from "@/components/SharesComponent/Logo";
 
 const NAV_LINKS = [
   { label: "المميزات", href: "#features" },
@@ -31,9 +33,12 @@ export function LandingNavbar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5">
-        <span className="text-xl font-black text-white tracking-tight">
+
+            <Logo />
+        
+       {/*  <span className="text-xl font-black text-white tracking-tight">
           <span className="text-[#2563EB]">Smile</span>Craft
-        </span>
+        </span> */}
       </div>
 
       {/* Desktop Links */}

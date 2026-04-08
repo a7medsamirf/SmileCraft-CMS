@@ -63,10 +63,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* ── Left Column: Personal & Clinic Information ── */}
-      <div className="lg:col-span-12 space-y-8">
+      <div className="lg:col-span-12 space-y-5">
         
         {/* Main Section Card */}
-        <div className="glass-card overflow-hidden bg-white/50 dark:bg-slate-950/50 border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+        <div className="glass-card overflow-hidden bg-white/50 dark:bg-slate-950/50 border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-8 backdrop-blur-xl">
           <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8 pb-8 border-b border-slate-200/50 dark:border-slate-800/50">
             <div className="h-20 w-20 rounded-2xl bg-blue-600/10 border border-blue-600/20 flex items-center justify-center">
                <User className="h-10 w-10 text-blue-600" />
@@ -181,7 +181,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         </div>
 
         {/* ── Security Section Card ── */}
-        <div className="glass-card bg-white dark:bg-slate-950 border border-red-500/10 dark:border-red-500/5 rounded-3xl p-8 shadow-xl">
+        <div className="glass-card bg-white dark:bg-slate-950 border border-red-500/10 dark:border-red-500/5 rounded-3xl p-8">
           <div className="mb-8">
             <h3 className="text-[16px] font-black text-slate-900 dark:text-white flex items-center gap-2 mb-1">
               <Lock className="w-5 h-5 text-red-500" /> {t("security")}
@@ -238,7 +238,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                    </button>
                  </div>
                </div>
-              <div className="space-y-2 mt-5">
+              <div className="space-y-2 mt-6">
               <button 
                 type="submit" 
                 disabled={isPasswordPending}

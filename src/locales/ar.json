@@ -426,7 +426,7 @@
     "invalidInput": "هذا الحقل مطلوب."
   },
   "Dashboard": {
-    "greeting": "صباح الخير، {name} 🦷",
+    "greeting": "صباح الخير، {name}",
     "summary": "نظرة سريعة على أداء عيادتك اليوم.",
     "todayAppointments": "مواعيد اليوم",
     "newPatients": "مرضى جدد",
