@@ -2,6 +2,15 @@ export type StaffRole = "DOCTOR" | "ASSISTANT" | "RECEPTIONIST" | "ACCOUNTANT";
 
 export type LeaveType = "ANNUAL" | "SICK" | "EMERGENCY" | "UNPAID";
 
+export type PermissionKey = "view_patients" | "edit_records" | "view_revenue" | "delete_data";
+
+export interface StaffPermissions {
+  view_patients?: boolean;
+  edit_records?: boolean;
+  view_revenue?: boolean;
+  delete_data?: boolean;
+}
+
 export interface StaffMember {
   id: string;
   fullName: string;
@@ -14,6 +23,9 @@ export interface StaffMember {
   salary: number;
   isActive: boolean;
   avatarUrl?: string;
+  permissions?: StaffPermissions;
+  createLoginAccount?: boolean;
+  password?: string;
   emergencyContact?: {
     name: string;
     phone: string;

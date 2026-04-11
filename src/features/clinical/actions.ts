@@ -16,8 +16,7 @@ import {
   InvoiceMode,
 } from "./types/treatmentPlan";
 import { generateId } from "@/lib/utils/id";
-import { updateTreatmentStatusAction } from "./serverActions";
-import { fetchTreatmentPlan } from "./services/clinicalService";
+import { updateTreatmentStatusAction, createInvoiceAction } from "./serverActions";
 
 // ---------------------------------------------------------------------------
 // Action State Types
@@ -33,6 +32,7 @@ export interface InvoiceActionState {
   success: boolean | null;
   message: string;
   invoiceId?: string;
+  invoiceNumber?: string;
   mode?: InvoiceMode;
   total?: number;
 }
@@ -89,46 +89,29 @@ export async function submitInvoiceAction(
   formData: FormData,
 ): Promise<InvoiceActionState> {
   try {
-    const patientId = formData.get("patientId");
+    const patientId = formData.get("patientId") as string;
     const mode = (formData.get("invoiceMode") as InvoiceMode) || "ALL";
-
-    // Simulate network latency
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Load the current plan
-    // Note: fetchTreatmentPlan() is a stub returning null post-migration.
-    // This action will be re-wired to a DB-backed plan source in Phase 3.
-    const plan = await fetchTreatmentPlan();
-    if (!plan || plan.length === 0) {
-      return { success: false, message: "emptyPlanError" };
-    }
 
     if (!patientId) {
       return { success: false, message: "emptyPlanError" };
     }
 
-    // Filter items based on mode
-    const invoiceItems =
-      mode === "COMPLETED_ONLY"
-        ? plan.filter((item) => item.status === TreatmentStatus.COMPLETED)
-        : plan;
-
-    if (invoiceItems.length === 0) {
-      return { success: false, message: "noCompletedItems" };
-    }
-
-    const total = invoiceItems.reduce(
-      (sum, item) => sum + item.estimatedCost,
-      0,
+    const result = await createInvoiceAction(
+      patientId,
+      [], // Plan is passed via local state; DB query handled in server action
+      mode,
     );
-    const invoiceId = `INV-${Math.floor(Math.random() * 10000)}`;
+
+    if (!result.success) {
+      return { success: false, message: result.message };
+    }
 
     return {
       success: true,
       message: "invoiceSuccess",
-      invoiceId,
+      invoiceId: result.invoiceId,
+      invoiceNumber: result.invoiceNumber,
       mode,
-      total,
     };
   } catch (error) {
     console.error("Failed to submit invoice:", error);

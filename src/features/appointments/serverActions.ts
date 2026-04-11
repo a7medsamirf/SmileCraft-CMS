@@ -3,8 +3,14 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireClinicId } from "@/lib/supabase-utils";
 import { Appointment, AppointmentStatus } from "./types";
 import { PROCEDURE_BY_KEY } from "./constants/procedures";
+import {
+  appointmentIdSchema,
+  statusUpdateSchema,
+  createAppointmentSchema,
+} from "./schemas";
 import type {
   AppointmentStatus as PrismaAppointmentStatus,
   Prisma,
@@ -24,9 +30,9 @@ export interface AppointmentTooth {
   appointmentStatus: AppointmentStatus;
 }
 
-type AppointmentWithPatientName = Prisma.AppointmentGetPayload<{
+type AppointmentWithPatientName = Prisma.appointmentGetPayload<{
   include: {
-    patient: {
+    patients: {
       select: { fullName: true };
     };
   };
@@ -34,19 +40,10 @@ type AppointmentWithPatientName = Prisma.AppointmentGetPayload<{
 
 /**
  * Helper to get the current user's clinic ID.
+ * Uses centralized requireClinicId from supabase-utils.
  */
 async function getClinicId(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { clinicId: true },
-  });
-  if (!dbUser) throw new Error("User record not found");
-  return dbUser.clinicId;
+  return requireClinicId();
 }
 
 /**
@@ -85,7 +82,7 @@ function mapPrismaToUIAppointment(
   return {
     id: dbApt.id,
     patientId: dbApt.patientId,
-    patientName: dbApt.patient.fullName,
+    patientName: dbApt.patients.fullName,
     time: dbApt.startTime, // In our DB it's a string like "10:00 ص" or HH:mm
     durationMinutes: 30, // Default if not in DB
     procedure: procedureLabel,
@@ -115,7 +112,7 @@ export async function getAppointmentsByDateAction(
         },
       },
       include: {
-        patient: {
+        patients: {
           select: { fullName: true },
         },
       },
@@ -124,7 +121,12 @@ export async function getAppointmentsByDateAction(
       },
     });
 
-    return dbAppointments.map(mapPrismaToUIAppointment);
+    return dbAppointments.map((apt) =>
+      mapPrismaToUIAppointment({
+        ...apt,
+        patients: apt.patients!,
+      })
+    );
   } catch (error) {
     console.error("Error in getAppointmentsByDateAction:", error);
     return [];
@@ -176,22 +178,37 @@ export async function createAppointmentActionDB(payload: {
   type: string;
   notes?: string;
 }): Promise<Appointment> {
+  // Server-side re-validation
+  const validation = createAppointmentSchema.safeParse(payload);
+  if (!validation.success) {
+    throw new Error(`Invalid appointment data: ${validation.error.flatten().formErrors.join(", ")}`);
+  }
+
   const clinicId = await getClinicId();
   const staffId = await getStaffId();
+
+  // Verify patient belongs to this clinic
+  const patient = await prisma.patient.findUnique({
+    where: { id: payload.patientId, clinicId },
+    select: { id: true },
+  });
+  if (!patient) {
+    throw new Error("Patient not found or access denied");
+  }
 
   const dbApt = await prisma.appointment.create({
     data: {
       clinicId,
       patientId: payload.patientId,
-      staffId: staffId, // Optional: assigned to the current doctor
+      staffId: staffId,
       date: payload.date,
       startTime: payload.startTime,
       type: payload.type,
       notes: payload.notes,
       status: "SCHEDULED",
-    },
+    } as unknown as Prisma.appointmentUncheckedCreateInput,
     include: {
-      patient: {
+      patients: {
         select: { fullName: true },
       },
     },
@@ -199,13 +216,19 @@ export async function createAppointmentActionDB(payload: {
 
   revalidatePath("/dashboard/calendar");
   revalidatePath("/dashboard/appointments");
-  return mapPrismaToUIAppointment(dbApt);
+  return mapPrismaToUIAppointment(dbApt as AppointmentWithPatientName);
 }
 
 export async function updateAppointmentStatusAction(
   id: string,
   status: AppointmentStatus,
 ): Promise<Appointment> {
+  // Server-side re-validation
+  const validation = statusUpdateSchema.safeParse({ id, status });
+  if (!validation.success) {
+    throw new Error(`Invalid status update data: ${validation.error.flatten().formErrors.join(", ")}`);
+  }
+
   const clinicId = await getClinicId();
 
   // Verify ownership
@@ -223,7 +246,7 @@ export async function updateAppointmentStatusAction(
     where: { id },
     data: { status: normalizedStatus },
     include: {
-      patient: {
+      patients: {
         select: { fullName: true },
       },
     },
@@ -233,10 +256,19 @@ export async function updateAppointmentStatusAction(
   revalidatePath("/dashboard/appointments");
   revalidatePath("/dashboard/appointments/queue");
   revalidatePath("/appointments/queue");
-  return mapPrismaToUIAppointment(dbApt);
+  return mapPrismaToUIAppointment({
+    ...dbApt,
+    patients: dbApt.patients!,
+  });
 }
 
 export async function deleteAppointmentAction(id: string): Promise<void> {
+  // Server-side re-validation
+  const validation = appointmentIdSchema.safeParse({ id });
+  if (!validation.success) {
+    throw new Error(`Invalid appointment ID: ${validation.error.flatten().formErrors.join(", ")}`);
+  }
+
   const clinicId = await getClinicId();
   const existing = await prisma.appointment.findFirst({
     where: { id, clinicId },

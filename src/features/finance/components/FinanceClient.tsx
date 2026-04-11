@@ -1,46 +1,50 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { DailyRevenue } from "@/features/dashboard/components/DailyRevenue";
-import { WalletCards } from "lucide-react";
+import { FinanceDashboard } from "@/features/finance/components/FinanceDashboard";
+import { WalletCards, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PaymentMethod } from "@/features/finance";
+import { PaymentMethod, Invoice } from "@/features/finance";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { getInvoicesAction, getFinanceStatsAction } from "@/features/finance/serverActions";
 
 export function FinanceClient() {
   const t = useTranslations("Finance");
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for initial display
-  const mockPayments = [
-    {
-      id: "1",
-      invoiceId: "INV-101",
-      amount: 1500,
-      date: new Date().toISOString(),
-      method: PaymentMethod.CASH,
-    },
-    {
-      id: "2",
-      invoiceId: "INV-102",
-      amount: 400,
-      date: new Date().toISOString(),
-      method: PaymentMethod.CARD,
-    },
-    {
-      id: "3",
-      invoiceId: "INV-201",
-      amount: 2500,
-      date: new Date().toISOString(),
-      method: PaymentMethod.CASH,
-    },
-    {
-      id: "4",
-      invoiceId: "INV-202",
-      amount: 120,
-      date: new Date().toISOString(),
-      method: PaymentMethod.WALLET,
-    },
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [invoicesData, stats] = await Promise.all([
+          getInvoicesAction(),
+          getFinanceStatsAction()
+        ]);
+        
+        setInvoices(invoicesData);
+      } catch (error) {
+        console.error("Failed to load finance data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <PageTransition loadingText={t("title")}>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+          <span className="ms-3 text-sm font-medium text-slate-500">
+            {t("loading") || "Loading..."}
+          </span>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition loadingText={t("title")}>
@@ -58,25 +62,45 @@ export function FinanceClient() {
         </div>
 
         <div className="space-y-8">
-          <DailyRevenue payments={mockPayments} />
+          {/* Finance Dashboard with real data */}
+          <FinanceDashboard />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="glass-card p-6 shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 transition-all duration-300">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-4">
-                {t("monthlyPerformance")}
-              </h3>
+          {/* Recent Invoices */}
+          <div className="glass-card p-6 shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 transition-all duration-300">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4">
+              {t("recentInvoices") || "Recent Invoices"}
+            </h3>
+            {invoices.length === 0 ? (
               <div className="h-48 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 text-sm italic">
-                {t("revenueChart")}
+                {t("noInvoicesYet") || "No invoices created yet"}
               </div>
-            </div>
-            <div className="glass-card p-6 shadow-sm shadow-slate-200/50 dark:shadow-slate-950/50 transition-all duration-300">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-4">
-                {t("pendingInvoices")}
-              </h3>
-              <div className="h-48 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400 text-sm italic">
-                {t("pendingInvoicesDesc")}
+            ) : (
+              <div className="space-y-3">
+                {invoices.slice(0, 10).map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        {invoice.patientName}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {new Date(invoice.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        {invoice.totalAmount.toLocaleString()} {t("currency") || "EGP"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {invoice.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

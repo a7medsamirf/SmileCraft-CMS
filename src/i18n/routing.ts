@@ -20,7 +20,9 @@ export const routing = defineRouting({
     "/appointments": { en: '/appointments', ar: '/appointments' },
     "/appointments/queue": { en: "/appointments/queue", ar: "/appointments/queue" },
     "/finance": { en: '/finance', ar: '/finance' },
+    "/inventory": { en: '/inventory', ar: '/inventory' },
     "/dashboard": { en: '/dashboard', ar: '/dashboard' },
+    "/assistant": { en: '/assistant', ar: '/assistant' },
     "/patients/[id]": { en: '/patients/[id]', ar: '/patients/[id]' },
     "/login": { en: '/login', ar: '/login' },
     "/patients/add": { en: '/patients/add', ar: '/patients/add' },
@@ -28,8 +30,8 @@ export const routing = defineRouting({
     "/patients/delete/[id]": { en: '/patients/delete/[id]', ar: '/patients/delete/[id]' },
     "/patients/view/[id]": { en: '/patients/view/[id]', ar: '/patients/view/[id]' },
     "/profile": { en: '/profile', ar: '/profile' },
-    
- },  
+
+ },
 
 });
  

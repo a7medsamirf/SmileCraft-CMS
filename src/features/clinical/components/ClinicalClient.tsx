@@ -1,19 +1,30 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useTransition,
+} from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   MouthMap,
   ToothStatus,
-  generateEmptyMouthMap,
 } from "@/features/clinical";
 import type { Tooth } from "@/features/clinical/types/odontogram";
-import { ToothVisual } from "@/features/clinical/components/ToothVisual";
+import { OdontogramView } from "@/features/clinical/components/OdontogramView";
 import { ToothCasePanel } from "@/features/clinical/components/ToothCasePanel";
 import { PlanBuilder } from "@/features/clinical/components/PlanBuilder";
 import { PatientSearch } from "@/features/clinical/components/PatientSearch";
 import { PatientMiniProfile } from "@/features/clinical/components/PatientMiniProfile";
 import { BookingForm } from "@/features/appointments/components/BookingForm";
-import type { PlanItem } from "@/features/clinical/types/treatmentPlan";
+import {
+  PlanItem,
+  TreatmentStatus,
+  CompletionRecord,
+} from "@/features/clinical/types/treatmentPlan";
 import { PATIENT_TEETH_MAP } from "@/features/clinical/mock/patientTeeth.mock";
 import { useSessionProgress } from "@/features/clinical/hooks/useSessionProgress";
 import type { ClinicalCase } from "@/features/clinical/types/clinicalCase";
@@ -30,7 +41,6 @@ import {
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import {
-  getPatientClinicalDataAction,
   saveMouthMapAction,
   getPatientClinicalCaseSummaryAction,
 } from "@/features/clinical/serverActions";
@@ -38,13 +48,32 @@ import {
   getPatientAppointmentsWithTeethAction,
   type AppointmentTooth,
 } from "@/features/appointments/serverActions";
+import { RealtimeClinicalHandler } from "./RealtimeClinicalHandler";
 
-export function ClinicalClient() {
+interface ClinicalClientProps {
+  initialPatient?: Patient | null;
+  initialClinicalData?: {
+    mouthMap: MouthMap;
+    treatments: PlanItem[];
+    teethWithCases: number[];
+    treatmentHistory: CompletionRecord[];
+  } | null;
+  clinicId?: string;
+}
+
+export function ClinicalClient({
+  initialPatient,
+  initialClinicalData,
+  clinicId,
+}: ClinicalClientProps) {
   const t = useTranslations("Clinical");
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
+  const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
 
   // ── Inline mapping: procedureKey → ToothStatus ────────────────────────────
-  // Defined here (not imported from appointments/constants) to avoid circular
-  // module references (appointments/constants already imports clinical/types).
   const PROCEDURE_KEY_TO_STATUS: Record<string, ToothStatus> = {
     procedureCleaning: ToothStatus.CARIOUS,
     procedureReview: ToothStatus.FILLING,
@@ -54,21 +83,29 @@ export function ClinicalClient() {
     procedureWisdomExtraction: ToothStatus.MISSING,
   };
 
-  // ── Core state ─────────────────────────────────────────────────────────────
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [mouthMap, setMouthMap] = useState<MouthMap>([]);
+  // ── State ──────────────────────────────────────────────────────────────
+  // Patient is now derived directly from initialPatient prop (Source of Truth: URL)
+  const patient = initialPatient;
+
+  const [mouthMap, setMouthMap] = useState<MouthMap>(
+    initialClinicalData?.mouthMap || [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  // Treatments loaded from DB for the selected patient — passed into the hook
-  // so it skips the "generate from mouthMap" path when a plan already exists.
   const [initialPlan, setInitialPlan] = useState<PlanItem[] | undefined>(
-    undefined,
+    initialClinicalData?.treatments,
   );
+  const [teethWithCases, setTeethWithCases] = useState<Set<number>>(
+    new Set(initialClinicalData?.teethWithCases || []),
+  );
+
+  // Note: We don't need to sync state with props in useEffect anymore.
+  // The parent uses a `key` prop to remount the component when patient changes,
+  // which ensures fresh data on each mount.
 
   // ── Clinical case state ────────────────────────────────────────────────────
   const [selectedTooth, setSelectedTooth] = useState<Tooth | null>(null);
-  const [teethWithCases, setTeethWithCases] = useState<Set<number>>(new Set());
 
   // ── Appointment overlay state ──────────────────────────────────────────────
   const [appointmentTeeth, setAppointmentTeeth] = useState<AppointmentTooth[]>(
@@ -80,6 +117,7 @@ export function ClinicalClient() {
     phone?: string;
     toothNumber?: number;
   }>({});
+
   // Session Progress Tracking hook
   const {
     optimisticPlan,
@@ -87,87 +125,190 @@ export function ClinicalClient() {
     updateItemStatus,
     odontogramOverrides,
     regeneratePlan,
-  } = useSessionProgress(mouthMap, selectedPatient?.id ?? "", initialPlan);
+    savePlan,
+    hasUnsavedChanges,
+    reloadPlan,
+  } = useSessionProgress(mouthMap, patient?.id ?? "", initialPlan);
 
-  // ── Patient selection ──────────────────────────────────────────────────────
-  const handleSelectPatient = useCallback(async (patient: Patient) => {
-    setIsLoading(true);
-    setSelectedPatient(patient);
-    setLastSaved(null);
-    setSelectedTooth(null);
-    setTeethWithCases(new Set());
-    setAppointmentTeeth([]);
-    setInitialPlan(undefined); // reset so stale plan from previous patient is cleared
-
+  // ── Reload mouthMap from DB ──────────────────────────────────────────────
+  const reloadMouthMapFromDB = React.useCallback(async () => {
+    if (!patient?.id) return;
+    
     try {
-      // 1. Load clinical mouthMap from Supabase (or fall back to mock/empty)
-      const clinicalData = await getPatientClinicalDataAction(patient.id);
-      let map: MouthMap =
-        clinicalData?.mouthMap ??
-        PATIENT_TEETH_MAP[patient.id] ??
-        generateEmptyMouthMap();
-
-      // Pass DB-persisted treatments into the hook so it skips regeneration
-      setInitialPlan(clinicalData?.treatments ?? []);
-
-      // 2. Load appointments that have a tooth number
-      const aptTeeth = await getPatientAppointmentsWithTeethAction(patient.id);
-      setAppointmentTeeth(aptTeeth);
-
-      // 3. Overlay appointment data onto HEALTHY teeth only.
-      //    Clinical examination data (already in the DB mouthMap) takes priority.
-      if (aptTeeth.length > 0) {
-        map = map.map((tooth) => {
-          if (tooth.status !== ToothStatus.HEALTHY) return tooth; // keep clinical data
-          const apt = aptTeeth.find((a) => a.toothNumber === tooth.id);
-          if (!apt) return tooth;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mappedStatus = (PROCEDURE_KEY_TO_STATUS as any)[
-            apt.procedureKey
-          ] as ToothStatus | undefined;
-          if (!mappedStatus) return tooth;
-          return {
-            ...tooth,
-            status: mappedStatus,
-            notes: `موعد: ${apt.procedure} — ${apt.date}${tooth.notes ? " | " + tooth.notes : ""}`,
-          };
-        });
+      const { getPatientClinicalDataAction } = await import('../serverActions');
+      const data = await getPatientClinicalDataAction(patient.id);
+      if (data?.mouthMap && data.mouthMap.length > 0) {
+        setMouthMap(data.mouthMap);
       }
+    } catch (err) {
+      console.error('[ClinicalClient] Failed to reload mouthMap:', err);
+    }
+  }, [patient?.id]);
 
-      setMouthMap(map);
-    } catch {
-      setMouthMap(PATIENT_TEETH_MAP[patient.id] ?? generateEmptyMouthMap());
-      setAppointmentTeeth([]);
-    } finally {
-      setIsLoading(false);
+  // ── Update mouthMap with appointment overlay ─────────────────────────────
+  const updateMouthMapFromAppointments = React.useCallback((aptTeeth: AppointmentTooth[]) => {
+    if (aptTeeth.length === 0) return;
+
+    setMouthMap((prev) =>
+      prev.map((tooth) => {
+        // Only overlay on HEALTHY teeth
+        if (tooth.status !== ToothStatus.HEALTHY) return tooth;
+        
+        const apt = aptTeeth.find((a) => a.toothNumber === tooth.id);
+        if (!apt) return tooth;
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mappedStatus = (PROCEDURE_KEY_TO_STATUS as any)[
+          apt.procedureKey
+        ] as ToothStatus | undefined;
+        
+        if (!mappedStatus) return tooth;
+        
+        return {
+          ...tooth,
+          status: mappedStatus,
+          notes: `موعد: ${apt.procedure} — ${apt.date}${tooth.notes ? " | " + tooth.notes : ""}`,
+        };
+      }),
+    );
+  }, []);
+
+  // ── Realtime reload functions ──────────────────────────────────────────────
+  // Debounce ref to prevent rapid successive calls from multiple realtime events
+  const reloadTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const reloadClinicalData = React.useCallback(async () => {
+    if (!patient?.id) return;
+
+    // Clear any pending reload to debounce rapid calls
+    if (reloadTimeoutRef.current) {
+      clearTimeout(reloadTimeoutRef.current);
     }
 
-    // Load case badge indicators (non-blocking)
-    getPatientClinicalCaseSummaryAction(patient.id)
-      .then((nums) => setTeethWithCases(new Set(nums)))
-      .catch(() => {
-        /* cosmetic, ignore */
+    // Execute immediately if no timeout is pending, otherwise wait
+    const executeReload = async () => {
+      try {
+        // 1. Fetch all clinical data in parallel (single DB round-trip)
+        const { getPatientClinicalDataAction } = await import('../serverActions');
+        const [freshData, aptTeeth, casesNums] = await Promise.all([
+          getPatientClinicalDataAction(patient.id),
+          getPatientAppointmentsWithTeethAction(patient.id),
+          getPatientClinicalCaseSummaryAction(patient.id),
+        ]);
+
+        setAppointmentTeeth(aptTeeth);
+        setTeethWithCases(new Set(casesNums));
+
+        if (freshData?.mouthMap) {
+          // Apply appointment overlay to fresh mouthMap
+          const updatedMouthMap = freshData.mouthMap.map((tooth) => {
+            if (tooth.status !== ToothStatus.HEALTHY) return tooth;
+            const apt = aptTeeth.find((a) => a.toothNumber === tooth.id);
+            if (!apt) return tooth;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mappedStatus = (PROCEDURE_KEY_TO_STATUS as any)[
+              apt.procedureKey
+            ] as ToothStatus | undefined;
+
+            if (!mappedStatus) return tooth;
+
+            return {
+              ...tooth,
+              status: mappedStatus,
+              notes: `موعد: ${apt.procedure} — ${apt.date}${tooth.notes ? " | " + tooth.notes : ""}`,
+            };
+          });
+
+          setMouthMap(updatedMouthMap);
+
+          // 2. Regenerate plan from updated mouthMap
+          regeneratePlan(updatedMouthMap, t);
+        }
+
+        // 3. Reload plan from DB
+        await reloadPlan();
+
+        console.log('[ClinicalClient] Realtime data reloaded - teeth, appointments, and plan updated');
+      } catch (err) {
+        console.error('[ClinicalClient] Realtime reload error:', err);
+      }
+    };
+
+    // Debounce with 150ms delay to batch multiple realtime events
+    reloadTimeoutRef.current = setTimeout(executeReload, 150);
+  }, [patient?.id, reloadPlan, regeneratePlan, t]);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (reloadTimeoutRef.current) {
+        clearTimeout(reloadTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Load supplemental data (appointments/cases) when patient changes
+  React.useEffect(() => {
+    if (!patient?.id) return;
+
+    const loadSupplementalData = async () => {
+      setIsLoading(true);
+      try {
+        const [aptTeeth, casesNums] = await Promise.all([
+          getPatientAppointmentsWithTeethAction(patient.id),
+          getPatientClinicalCaseSummaryAction(patient.id),
+        ]);
+        setAppointmentTeeth(aptTeeth);
+        setTeethWithCases(new Set(casesNums));
+
+        // Overlay appointment data onto HEALTHY teeth
+        updateMouthMapFromAppointments(aptTeeth);
+      } catch (err) {
+        console.error("Failed to load supplemental clinical data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSupplementalData();
+  }, [patient?.id, updateMouthMapFromAppointments]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Patient selection ──
+  const handleSelectPatient = useCallback(
+    (patientObj: Patient) => {
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("patientId", patientObj.id);
+        router.push(`?${params.toString()}`);
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      // NOTE: We don't update local state here. 
+      // The router.push triggers a server re-render, supplying the new data via props.
+    },
+    [router, searchParams],
+  );
 
   const handleDeselectPatient = useCallback(() => {
-    setSelectedPatient(null);
-    setMouthMap([]);
-    setLastSaved(null);
-    setSelectedTooth(null);
-    setTeethWithCases(new Set());
-    setAppointmentTeeth([]);
-    setInitialPlan(undefined);
-  }, []);
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("patientId");
+      router.push(`?${params.toString()}`);
+    });
+  }, [router, searchParams]);
 
   // ── Odontogram interactions ────────────────────────────────────────────────
   const handleStatusChange = (id: number, newStatus: ToothStatus) => {
-    setMouthMap((prev) => {
-      const updated = prev.map((tooth) =>
+    startTransition(() => {
+      // 1. Calculate the new map first
+      const updatedMap = mouthMap.map((tooth) =>
         tooth.id === id ? { ...tooth, status: newStatus } : tooth,
       );
-      regeneratePlan(updated, t);
-      return updated;
+
+      // 2. Update local state
+      setMouthMap(updatedMap);
+
+      // 3. Trigger side effects (plan regeneration) separately from the updater
+      regeneratePlan(updatedMap, t);
     });
   };
 
@@ -179,26 +320,38 @@ export function ClinicalClient() {
   const handleBookAppointment = useCallback(
     (tooth: Tooth) => {
       setBookingDefaults({
-        patientName: selectedPatient?.fullName ?? "",
-        phone: selectedPatient?.contactInfo.phone ?? "",
+        patientName: patient?.fullName ?? "",
+        phone: patient?.contactInfo.phone ?? "",
         toothNumber: tooth.id,
       });
       setIsBookingOpen(true);
     },
-    [selectedPatient],
+    [patient],
   );
 
-  const handleCaseSaved = useCallback((saved: ClinicalCase) => {
-    // Add/keep the tooth number in the badge set so its dot persists
+  const handleCaseSaved = useCallback(async (saved: ClinicalCase) => {
     setTeethWithCases((prev) => new Set([...prev, saved.toothNumber]));
-  }, []);
+    
+    // Reload clinical data to update odontogram and plan
+    await reloadClinicalData();
+    
+    console.log('[ClinicalClient] Case saved, realtime reload triggered');
+  }, [reloadClinicalData]);
 
-  // ── Persist mouthMap ───────────────────────────────────────────────────────
+  // ── Persist mouthMap and treatment plan ─────────────────────────────────────
   const handleSave = async () => {
-    if (!selectedPatient) return;
+    if (!patient) return;
     setIsSaving(true);
     try {
-      await saveMouthMapAction(selectedPatient.id, mouthMap);
+      await saveMouthMapAction(patient.id, mouthMap);
+      if (hasUnsavedChanges) {
+        const result = await savePlan();
+        if (!result.success) {
+          console.error("[ClinicalClient] Plan save failed:", result.error);
+        } else {
+          await reloadPlan();
+        }
+      }
       setLastSaved(new Date());
     } catch (err) {
       console.error("[ClinicalClient] Save failed:", err);
@@ -208,12 +361,6 @@ export function ClinicalClient() {
     }
   };
 
-  // ── Derived tooth groups ───────────────────────────────────────────────────
-  const safeMap = Array.isArray(mouthMap) ? mouthMap : [];
-  const upperTeeth = safeMap.filter((t) => t.id <= 16);
-  const lowerTeeth = safeMap.filter((t) => t.id > 16);
-
-  // ── Derived: count of appointment teeth that map to a known status ─────────
   const mappedAptCount = appointmentTeeth.filter(
     (a) => PROCEDURE_KEY_TO_STATUS[a.procedureKey],
   ).length;
@@ -221,6 +368,17 @@ export function ClinicalClient() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      {/* Realtime Handler */}
+      {clinicId && (
+        <RealtimeClinicalHandler
+          clinicId={clinicId}
+          patientId={patient?.id}
+          onClinicalCasesUpdate={reloadClinicalData}
+          onTreatmentsUpdate={reloadClinicalData}
+          onAppointmentsUpdate={reloadClinicalData}
+        />
+      )}
+
       {/* ── Page Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -233,7 +391,7 @@ export function ClinicalClient() {
           </p>
         </div>
 
-        {selectedPatient && (
+        {patient && (
           <div className="flex items-center gap-3">
             {lastSaved && !isSaving && (
               <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-in fade-in slide-in-from-right-2">
@@ -263,16 +421,13 @@ export function ClinicalClient() {
         )}
       </div>
 
-      {/* ── Patient Search ───────────────────────────────────────────────────── */}
       <PatientSearch
         onSelect={handleSelectPatient}
-        selectedPatientId={selectedPatient?.id}
+        selectedPatientId={patient?.id}
       />
 
-      {/* ── Main Content: Empty State OR Patient View ────────────────────────── */}
       <AnimatePresence mode="wait">
-        {!selectedPatient ? (
-          /* ── Empty State ── */
+        {!patient ? (
           <motion.div
             key="empty-state"
             initial={{ opacity: 0, y: 20 }}
@@ -298,22 +453,19 @@ export function ClinicalClient() {
             </p>
           </motion.div>
         ) : (
-          /* ── Patient Selected: Profile + Odontogram + Case Panel ── */
           <motion.div
-            key={`patient-${selectedPatient.id}`}
+            key={`patient-${patient.id}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-6"
           >
-            {/* Mini Profile Card */}
             <PatientMiniProfile
-              patient={selectedPatient}
+              patient={patient}
               onDeselect={handleDeselectPatient}
             />
 
-            {/* Loading State */}
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
@@ -323,17 +475,14 @@ export function ClinicalClient() {
               </div>
             ) : (
               <>
-                {/* ── Odontogram + Plan Builder Grid ─────────────────────── */}
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.15 }}
                   className="grid grid-cols-1 lg:grid-cols-3 gap-8"
                 >
-                  {/* Left: Odontogram */}
                   <div className="lg:col-span-2 space-y-5">
                     <div className="glass-card p-8 transition-all duration-300">
-                      {/* ── Legend header ──────────────────────────────── */}
                       <div className="mb-8 text-center">
                         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2">
                           {t("odontogram")}
@@ -366,7 +515,6 @@ export function ClinicalClient() {
                         </div>
                       </div>
 
-                      {/* ── Appointment pre-population banner ──────────── */}
                       {mappedAptCount > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: -8 }}
@@ -388,81 +536,35 @@ export function ClinicalClient() {
                         </motion.div>
                       )}
 
-                      {/* Upper Arch */}
-                      <div className="mb-12">
-                        <div className="flex flex-wrap justify-center gap-2 md:gap-4 overflow-x-auto pb-4">
-                          {upperTeeth.map((tooth) => (
-                            <ToothVisual
-                              key={tooth.id}
-                              tooth={tooth}
-                              onStatusChange={handleStatusChange}
-                              onCaseOpen={handleCaseOpen}
-                              onBookAppointment={handleBookAppointment}
-                              colorOverride={odontogramOverrides.get(tooth.id)}
-                              hasClinicalCase={teethWithCases.has(tooth.id)}
-                              fromAppointment={
-                                !teethWithCases.has(tooth.id) &&
-                                appointmentTeeth.some(
-                                  (a) =>
-                                    a.toothNumber === tooth.id &&
-                                    !!PROCEDURE_KEY_TO_STATUS[a.procedureKey],
-                                )
-                              }
-                            />
-                          ))}
-                        </div>
-                        <div className="mt-2 text-center text-xs font-bold text-blue-500 uppercase tracking-widest">
-                          {t("upperArch")}
-                        </div>
-                      </div>
-
-                      {/* Lower Arch */}
-                      <div>
-                        <div className="flex flex-wrap flex-row-reverse justify-center gap-2 md:gap-4 overflow-x-auto pb-4">
-                          {lowerTeeth.map((tooth) => (
-                            <ToothVisual
-                              key={tooth.id}
-                              tooth={tooth}
-                              onStatusChange={handleStatusChange}
-                              onCaseOpen={handleCaseOpen}
-                              onBookAppointment={handleBookAppointment}
-                              colorOverride={odontogramOverrides.get(tooth.id)}
-                              hasClinicalCase={teethWithCases.has(tooth.id)}
-                              fromAppointment={
-                                !teethWithCases.has(tooth.id) &&
-                                appointmentTeeth.some(
-                                  (a) =>
-                                    a.toothNumber === tooth.id &&
-                                    !!PROCEDURE_KEY_TO_STATUS[a.procedureKey],
-                                )
-                              }
-                            />
-                          ))}
-                        </div>
-                        <div className="mt-2 text-center text-xs font-bold text-blue-500 uppercase tracking-widest">
-                          {t("lowerArch")}
-                        </div>
-                      </div>
+                      <OdontogramView
+                        mouthMap={mouthMap}
+                        teethWithCases={teethWithCases}
+                        odontogramOverrides={odontogramOverrides}
+                        appointmentTeeth={appointmentTeeth}
+                        procedureKeyToStatus={PROCEDURE_KEY_TO_STATUS}
+                        onStatusChange={handleStatusChange}
+                        onCaseOpen={handleCaseOpen}
+                        onBookAppointment={handleBookAppointment}
+                      />
                     </div>
                   </div>
 
-                  {/* Right: Plan Builder */}
                   <div className="lg:col-span-1">
                     <PlanBuilder
                       plan={optimisticPlan}
                       onStatusChange={updateItemStatus}
                       completionHistory={completionHistory}
+                      patientId={patient.id}
                     />
                   </div>
                 </motion.div>
 
-                {/* ── Tooth Clinical Case Panel ────────────────────────────── */}
                 <AnimatePresence>
                   {selectedTooth && (
                     <ToothCasePanel
                       key={selectedTooth.id}
                       tooth={selectedTooth}
-                      patientId={selectedPatient.id}
+                      patientId={patient.id}
                       onClose={() => setSelectedTooth(null)}
                       onCaseSaved={handleCaseSaved}
                       appointmentContext={appointmentTeeth.find(
@@ -474,7 +576,11 @@ export function ClinicalClient() {
 
                 <BookingForm
                   isOpen={isBookingOpen}
-                  onClose={() => setIsBookingOpen(false)}
+                  onClose={() => {
+                    setIsBookingOpen(false);
+                    // Reload data after booking to update odontogram
+                    reloadClinicalData();
+                  }}
                   defaultValues={bookingDefaults}
                 />
               </>

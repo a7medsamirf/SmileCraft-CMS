@@ -31,7 +31,7 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/routing";
 
 import { PageTransition } from "@/components/ui/PageTransition";
-import { TodayQueueUI } from "@/features/appointments/components/TodayQueueUI";
+import { TodayQueueWithOptimism } from "@/features/appointments/components/TodayQueueWithOptimism";
 import { RealtimeAppointmentHandler } from "@/features/appointments/components/RealtimeAppointmentHandler";
 import {
   fetchTodaysQueue,
@@ -109,13 +109,14 @@ export default async function AppointmentsQueuePage({ params }: PageProps) {
 
         {/* ── Queue Table + Stats Cards ─────────────────────────────────── */}
         {/*
-          TodayQueueUI is a Client Component that:
+          TodayQueueWithOptimism is a Client Component that:
           - Renders the 5-card stats grid
           - Renders the appointments table with status badges
           - Exposes action buttons (summon, complete, cancel) via Server Actions
           - Links each active patient to the Clinical module (mouthMap)
+          - Implements optimistic UI updates for instant feedback
         */}
-        <TodayQueueUI
+        <TodayQueueWithOptimism
           appointments={appointments}
           stats={stats}
           locale={locale}
@@ -131,7 +132,10 @@ export default async function AppointmentsQueuePage({ params }: PageProps) {
           The Supabase Realtime broker respects RLS policies, so users only
           receive events for their own clinic's rows.
         */}
-        <RealtimeAppointmentHandler clinicId={clinicId} />
+        <RealtimeAppointmentHandler
+          clinicId={clinicId}
+          appointments={appointments}
+        />
       </div>
     </PageTransition>
   );

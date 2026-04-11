@@ -7,6 +7,7 @@ import {
   PlanItem,
   TreatmentStatus,
   CompletionRecord,
+  InvoiceMode,
 } from "./types/treatmentPlan";
 import { PATIENT_TEETH_MAP } from "./mock/patientTeeth.mock";
 import type { ClinicalCase, ClinicalCasePayload } from "./types/clinicalCase";
@@ -14,7 +15,7 @@ import type { ClinicalCase, ClinicalCasePayload } from "./types/clinicalCase";
 // ---------------------------------------------------------------------------
 // Auth helper — returns the supabase client + current user (or null)
 // ---------------------------------------------------------------------------
-async function getSupabaseUser() {
+export async function getSupabaseUser() {
   try {
     const supabase = await createClient();
     const {
@@ -64,6 +65,8 @@ function mapClinicalCaseRow(row: Record<string, unknown>): ClinicalCase {
 export async function getPatientClinicalDataAction(patientId: string): Promise<{
   mouthMap: MouthMap;
   treatments: PlanItem[];
+  teethWithCases: number[];
+  treatmentHistory: CompletionRecord[];
 } | null> {
   try {
     const { supabase, user } = await getSupabaseUser();
@@ -72,46 +75,52 @@ export async function getPatientClinicalDataAction(patientId: string): Promise<{
       return {
         mouthMap: PATIENT_TEETH_MAP[patientId] ?? generateEmptyMouthMap(),
         treatments: [],
+        teethWithCases: [],
+        treatmentHistory: [],
       };
     }
 
-    // Try to fetch the patient's mouthMap from Supabase
-    const { data: patient, error: patientError } = await supabase
-      .from("patients")
-      .select("mouthMap")
-      .eq("id", patientId)
-      .single();
+    // Parallel fetch for optimal performance
+    const [patientRes, treatmentsRes, casesRes] = await Promise.all([
+      supabase.from("patients").select("mouthMap, treatmentHistory").eq("id", patientId).single(),
+      supabase.from("treatments").select("*").eq("patientId", patientId).order("createdAt", { ascending: false }),
+      supabase.from("clinical_cases").select("toothNumber").eq("patientId", patientId),
+    ]);
 
-    const rawMap = !patientError && patient?.mouthMap ? patient.mouthMap : null;
-
+    // Handle patient data (mouthMap and history)
+    const rawMap = patientRes.data?.mouthMap;
     const mouthMap: MouthMap = Array.isArray(rawMap)
       ? (rawMap as unknown as MouthMap)
       : (PATIENT_TEETH_MAP[patientId] ?? generateEmptyMouthMap());
 
-    // Try to fetch treatment rows
-    const { data: treatmentRows } = await supabase
-      .from("treatments")
-      .select("*")
-      .eq("patientId", patientId)
-      .order("createdAt", { ascending: false });
+    const treatmentHistory: CompletionRecord[] = Array.isArray(patientRes.data?.treatmentHistory)
+      ? (patientRes.data.treatmentHistory as unknown as CompletionRecord[])
+      : [];
 
-    const treatments: PlanItem[] = (treatmentRows ?? []).map((t) => ({
+    // Handle treatment items
+    const treatments: PlanItem[] = (treatmentsRes.data ?? []).map((t) => ({
       id: t.id as string,
       toothId: t.toothNumber ? parseInt(t.toothNumber as string, 10) : 0,
       procedure: (t.procedureName as string) ?? "",
       procedureKey: (t.procedureType as string) ?? "",
       estimatedCost: Number(t.cost ?? 0),
       status: (t.status as TreatmentStatus) ?? TreatmentStatus.PLANNED,
-      completedAt:
-        typeof t.completedAt === "string" ? t.completedAt : undefined,
+      completedAt: typeof t.completedAt === "string" ? t.completedAt : undefined,
     }));
 
-    return { mouthMap, treatments };
+    // Handle teethWithCases summary
+    const teethWithCases = (casesRes.data ?? []).map((r) =>
+      Number((r as Record<string, unknown>).toothNumber),
+    );
+
+    return { mouthMap, treatments, teethWithCases, treatmentHistory };
   } catch (err) {
     console.warn("[getPatientClinicalDataAction] Falling back to mock:", err);
     return {
       mouthMap: PATIENT_TEETH_MAP[patientId] ?? generateEmptyMouthMap(),
       treatments: [],
+      teethWithCases: [],
+      treatmentHistory: [],
     };
   }
 }
@@ -147,25 +156,36 @@ export async function saveMouthMapAction(
 export async function updateTreatmentStatusAction(
   treatmentId: string,
   status: TreatmentStatus,
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const { supabase, user } = await getSupabaseUser();
-    if (!supabase || !user) return;
+    if (!supabase || !user) {
+      return { success: false, error: "notAuthenticated" };
+    }
 
-    await supabase
+    const now = new Date().toISOString();
+    const { error } = await supabase
       .from("treatments")
       .update({
         status,
         completedAt:
           status === TreatmentStatus.COMPLETED
-            ? new Date().toISOString()
+            ? now
             : null,
+        updatedAt: now,
       })
       .eq("id", treatmentId);
 
+    if (error) {
+      console.error("[updateTreatmentStatusAction] Update error:", error);
+      return { success: false, error: error.message };
+    }
+
     revalidatePath("/dashboard/clinical");
+    return { success: true };
   } catch (err) {
-    console.warn("[updateTreatmentStatusAction] Failed:", err);
+    console.error("[updateTreatmentStatusAction] Failed:", err);
+    return { success: false, error: String(err) };
   }
 }
 
@@ -349,20 +369,30 @@ export async function replaceTreatmentPlanAction(
   patientId: string,
   plan: PlanItem[],
 ): Promise<PlanItem[]> {
+  if (!patientId || plan.length === 0) {
+    return plan;
+  }
+
   try {
     const { supabase, user } = await getSupabaseUser();
-    if (!supabase || !user) return plan;
+    if (!supabase || !user) {
+      console.warn("[replaceTreatmentPlanAction] No authenticated user - plan not persisted");
+      return plan;
+    }
 
     // Delete all existing PLANNED treatments for this patient
-    await supabase
+    const { error: deleteError } = await supabase
       .from("treatments")
       .delete()
       .eq("patientId", patientId)
       .eq("status", TreatmentStatus.PLANNED);
 
-    if (plan.length === 0) return [];
+    if (deleteError) {
+      console.warn("[replaceTreatmentPlanAction] Delete error (continuing):", deleteError.message);
+    }
 
     // Build insert rows — assign fresh UUIDs so the caller gets back real DB IDs
+    const now = new Date().toISOString();
     const rows = plan.map((item) => ({
       id: crypto.randomUUID(),
       patientId,
@@ -371,7 +401,11 @@ export async function replaceTreatmentPlanAction(
       procedureType: item.procedureKey,
       cost: item.estimatedCost,
       status: TreatmentStatus.PLANNED,
+      createdAt: now,
+      updatedAt: now,
     }));
+
+    console.log("[replaceTreatmentPlanAction] Inserting treatments:", rows);
 
     const { data, error } = await supabase
       .from("treatments")
@@ -379,9 +413,15 @@ export async function replaceTreatmentPlanAction(
       .select();
 
     if (error) {
-      console.warn("[replaceTreatmentPlanAction] Insert error:", error.message);
-      // Return original plan with original IDs as fallback
-      return plan;
+      console.error("[replaceTreatmentPlanAction] Insert error:", error);
+      throw new Error(`Failed to save treatment plan: ${error.message}`);
+    }
+
+    console.log("[replaceTreatmentPlanAction] Insert result:", data);
+
+    if (!data || data.length === 0) {
+      console.error("[replaceTreatmentPlanAction] No data returned from insert");
+      throw new Error("No data returned from treatment plan insert");
     }
 
     // Map returned rows back to PlanItem shape
@@ -397,8 +437,8 @@ export async function replaceTreatmentPlanAction(
     revalidatePath("/dashboard/clinical");
     return inserted;
   } catch (err) {
-    console.warn("[replaceTreatmentPlanAction] Failed:", err);
-    return plan; // fallback: return original plan so UI stays functional
+    console.error("[replaceTreatmentPlanAction] Failed:", err);
+    throw err; // Let caller handle the error
   }
 }
 
@@ -454,5 +494,150 @@ export async function getTreatmentHistoryAction(
   } catch (err) {
     console.warn("[getTreatmentHistoryAction] Failed:", err);
     return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// createInvoiceAction
+// Creates an invoice from the treatment plan with proper Prisma schema.
+// Records in monthly revenue automatically via invoice creation.
+// Returns the created invoice ID or null on failure.
+// ---------------------------------------------------------------------------
+export async function createInvoiceAction(
+  patientId: string,
+  plan: PlanItem[],
+  mode: InvoiceMode,
+  creatorId?: string,
+): Promise<{ success: boolean; invoiceId?: string; invoiceNumber?: string; message: string }> {
+  try {
+    const { supabase, user } = await getSupabaseUser();
+    if (!supabase || !user) {
+      return { success: false, message: "notAuthenticated" };
+    }
+
+    const effectiveCreatorId = creatorId ?? user.id;
+
+    // Fetch treatments from DB to ensure we have the latest data
+    const { data: treatments, error: treatmentsError } = await supabase
+      .from("treatments")
+      .select("id, toothNumber, procedureName, procedureType, cost, status")
+      .eq("patientId", patientId);
+
+    if (treatmentsError || !treatments) {
+      console.error("[createInvoiceAction] Treatments fetch error:", treatmentsError);
+      return { success: false, message: "emptyPlanError" };
+    }
+
+    const dbPlan: PlanItem[] = treatments.map((t) => ({
+      id: t.id as string,
+      toothId: t.toothNumber ? parseInt(t.toothNumber as string, 10) : 0,
+      procedure: (t.procedureName as string) ?? "",
+      procedureKey: (t.procedureType as string) ?? "",
+      estimatedCost: Number(t.cost ?? 0),
+      status: (t.status as TreatmentStatus) ?? TreatmentStatus.PLANNED,
+    }));
+
+    const invoiceItems =
+      mode === "COMPLETED_ONLY"
+        ? dbPlan.filter((item) => item.status === TreatmentStatus.COMPLETED)
+        : dbPlan;
+
+    if (invoiceItems.length === 0) {
+      return { success: false, message: "noCompletedItems" };
+    }
+
+    const total = invoiceItems.reduce((sum, item) => sum + item.estimatedCost, 0);
+
+    // Generate unique invoice number
+    const invoiceNumber = `INV-${Date.now()}-${patientId.slice(0, 8).toUpperCase()}`;
+    const invoiceId = crypto.randomUUID();
+
+    // Insert invoice into Supabase (mapped to Prisma schema)
+    const { error: invoiceError } = await supabase.from("invoices").insert({
+      id: invoiceId,
+      invoiceNumber,
+      patientId,
+      totalAmount: total,
+      paidAmount: 0,
+      status: "DRAFT",
+      dueDate: null,
+      notes: `Treatment plan invoice - ${mode === "COMPLETED_ONLY" ? "Completed treatments only" : "Full treatment plan"}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (invoiceError) {
+      console.error("[createInvoiceAction] Invoice insert error:", invoiceError);
+      return { success: false, message: "invoiceCreateError" };
+    }
+
+    // Create invoice items for each treatment
+    const invoiceItemRows = invoiceItems.map((item) => ({
+      id: crypto.randomUUID(),
+      invoiceId,
+      treatmentId: item.id,
+      description: `Tooth #${item.toothId} - ${item.procedure}`,
+      quantity: 1,
+      unitPrice: item.estimatedCost,
+      total: item.estimatedCost,
+    }));
+
+    if (invoiceItemRows.length > 0) {
+      const { error: itemsError } = await supabase
+        .from("invoice_items")
+        .insert(invoiceItemRows);
+
+      if (itemsError) {
+        console.error("[createInvoiceAction] Invoice items insert error:", itemsError);
+        // Don't fail the entire operation, just log the error
+      }
+    }
+
+    // Update treatment statuses if COMPLETED_ONLY mode
+    if (mode === "COMPLETED_ONLY") {
+      for (const item of invoiceItems) {
+        await supabase
+          .from("treatments")
+          .update({ status: TreatmentStatus.COMPLETED })
+          .eq("id", item.id);
+      }
+    }
+
+    revalidatePath("/dashboard/clinical");
+    revalidatePath("/dashboard/finance");
+    revalidatePath(`/dashboard/invoices/${invoiceId}`);
+
+    return { success: true, invoiceId, invoiceNumber, message: "invoiceSuccess" };
+  } catch (err) {
+    console.error("[createInvoiceAction] Failed:", err);
+    return { success: false, message: "invoiceError" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getPatientAction
+// Retrieves patient details by ID for invoice generation.
+// ---------------------------------------------------------------------------
+export async function getPatientAction(
+  patientId: string,
+): Promise<{ firstName: string; lastName: string; phone: string } | null> {
+  try {
+    const { supabase, user } = await getSupabaseUser();
+    if (!supabase || !user) return null;
+
+    const { data, error } = await supabase
+      .from("patients")
+      .select("firstName, lastName, phone")
+      .eq("id", patientId)
+      .single();
+
+    if (error || !data) return null;
+    return {
+      firstName: data.firstName as string,
+      lastName: data.lastName as string,
+      phone: data.phone as string,
+    };
+  } catch {
+    return null;
   }
 }

@@ -32,6 +32,7 @@ export interface ClinicInfo {
   email: string;
   slotDuration: number;
   logoUrl?: string;
+  logoUrlDark?: string;
   faviconUrl?: string;
 }
 

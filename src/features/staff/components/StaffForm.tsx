@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, KeyRound, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -21,10 +21,23 @@ const staffSchema = z.object({
     (val) => Number(val),
     z.number().positive("invalidSalary"),
   ),
+  // Login credentials fields
+  createLogin: z.boolean().optional(),
+  password: z.string().min(8, "passwordTooShort").optional(),
+  confirmPassword: z.string().optional(),
   certifications: z.array(z.string()).optional(),
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   emergencyContactRelationship: z.string().optional(),
+}).refine((data) => {
+  // If createLogin is enabled, password fields are required
+  if (data.createLogin) {
+    return data.password === data.confirmPassword;
+  }
+  return true;
+}, {
+  message: "passwordsNotMatch",
+  path: ["confirmPassword"],
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
@@ -37,6 +50,9 @@ interface StaffFormProps {
 
 export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
   const t = useTranslations("Staff");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [createLogin, setCreateLogin] = useState(false);
 
   const {
     register,
@@ -55,6 +71,9 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
       phone: initialData?.phone || "",
       salary: initialData?.salary || 0,
       certifications: initialData?.certifications || [],
+      createLogin: false,
+      password: "",
+      confirmPassword: "",
       emergencyContactName: initialData?.emergencyContact?.name || "",
       emergencyContactPhone: initialData?.emergencyContact?.phone || "",
       emergencyContactRelationship:
@@ -105,7 +124,23 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
       staffData.id = generateId();
     }
 
+    // Add login credentials if enabled
+    if (data.createLogin && data.password) {
+      staffData.createLoginAccount = true;
+      staffData.password = data.password;
+    }
+
     await onSubmit(staffData);
+  };
+
+  const toggleCreateLogin = () => {
+    const newValue = !createLogin;
+    setCreateLogin(newValue);
+    setValue("createLogin", newValue);
+    if (!newValue) {
+      setValue("password", "");
+      setValue("confirmPassword", "");
+    }
   };
 
   return (
@@ -214,6 +249,102 @@ export function StaffForm({ initialData, onSubmit, onCancel }: StaffFormProps) {
             )}
           </div>
         </div>
+
+        {/* Login Credentials Section */}
+        {!initialData && (
+          <div className="mt-6 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-blue-600" />
+                <h4 className="font-semibold text-slate-900 dark:text-white">
+                  {t("loginCredentials")}
+                </h4>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createLogin}
+                  onChange={toggleCreateLogin}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  {t("createLoginAccount")}
+                </span>
+              </label>
+            </div>
+
+            {createLogin && (
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t("password")} *
+                    </label>
+                    <div className="relative">
+                      <Input
+                        {...register("password")}
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {t(errors.password.message as string)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      {t("confirmPassword")} *
+                    </label>
+                    <div className="relative">
+                      <Input
+                        {...register("confirmPassword")}
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="rounded-xl pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {t(errors.confirmPassword.message as string)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-xs text-blue-800 dark:text-blue-200">
+                  <p className="font-semibold mb-1">{t("important")}</p>
+                  <p>{t("credentialsWarning")}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Certifications */}

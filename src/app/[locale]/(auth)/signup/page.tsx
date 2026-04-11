@@ -15,6 +15,7 @@ import {
 import { signupAction, type SignupState } from "./signupAction";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Logo } from "@/components/SharesComponent/Logo";
 
 // ─── Keyframe animations ─────────────────────────────────────────────────────
 function AuthStyles() {
@@ -69,9 +70,7 @@ export default function SignupPage() {
           style={{ background: "linear-gradient(90deg,transparent,#2563EB,transparent)" }} />
 
         <div className="relative z-10">
-          <span className="text-xl font-black text-white tracking-tight">
-            <span className="text-blue-500">Smile</span>Craft
-          </span>
+          <Logo className="w-32 sm:w-40 md:w-44 lg:w-60 h-auto object-contain" />
         </div>
 
         <div className="relative z-10 space-y-8">
@@ -113,9 +112,7 @@ export default function SignupPage() {
 
         <div className="w-full max-w-[460px] relative z-10 py-8">
           <div className="lg:hidden mb-6 text-center">
-            <span className="text-2xl font-black text-white tracking-tight">
-              <span className="text-blue-500">Smile</span>Craft
-            </span>
+            <Logo className="w-52 sm:w-44 md:w-44 lg:w-60 h-auto object-contain" />
           </div>
 
           <div className="auth-fade-up bg-[#0B1525] border border-white/[0.06] rounded-2xl p-7 sm:p-8 shadow-2xl shadow-black/40">

@@ -18,6 +18,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // Auth helper — returns clinicId or null (never throws)
+// Supports first-time bootstrap when the authenticated user has no public users row.
 // ---------------------------------------------------------------------------
 async function getClinicId(): Promise<string | null> {
   try {
@@ -27,14 +28,68 @@ async function getClinicId(): Promise<string | null> {
     } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data } = await supabase
+    const { data: publicUser } = await supabase
       .from("users")
       .select("clinicId")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
-    return (data as any)?.clinicId ?? null;
-  } catch {
+    if (publicUser?.clinicId) return String(publicUser.clinicId);
+
+    // Bootstrapping support: if the app DB already has a clinic but no public user row,
+    // link the current auth user to the first clinic and persist the public user record.
+    const { data: clinicRows, error: clinicError } = await supabase
+      .from("Clinic")
+      .select("id")
+      .order("createdAt", { ascending: true })
+      .limit(1);
+
+    if (clinicError) {
+      console.warn("[getClinicId] Clinic lookup failed:", clinicError.message);
+      return null;
+    }
+
+    let clinicId: string;
+    if (clinicRows && clinicRows.length > 0) {
+      clinicId = String((clinicRows[0] as Record<string, unknown>).id);
+    } else {
+      clinicId = crypto.randomUUID();
+      const { error: createClinicError } = await supabase.from("Clinic").insert({
+        id: clinicId,
+        name: "SmileCraft Dental Clinic",
+        updatedAt: new Date().toISOString(),
+      });
+      if (createClinicError) {
+        console.error("[getClinicId] Failed to create Clinic:", createClinicError.message);
+        return null;
+      }
+    }
+
+    const meta = (user.user_metadata ?? {}) as Record<string, string>;
+    const fullName = (
+      meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "Admin"
+    ).trim();
+
+    const { error: userInsertError } = await supabase.from("users").upsert(
+      {
+        id: user.id,
+        email: user.email ?? `${user.id}@smilecraft.local`,
+        fullName,
+        clinicId,
+        role: "ADMIN",
+        isActive: true,
+        updatedAt: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (userInsertError) {
+      console.warn("[getClinicId] Failed to create public user row:", userInsertError.message);
+    }
+
+    return clinicId;
+  } catch (err) {
+    console.warn("[getClinicId] Unexpected error:", err);
     return null;
   }
 }
@@ -209,6 +264,61 @@ export async function getBusinessHoursAction(): Promise<BusinessDay[]> {
 }
 
 // ---------------------------------------------------------------------------
+// getBusinessHoursForBookingAction — returns hours optimized for booking UI
+// ---------------------------------------------------------------------------
+export async function getBusinessHoursForBookingAction(): Promise<{
+  hours: BusinessDay[];
+  slotDuration: number;
+}> {
+  try {
+    const clinicId = await getClinicId();
+    if (!clinicId) {
+      return { hours: [], slotDuration: 30 };
+    }
+
+    const supabase = await createClient();
+    
+    // Fetch both business hours and clinic slot duration
+    const [{ data: hoursData, error: hoursError }, { data: clinicData, error: clinicError }] =
+      await Promise.all([
+        supabase
+          .from("clinic_business_hours")
+          .select("hours")
+          .eq("clinicId", clinicId)
+          .single(),
+        supabase
+          .from("Clinic")
+          .select("slotDuration")
+          .eq("id", clinicId)
+          .single(),
+      ]);
+
+    if (hoursError && hoursError.code !== "PGRST116") {
+      console.warn("[getBusinessHoursForBookingAction] Hours DB error:", hoursError.message);
+    }
+
+    if (clinicError) {
+      console.warn("[getBusinessHoursForBookingAction] Clinic DB error:", clinicError.message);
+    }
+
+    const hours = hoursData
+      ? Array.isArray((hoursData as Record<string, unknown>).hours)
+        ? ((hoursData as Record<string, unknown>).hours as BusinessDay[])
+        : []
+      : [];
+
+    const slotDuration = clinicData
+      ? Number((clinicData as Record<string, unknown>).slotDuration ?? 30)
+      : 30;
+
+    return { hours, slotDuration };
+  } catch (err) {
+    console.error("[getBusinessHoursForBookingAction] Unexpected error:", err);
+    return { hours: [], slotDuration: 30 };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // saveBusinessHoursAction — upsert on unique(clinicId)
 // ---------------------------------------------------------------------------
 export async function saveBusinessHoursAction(
@@ -245,7 +355,7 @@ export async function getClinicInfoAction(): Promise<ClinicInfo | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("Clinic")
-      .select("name, address, phone, email, logoUrl, faviconUrl, slotDuration")
+      .select("name, address, phone, email, logoUrl, logoUrlDark, faviconUrl, slotDuration")
       .eq("id", clinicId)
       .single();
 
@@ -263,6 +373,7 @@ export async function getClinicInfoAction(): Promise<ClinicInfo | null> {
       phone: String(row.phone ?? ""),
       email: String(row.email ?? ""),
       logoUrl: row.logoUrl ? String(row.logoUrl) : undefined,
+      logoUrlDark: row.logoUrlDark ? String(row.logoUrlDark) : undefined,
       faviconUrl: row.faviconUrl ? String(row.faviconUrl) : undefined,
       slotDuration: Number(row.slotDuration ?? 30),
     };
@@ -291,6 +402,7 @@ export async function updateClinicInfoAction(
   if (payload.phone !== undefined) updateData.phone = payload.phone;
   if (payload.email !== undefined) updateData.email = payload.email;
   if (payload.logoUrl !== undefined) updateData.logoUrl = payload.logoUrl;
+  if (payload.logoUrlDark !== undefined) updateData.logoUrlDark = payload.logoUrlDark;
   if (payload.faviconUrl !== undefined) updateData.faviconUrl = payload.faviconUrl;
   if (payload.slotDuration !== undefined) updateData.slotDuration = payload.slotDuration;
 
@@ -380,3 +492,84 @@ export async function saveNotificationSettingsAction(
 
   revalidatePath("/dashboard/settings");
 }
+
+// ---------------------------------------------------------------------------
+// getStaffPermissionsAction — get permissions for all staff
+// ---------------------------------------------------------------------------
+export async function getStaffPermissionsAction(): Promise<
+  Array<{ id: string; fullName: string; role: string; permissions: Record<string, unknown> }>
+> {
+  try {
+    const clinicId = await getClinicId();
+    if (!clinicId) return [];
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("staff")
+      .select("id, fullName, role, permissions")
+      .eq("clinicId", clinicId)
+      .eq("isActive", true)
+      .order("fullName", { ascending: true });
+
+    if (error) {
+      console.warn("[getStaffPermissionsAction]", error.message);
+      return [];
+    }
+
+    return (data ?? []).map((row) => ({
+      id: String(row.id),
+      fullName: String(row.fullName ?? ""),
+      role: String(row.role ?? "ASSISTANT"),
+      permissions: (row.permissions as Record<string, unknown>) ?? {},
+    }));
+  } catch (err) {
+    console.warn("[getStaffPermissionsAction]", err);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// updateStaffPermissionsAction — update permissions for a staff member
+// ---------------------------------------------------------------------------
+export async function updateStaffPermissionsAction(
+  staffId: string,
+  permissions: Record<string, boolean>,
+): Promise<void> {
+  try {
+    const clinicId = await getClinicId();
+    if (!clinicId) throw new Error("Unauthorized");
+
+    const supabase = await createClient();
+
+    // Verify staff belongs to this clinic
+    const { data: staffData } = await supabase
+      .from("staff")
+      .select("id")
+      .eq("id", staffId)
+      .eq("clinicId", clinicId)
+      .maybeSingle();
+
+    if (!staffData) {
+      throw new Error("Staff member not found or unauthorized");
+    }
+
+    const { error } = await supabase
+      .from("staff")
+      .update({
+        permissions,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", staffId)
+      .eq("clinicId", clinicId);
+
+    if (error) {
+      throw new Error(`Failed to update permissions: ${error.message}`);
+    }
+
+    revalidatePath("/dashboard/settings");
+  } catch (err) {
+    console.error("[updateStaffPermissionsAction]", err);
+    throw err;
+  }
+}
+

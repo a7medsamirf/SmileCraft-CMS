@@ -17,6 +17,7 @@ const generalSchema = z.object({
   email: z.string().email("Invalid email"),
   slotDuration: z.number().min(5).max(120),
   logoUrl: z.string().optional(),
+  logoUrlDark: z.string().optional(),
   faviconUrl: z.string().optional(),
 });
 
@@ -40,11 +41,13 @@ export function GeneralSettings() {
       email: "",
       slotDuration: 30,
       logoUrl: "",
+      logoUrlDark: "",
       faviconUrl: "",
     },
   });
 
   const logoUrl = watch("logoUrl");
+  const logoUrlDark = watch("logoUrlDark");
   const faviconUrl = watch("faviconUrl");
 
   const onSubmit = async (data: GeneralFormValues) => {
@@ -159,14 +162,13 @@ export function GeneralSettings() {
             <ImageIcon className="h-5 w-5 text-blue-500" />
             {t("uploadBranding")}
           </h3>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Logo Upload */}
+            {/* Logo Upload (Light Mode) */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden group">
+                <div className="h-20 w-20 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden group">
                   {logoUrl ? (
-                    <img src={logoUrl} alt="Logo Preview" className="h-full w-full object-cover" />
+                    <img src={logoUrl} alt="Logo Preview" className="h-full w-full object-contain p-2" />
                   ) : (
                     <ImageIcon className="h-8 w-8 text-slate-300" />
                   )}
@@ -182,7 +184,33 @@ export function GeneralSettings() {
               </div>
               <input
                 {...register("logoUrl")}
-                placeholder="https://example.com/logo.png"
+                placeholder="https://example.com/logo-light.png"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+              />
+            </div>
+
+            {/* Logo Upload (Dark Mode) */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-2xl bg-slate-900 flex items-center justify-center border-2 border-dashed border-slate-700 overflow-hidden group">
+                  {logoUrlDark ? (
+                    <img src={logoUrlDark} alt="Dark Logo Preview" className="h-full w-full object-contain p-2" />
+                  ) : (
+                    <ImageIcon className="h-8 w-8 text-slate-600" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                    {t("darkLogo")}
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    {t("darkLogoDescription")}
+                  </p>
+                </div>
+              </div>
+              <input
+                {...register("logoUrlDark")}
+                placeholder="https://example.com/logo-dark.png"
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
               />
             </div>

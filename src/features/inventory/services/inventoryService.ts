@@ -10,7 +10,27 @@
 // compute helpers that operate on client-side state passed to them.
 // =============================================================================
 
-import { InventoryItem, StockStatus, InventoryCategory } from "../types";
+import { InventoryItem, StockStatus, InventoryCategory, InventoryAlert } from "../types";
+
+// ============================================================================
+// Compatibility export for old client-side pattern
+// WARNING: This is a stub - use server actions for real data
+// ============================================================================
+export const inventoryService = {
+  getAllItems: (): InventoryItem[] => [],
+  getItemById: (_id: string): InventoryItem | undefined => undefined,
+  getItemsByCategory: (_category: InventoryCategory | "ALL" = "ALL"): InventoryItem[] => [],
+  saveItem: (_item: InventoryItem): void => {},
+  deleteItem: (_id: string): void => {},
+  updateQuantity: (_id: string, _quantityChange: number, _reason: string, _type: "IN" | "OUT"): void => {},
+  getAlerts: (): InventoryAlert[] => [],
+  acknowledgeAlert: (_alertId: string): void => {},
+  clearAcknowledgedAlerts: (): void => {},
+  getStockStatus,
+  getInventoryValue,
+  getLowStockItems,
+  getExpiringItems,
+};
 
 /**
  * Compute the stock status for a single item.

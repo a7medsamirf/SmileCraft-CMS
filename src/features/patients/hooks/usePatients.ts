@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Patient, PatientFilters, PaginationParams } from "../types/index";
 import { DEFAULT_PAGE_SIZE } from "../constants";
 import { getPatientsAction } from "../serverActions";
@@ -28,25 +28,13 @@ export function usePatients(): UsePatientsReturn {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Stable refs for filters and pagination to avoid re-fetching on object reference changes
-  const filtersRef = useRef(filters);
-  const paginationRef = useRef(pagination);
-
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-
-  useEffect(() => {
-    paginationRef.current = pagination;
-  }, [pagination]);
-
   const fetchPatients = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await getPatientsAction(
-        filtersRef.current,
-        paginationRef.current.page,
-        paginationRef.current.limit,
+        filters,
+        pagination.page,
+        pagination.limit,
       );
       setPatients(result.data);
       setTotal(result.total);
@@ -56,7 +44,7 @@ export function usePatients(): UsePatientsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [filters, pagination]);
 
   useEffect(() => {
     fetchPatients();

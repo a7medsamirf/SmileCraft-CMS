@@ -1,22 +1,22 @@
 /* Color System from Style Guide */
 :root {
   /* Brand Colors */
-  --color-primary: #4F7CFF;
+  --color-primary: #4f7cff;
   --color-secondary: #333333;
-  --color-warning: #FFC62A;
-  --color-danger: #F55157;
-  --color-success: #00AF6C;
-  --color-info: #5196F3;
+  --color-warning: #ffc62a;
+  --color-danger: #f55157;
+  --color-success: #00af6c;
+  --color-info: #5196f3;
   /* Grayscale / UI Colors */
-  --color-background: #1D1F1F;
+  --color-background: #1d1f1f;
   --color-gray-600: #333333;
   --color-gray-500: #444444;
   --color-gray-400: #666666;
-  --color-gray-300: #A5A5A5;
-  --color-gray-200: #D6D6D6;
-  --color-gray-100: #EEEEEE;
-  --color-gray-50: #F8F8F8;
-  --color-white: #FFFFFF;
+  --color-gray-300: #a5a5a5;
+  --color-gray-200: #d6d6d6;
+  --color-gray-100: #eeeeee;
+  --color-gray-50: #f8f8f8;
+  --color-white: #ffffff;
 }
 
 /* SCSS Variables (Optional - mapping for cleaner usage in Sass files) */
@@ -27,6 +27,10 @@ Licensed under the MIT license - http://opensource.org/licenses/MIT
 
 Copyright (c) 2015 Daniel Eden
 */
+
+.border-blue-600 {
+  border-color: var(--color-blue-600) !important;
+}
 .animated {
   animation-duration: 1s;
   animation-fill-mode: both;
@@ -50,11 +54,16 @@ Copyright (c) 2015 Daniel Eden
   animation-duration: 0.75s;
 }
 @keyframes bounce {
-  0%, 20%, 53%, 80%, 100% {
+  0%,
+  20%,
+  53%,
+  80%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
     transform: translate3d(0, 0, 0);
   }
-  40%, 43% {
+  40%,
+  43% {
     animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
     transform: translate3d(0, -30px, 0);
   }
@@ -71,10 +80,13 @@ Copyright (c) 2015 Daniel Eden
   transform-origin: center bottom;
 }
 @keyframes flash {
-  0%, 50%, 100% {
+  0%,
+  50%,
+  100% {
     opacity: 1;
   }
-  25%, 75% {
+  25%,
+  75% {
     opacity: 0;
   }
 }
@@ -124,13 +136,21 @@ Copyright (c) 2015 Daniel Eden
   animation-name: rubberBand;
 }
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate3d(0, 0, 0);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translate3d(-10px, 0, 0);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translate3d(10px, 0, 0);
   }
 }
@@ -162,13 +182,19 @@ Copyright (c) 2015 Daniel Eden
   0% {
     transform: scale3d(1, 1, 1);
   }
-  10%, 20% {
+  10%,
+  20% {
     transform: scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg);
   }
-  30%, 50%, 70%, 90% {
+  30%,
+  50%,
+  70%,
+  90% {
     transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg);
   }
-  40%, 60%, 80% {
+  40%,
+  60%,
+  80% {
     transform: scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg);
   }
   100% {
@@ -240,7 +266,12 @@ Copyright (c) 2015 Daniel Eden
   transform-origin: center;
 }
 @keyframes bounceIn {
-  0%, 20%, 40%, 60%, 80%, 100% {
+  0%,
+  20%,
+  40%,
+  60%,
+  80%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -269,7 +300,11 @@ Copyright (c) 2015 Daniel Eden
   animation-name: bounceIn;
 }
 @keyframes bounceInDown {
-  0%, 60%, 75%, 90%, 100% {
+  0%,
+  60%,
+  75%,
+  90%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -294,7 +329,11 @@ Copyright (c) 2015 Daniel Eden
   animation-name: bounceInDown;
 }
 @keyframes bounceInLeft {
-  0%, 60%, 75%, 90%, 100% {
+  0%,
+  60%,
+  75%,
+  90%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -319,7 +358,11 @@ Copyright (c) 2015 Daniel Eden
   animation-name: bounceInLeft;
 }
 @keyframes bounceInRight {
-  0%, 60%, 75%, 90%, 100% {
+  0%,
+  60%,
+  75%,
+  90%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -344,7 +387,11 @@ Copyright (c) 2015 Daniel Eden
   animation-name: bounceInRight;
 }
 @keyframes bounceInUp {
-  0%, 60%, 75%, 90%, 100% {
+  0%,
+  60%,
+  75%,
+  90%,
+  100% {
     animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
   }
   0% {
@@ -372,7 +419,8 @@ Copyright (c) 2015 Daniel Eden
   20% {
     transform: scale3d(0.9, 0.9, 0.9);
   }
-  50%, 55% {
+  50%,
+  55% {
     opacity: 1;
     transform: scale3d(1.1, 1.1, 1.1);
   }
@@ -388,7 +436,8 @@ Copyright (c) 2015 Daniel Eden
   20% {
     transform: translate3d(0, 10px, 0);
   }
-  40%, 45% {
+  40%,
+  45% {
     opacity: 1;
     transform: translate3d(0, -20px, 0);
   }
@@ -430,7 +479,8 @@ Copyright (c) 2015 Daniel Eden
   20% {
     transform: translate3d(0, -10px, 0);
   }
-  40%, 45% {
+  40%,
+  45% {
     opacity: 1;
     transform: translate3d(0, 20px, 0);
   }
@@ -678,11 +728,13 @@ Copyright (c) 2015 Daniel Eden
     animation-timing-function: ease-out;
   }
   40% {
-    transform: perspective(400px) translate3d(0, 0, 150px) rotate3d(0, 1, 0, -190deg);
+    transform: perspective(400px) translate3d(0, 0, 150px)
+      rotate3d(0, 1, 0, -190deg);
     animation-timing-function: ease-out;
   }
   50% {
-    transform: perspective(400px) translate3d(0, 0, 150px) rotate3d(0, 1, 0, -170deg);
+    transform: perspective(400px) translate3d(0, 0, 150px)
+      rotate3d(0, 1, 0, -170deg);
     animation-timing-function: ease-in;
   }
   80% {
@@ -967,12 +1019,14 @@ Copyright (c) 2015 Daniel Eden
     transform-origin: top left;
     animation-timing-function: ease-in-out;
   }
-  20%, 60% {
+  20%,
+  60% {
     transform: rotate3d(0, 0, 1, 80deg);
     transform-origin: top left;
     animation-timing-function: ease-in-out;
   }
-  40%, 80% {
+  40%,
+  80% {
     transform: rotate3d(0, 0, 1, 60deg);
     transform-origin: top left;
     animation-timing-function: ease-in-out;
@@ -1309,7 +1363,7 @@ Copyright (c) 2015 Daniel Eden
 /*---------------------------------------
     RTL Style
 ---------------------------------------*/
-html[dir=rtl] body {
+html[dir="rtl"] body {
   font-family: var(--font-elMessiri);
 }
 
@@ -1360,4 +1414,21 @@ button {
 .swiper-button-next,
 .swiper-button-prev {
   display: none;
-}/*# sourceMappingURL=globals.css.map */
+} 
+
+.cms-logo {
+    width: 75%;
+    height: 75%;
+    object-fit: contain;
+}
+
+::-webkit-calendar-picker-indicator {
+    line-height: 1;
+    position: absolute;
+    right: 0;
+    z-index: 1;
+    opacity: 0;
+    width: 50%;
+}
+
+/*# sourceMappingURL=globals.css.map */

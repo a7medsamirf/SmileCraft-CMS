@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   TrendingUp,
@@ -8,17 +8,78 @@ import {
   Activity,
   FileText,
   ArrowUpRight,
+  Loader2,
 } from "lucide-react";
 import { RevenueChart } from "./RevenueChart";
-import {
-  MOCK_MONTHLY_REVENUE,
-  MOCK_TOP_PROCEDURES,
-  FINANCE_STATS,
-} from "../mock/finance.mock";
 import { motion } from "framer-motion";
+import { getFinanceStatsAction, getMonthlyRevenueDataAction, getTopProceduresAction } from "@/features/finance/serverActions";
+
+interface FinanceStats {
+  monthlyTotal: number;
+  monthlyPaid: number;
+  monthlyInvoiceCount: number;
+  growthPercentage: number;
+  averageVisit: number;
+  dailyRevenue: number;
+  totalOutstanding: number;
+}
+
+interface MonthlyRevenue {
+  month: string;
+  revenue: number;
+  totalInvoiced: number;
+  invoiceCount: number;
+}
+
+interface TopProcedure {
+  name: string;
+  count: number;
+  revenue: number;
+}
 
 export const FinanceDashboard: React.FC = () => {
   const t = useTranslations("Finance");
+  const [stats, setStats] = useState<FinanceStats | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyRevenue[]>([]);
+  const [topProcedures, setTopProcedures] = useState<TopProcedure[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [statsData, monthlyData, procedures] = await Promise.all([
+          getFinanceStatsAction(),
+          getMonthlyRevenueDataAction(),
+          getTopProceduresAction()
+        ]);
+        
+        setStats(statsData);
+        setMonthlyData(monthlyData);
+        setTopProcedures(procedures);
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+        <span className="ms-3 text-sm font-medium text-slate-500">
+          {t("loading") || "Loading..."}
+        </span>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
 
   return (
     <div className="space-y-5">
@@ -27,31 +88,31 @@ export const FinanceDashboard: React.FC = () => {
         {[
           {
             label: t("monthlyRevenue"),
-            value: FINANCE_STATS.monthlyTotal,
+            value: stats.monthlyTotal,
             icon: <DollarSign className="text-emerald-500" />,
-            trend: `+${FINANCE_STATS.growthPercentage}%`,
+            trend: `+${stats.growthPercentage}%`,
             subtext: t("vsLastMonth"),
           },
           {
             label: t("growth"),
-            value: `${FINANCE_STATS.growthPercentage}%`,
+            value: `${stats.growthPercentage}%`,
             icon: <TrendingUp className="text-blue-500" />,
-            trend: "Good",
-            subtext: "Consistent performance",
+            trend: stats.growthPercentage > 0 ? "Good" : "Stable",
+            subtext: stats.growthPercentage > 0 ? "Growing revenue" : "Consistent performance",
           },
           {
             label: t("averageVisitValue"),
-            value: FINANCE_STATS.averageVisit,
+            value: stats.averageVisit,
             icon: <Activity className="text-purple-500" />,
             trend: "+5%",
             subtext: "Per patient visit",
           },
           {
             label: t("pendingInvoices"),
-            value: FINANCE_STATS.activeInvoices,
+            value: stats.monthlyInvoiceCount,
             icon: <FileText className="text-orange-500" />,
-            trend: "-2",
-            subtext: "Need collection",
+            trend: `${stats.monthlyInvoiceCount}`,
+            subtext: t("thisMonth") || "This month",
           },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-5">
@@ -105,7 +166,7 @@ export const FinanceDashboard: React.FC = () => {
             </select>
           </div>
 
-          <RevenueChart data={MOCK_MONTHLY_REVENUE} />
+          <RevenueChart data={monthlyData.map(d => ({ month: d.month, amount: d.revenue }))} />
         </div>
 
         {/* Top Procedures Card */}
@@ -114,28 +175,34 @@ export const FinanceDashboard: React.FC = () => {
             {t("topProcedures")}
           </h3>
           <div className="space-y-5">
-            {MOCK_TOP_PROCEDURES.map((proc, i) => (
-              <div key={i} className="flex flex-col gap-2 group">
-                <div className="flex justify-between items-center text-sm font-bold">
-                  <span className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors">
-                    {proc.name}
-                  </span>
-                  <span className="text-slate-400">
-                    {proc.revenue.toLocaleString()} {t("currency") || "EGP"}
-                  </span>
+            {topProcedures.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">
+                {t("noProceduresYet") || "No procedures recorded yet"}
+              </p>
+            ) : (
+              topProcedures.map((proc, i) => (
+                <div key={i} className="flex flex-col gap-2 group">
+                  <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors">
+                      {proc.name}
+                    </span>
+                    <span className="text-slate-400">
+                      {proc.revenue.toLocaleString()} {t("currency") || "EGP"}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${(proc.revenue / topProcedures[0].revenue) * 100}%`,
+                      }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
+                      className="h-full bg-blue-600 rounded-full group-hover:bg-emerald-500 transition-colors"
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${(proc.revenue / MOCK_TOP_PROCEDURES[0].revenue) * 100}%`,
-                    }}
-                    transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
-                    className="h-full bg-blue-600 rounded-full group-hover:bg-emerald-500 transition-colors"
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

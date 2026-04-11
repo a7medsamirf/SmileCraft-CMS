@@ -29,6 +29,7 @@ import {
   getTreatmentHistoryAction,
   updateTreatmentStatusAction,
 } from "../serverActions";
+import { createClient } from "@/lib/supabase/client";
 import { generateId } from "@/lib/utils/id";
 import { useTranslations } from "next-intl";
 
@@ -62,6 +63,12 @@ interface UseSessionProgressReturn {
     mouthMap: MouthMap,
     t: ReturnType<typeof useTranslations>,
   ) => void;
+  /** Save the current plan to DB (persists all status changes) */
+  savePlan: () => Promise<{ success: boolean; error?: string; savedPlan?: PlanItem[] }>;
+  /** Whether there are unsaved changes */
+  hasUnsavedChanges: boolean;
+  /** Reload plan from database */
+  reloadPlan: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +164,8 @@ export function useSessionProgress(
     plan: [],
     history: [],
   });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [savedPlan, setSavedPlan] = useState<PlanItem[]>([]);
 
   // React 19 useOptimistic for instant UI feedback
   const [optimisticState, addOptimisticUpdate] = useOptimistic(
@@ -201,61 +210,68 @@ export function useSessionProgress(
   // History is always loaded from DB regardless of plan source.
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    // Don't attempt to load if there is no patient selected yet
+    // 1. Reset state if patient is de-selected
     if (!patientId) {
-      setState({ plan: [], history: [] });
+      if (state.plan.length > 0 || state.history.length > 0) {
+        setState({ plan: [], history: [] });
+      }
       setIsLoaded(false);
       return;
     }
 
+    // 2. Prevent re-running if already loaded for this patient 
+    // and we have an initialPlan provided from props.
+    if (isLoaded && initialPlan && state.plan === initialPlan) return;
+
     let cancelled = false;
 
     const load = async () => {
-      // 1. Determine the starting plan
-      let plan: PlanItem[];
+      try {
+        let plan: PlanItem[] = [];
 
-      if (initialPlan && initialPlan.length > 0) {
-        // DB-persisted plan was passed in from the parent component — use it
-        plan = initialPlan;
-      } else {
-        // No persisted plan → generate a fresh one from the odontogram state
-        const nonHealthyTeeth = mouthMap.filter(
-          (tooth) =>
-            tooth.status !== ToothStatus.HEALTHY &&
-            tooth.status !== ToothStatus.MISSING,
-        );
-
-        if (nonHealthyTeeth.length > 0) {
-          const freshPlan = generatePlanFromMouthMap(mouthMap, t);
-          // Persist the generated plan so it gets real DB IDs
-          plan = await replaceTreatmentPlanAction(patientId, freshPlan);
+        if (initialPlan && initialPlan.length > 0) {
+          plan = initialPlan;
         } else {
-          plan = [];
+          // Only auto-generate if we're truly starting fresh for this patient
+          if (state.plan.length === 0) {
+            const nonHealthyTeeth = mouthMap.filter(
+              (tooth) =>
+                tooth.status !== ToothStatus.HEALTHY &&
+                tooth.status !== ToothStatus.MISSING,
+            );
+
+            if (nonHealthyTeeth.length > 0) {
+              const freshPlan = generatePlanFromMouthMap(mouthMap, t);
+              try {
+                plan = await replaceTreatmentPlanAction(patientId, freshPlan);
+              } catch (persistErr) {
+                console.error("[useSessionProgress] Failed to persist plan, using local plan:", persistErr);
+                plan = freshPlan;
+              }
+            }
+          } else {
+            plan = state.plan;
+          }
         }
-      }
 
-      // 2. Load audit history from DB
-      const history = await getTreatmentHistoryAction(patientId);
+        const treatmentHistory = await getTreatmentHistoryAction(patientId);
 
-      if (!cancelled) {
-        setState({ plan, history });
-        setIsLoaded(true);
+        if (!cancelled) {
+          setState({ plan, history: treatmentHistory });
+          setIsLoaded(true);
+        }
+      } catch (err) {
+        console.error("[useSessionProgress] load error:", err);
+        if (!cancelled) setIsLoaded(true);
       }
     };
 
-    setIsLoaded(false);
-    load().catch((err) => {
-      console.warn("[useSessionProgress] load error:", err);
-      if (!cancelled) setIsLoaded(true);
-    });
+    load();
 
     return () => {
       cancelled = true;
     };
-    // Re-run whenever the patient changes or the parent passes a new initialPlan.
-    // JSON.stringify(mouthMap) guards against reference instability.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientId, JSON.stringify(initialPlan)]);
+  }, [patientId, initialPlan, t]); // REMOVED mouthMap to prevent periodic re-generation loops
 
   // ---------------------------------------------------------------------------
   // regeneratePlan
@@ -271,6 +287,8 @@ export function useSessionProgress(
 
       const freshPlan = generatePlanFromMouthMap(newMouthMap, translator);
 
+      if (freshPlan.length === 0) return;
+
       // Optimistically set the generated plan so the UI updates instantly
       setState((prev) => ({ ...prev, plan: freshPlan }));
 
@@ -280,9 +298,12 @@ export function useSessionProgress(
           patientId,
           freshPlan,
         );
-        setState((prev) => ({ ...prev, plan: persistedPlan }));
+        // Only update if we got valid persisted items with DB IDs
+        if (persistedPlan && persistedPlan.length > 0 && persistedPlan[0].id) {
+          setState((prev) => ({ ...prev, plan: persistedPlan }));
+        }
       } catch (err) {
-        console.warn(
+        console.error(
           "[useSessionProgress] regeneratePlan persist failed:",
           err,
         );
@@ -294,79 +315,141 @@ export function useSessionProgress(
 
   // ---------------------------------------------------------------------------
   // updateItemStatus
-  // Applies an optimistic update immediately, then persists the status change
-  // to the DB and appends a CompletionRecord to the patient's history.
+  // Applies an optimistic update immediately and marks changes for saving.
+  // The actual DB persistence happens when savePlan() is called.
   // ---------------------------------------------------------------------------
   const updateItemStatus = useCallback(
     (itemId: string, newStatus: TreatmentStatus) => {
-      startTransition(() => {
-        // ── 1. Optimistic UI update ──────────────────────────────────────────
-        addOptimisticUpdate({ itemId, newStatus });
+      const targetItem = state.plan.find((p) => p.id === itemId);
+      if (!targetItem) return;
 
-        // ── 2. Persist to DB (fire-and-forget inside the transition) ─────────
-        const persist = async () => {
-          // Write the status change to the treatments table
-          await updateTreatmentStatusAction(itemId, newStatus);
+      const newRecord: CompletionRecord = {
+        id: generateId(),
+        planItemId: itemId,
+        toothId: targetItem.toothId,
+        procedure: targetItem.procedure,
+        previousStatus: targetItem.status,
+        newStatus,
+        timestamp: new Date().toISOString(),
+      };
 
-          // Build a CompletionRecord for the audit trail
-          const targetItem = state.plan.find((p) => p.id === itemId);
-          if (!targetItem) return;
-
-          const newRecord: CompletionRecord = {
-            id: generateId(),
-            planItemId: itemId,
-            toothId: targetItem.toothId,
-            procedure: targetItem.procedure,
-            previousStatus: targetItem.status,
-            newStatus,
-            timestamp: new Date().toISOString(),
-          };
-
-          // Commit the confirmed state and build the new history list
-          setState((prev) => {
-            const updatedPlan = prev.plan.map((item) =>
-              item.id === itemId
-                ? {
-                    ...item,
-                    status: newStatus,
-                    completedAt:
-                      newStatus === TreatmentStatus.COMPLETED
-                        ? new Date().toISOString()
-                        : undefined,
-                  }
-                : item,
-            );
-
-            const updatedHistory: CompletionRecord[] = [
-              newRecord,
-              ...prev.history,
-            ];
-
-            // Persist the updated history to DB (non-blocking)
-            if (patientId) {
-              saveTreatmentHistoryAction(patientId, updatedHistory).catch(
-                (err) =>
-                  console.warn(
-                    "[useSessionProgress] saveTreatmentHistoryAction failed:",
-                    err,
-                  ),
-              );
+      const updatedPlan = state.plan.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              status: newStatus,
+              completedAt:
+                newStatus === TreatmentStatus.COMPLETED
+                  ? new Date().toISOString()
+                  : undefined,
             }
+          : item,
+      );
 
-            return { plan: updatedPlan, history: updatedHistory };
-          });
-        };
+      const updatedHistory: CompletionRecord[] = [
+        newRecord,
+        ...state.history,
+      ];
 
-        persist().catch((err) => {
-          console.warn(
-            "[useSessionProgress] updateItemStatus persist failed:",
-            err,
-          );
-        });
+      startTransition(() => {
+        addOptimisticUpdate({ itemId, newStatus });
+        setState({ plan: updatedPlan, history: updatedHistory });
+        setHasUnsavedChanges(true);
       });
     },
-    [state.plan, patientId, addOptimisticUpdate],
+    [state.plan, state.history, addOptimisticUpdate],
   );
+
+  // ---------------------------------------------------------------------------
+  // savePlan
+  // Persists all current plan items and their statuses to the database.
+  // This is called when the user clicks "Save Plan" button.
+  // ---------------------------------------------------------------------------
+  const savePlan = useCallback(async (): Promise<{ success: boolean; error?: string; savedPlan?: PlanItem[] }> => {
+    if (!patientId) {
+      return { success: false, error: "noPatient" };
+    }
+
+    if (state.plan.length === 0) {
+      return { success: true };
+    }
+
+    try {
+      const needsInsert = state.plan.filter(
+        (item) => item.id.startsWith("plan-") || !item.id.includes("-"),
+      );
+
+      let planToSave = state.plan;
+
+      if (needsInsert.length > 0) {
+        const persistedPlan = await replaceTreatmentPlanAction(patientId, state.plan);
+        if (persistedPlan && persistedPlan.length > 0 && persistedPlan[0].id) {
+          planToSave = persistedPlan;
+        }
+      }
+
+      for (const item of planToSave) {
+        if (!item.id.startsWith("plan-")) {
+          const result = await updateTreatmentStatusAction(item.id, item.status);
+          if (!result.success) {
+            console.error(`[savePlan] Failed to update item ${item.id}:`, result.error);
+          }
+        }
+      }
+
+      await saveTreatmentHistoryAction(patientId, state.history);
+
+      setSavedPlan([...planToSave]);
+      setHasUnsavedChanges(false);
+      return { success: true, savedPlan: planToSave };
+    } catch (err) {
+      console.error("[savePlan] Failed:", err);
+      return { success: false, error: String(err) };
+    }
+  }, [patientId, state.plan, state.history]);
+
+  // ---------------------------------------------------------------------------
+  // reloadPlan
+  // Fetches the latest plan from the database.
+  // ---------------------------------------------------------------------------
+  const reloadPlan = useCallback(async () => {
+    if (!patientId) return;
+
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("*")
+        .eq("patientId", patientId)
+        .order("createdAt", { ascending: false });
+
+      if (error || !data) {
+        console.error("[reloadPlan] Failed to fetch plan:", error);
+        return;
+      }
+
+      const loadedPlan: PlanItem[] = data.map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        toothId: row.toothNumber ? parseInt(row.toothNumber as string, 10) : 0,
+        procedure: (row.procedureName as string) ?? "",
+        procedureKey: (row.procedureType as string) ?? "",
+        estimatedCost: Number(row.cost ?? 0),
+        status: (row.status as TreatmentStatus) ?? TreatmentStatus.PLANNED,
+        completedAt: typeof row.completedAt === "string" ? row.completedAt : undefined,
+      }));
+
+      setState((prev) => ({ ...prev, plan: loadedPlan }));
+      setSavedPlan([...loadedPlan]);
+      setHasUnsavedChanges(false);
+    } catch (err) {
+      console.error("[reloadPlan] Error:", err);
+    }
+  }, [patientId]);
 
   // ---------------------------------------------------------------------------
   // Derive odontogram color overrides from all COMPLETED items
@@ -388,6 +471,9 @@ export function useSessionProgress(
     odontogramOverrides,
     isLoaded,
     regeneratePlan,
+    savePlan,
+    hasUnsavedChanges,
+    reloadPlan,
   };
 }
 

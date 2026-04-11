@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import {
   bookAppointmentAction,
-  BookingState,
 } from "../actions/bookAppointmentAction";
+import type { BookingState } from "../schemas";
 import { getAppointmentsByDateAction } from "../serverActions";
 import { AppointmentStatus } from "../types";
 import { cn } from "@/lib/utils";
@@ -38,8 +38,18 @@ import {
   ToothPosition,
   ToothType,
 } from "@/features/clinical/types/odontogram";
-import { getServicesAction } from "@/features/settings/serverActions";
-import { DentalService } from "@/features/settings/types";
+import {
+  getServicesAction,
+  getBusinessHoursForBookingAction,
+} from "@/features/settings/serverActions";
+import { DentalService, BusinessDay } from "@/features/settings/types";
+import {
+  generateTimeSlots,
+  formatTimeToArabic,
+  parseArabicTime,
+  isDayOpen,
+  getDayNameFromDate,
+} from "@/lib/clinic-hours-utils";
 
 // ── Tooth position / type labels (Arabic) ───────────────────────────────────
 const POSITION_LABEL: Record<ToothPosition, string> = {
@@ -83,27 +93,6 @@ const DURATIONS = [
   { value: "60", label: "ساعة" },
   { value: "90", label: "ساعة ونصف" },
   { value: "120", label: "ساعتين" },
-];
-
-// ── Time slots ───────────────────────────────────────────────────────────────
-const TIME_SLOTS = [
-  "09:00 ص",
-  "09:30 ص",
-  "10:00 ص",
-  "10:30 ص",
-  "11:00 ص",
-  "11:30 ص",
-  "12:00 م",
-  "12:30 م",
-  "01:00 م",
-  "01:30 م",
-  "02:00 م",
-  "02:30 م",
-  "03:00 م",
-  "03:30 م",
-  "04:00 م",
-  "04:30 م",
-  "05:00 م",
 ];
 
 // ── Initial form state ───────────────────────────────────────────────────────
@@ -162,6 +151,10 @@ export function BookingForm({
   const [services, setServices] = useState<DentalService[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [selectedService, setSelectedService] = useState<DentalService | null>(null);
+  const [clinicHours, setClinicHours] = useState<BusinessDay[]>([]);
+  const [slotDuration, setSlotDuration] = useState<number>(30);
+  const [isLoadingHours, setIsLoadingHours] = useState(false);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
 
   // Load services from DB on mount
   useEffect(() => {
@@ -176,6 +169,32 @@ export function BookingForm({
         if (isMounted) setServices([]);
       } finally {
         if (isMounted) setIsLoadingServices(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  // Load clinic hours and slot duration on mount
+  useEffect(() => {
+    if (!isOpen) return;
+    let isMounted = true;
+    (async () => {
+      try {
+        setIsLoadingHours(true);
+        const { hours, slotDuration: duration } = await getBusinessHoursForBookingAction();
+        if (isMounted) {
+          setClinicHours(hours);
+          setSlotDuration(duration);
+        }
+      } catch {
+        if (isMounted) {
+          setClinicHours([]);
+          setSlotDuration(30);
+        }
+      } finally {
+        if (isMounted) setIsLoadingHours(false);
       }
     })();
     return () => {
@@ -239,32 +258,55 @@ export function BookingForm({
     }
   }, [isOpen, defaultValues]);
 
-  // Load booked slots when date changes
+  // Load booked slots and generate available time slots when date changes
   useEffect(() => {
     if (!isOpen || !selectedDate) {
       setBookedTimes(new Set());
+      setAvailableTimeSlots([]);
       return;
     }
+
+    const selectedDateObj = new Date(selectedDate);
+    
+    // Check if selected date is an open day
+    if (clinicHours.length > 0 && !isDayOpen(selectedDateObj, clinicHours)) {
+      setBookedTimes(new Set());
+      setAvailableTimeSlots([]);
+      return;
+    }
+
     let isMounted = true;
     (async () => {
       try {
         setIsLoadingSlots(true);
-        const dayApts = await getAppointmentsByDateAction(
-          new Date(selectedDate),
-        );
+        const dayApts = await getAppointmentsByDateAction(selectedDateObj);
         if (!isMounted) return;
+        
         const unavailable = new Set<AppointmentStatus>([
           AppointmentStatus.SCHEDULED,
           AppointmentStatus.CONFIRMED,
           AppointmentStatus.IN_PROGRESS,
         ]);
-        setBookedTimes(
-          new Set(
-            dayApts.filter((a) => unavailable.has(a.status)).map((a) => a.time),
-          ),
+        const bookedTimeSet = new Set(
+          dayApts.filter((a) => unavailable.has(a.status)).map((a) => a.time),
         );
+        setBookedTimes(bookedTimeSet);
+
+        // Generate available time slots based on clinic hours
+        const bookedTimesArray = Array.from(bookedTimeSet);
+        const slots = generateTimeSlots(
+          selectedDateObj,
+          clinicHours,
+          slotDuration,
+          bookedTimesArray,
+        );
+        const formattedSlots = slots.map(formatTimeToArabic);
+        setAvailableTimeSlots(formattedSlots);
       } catch {
-        if (isMounted) setBookedTimes(new Set());
+        if (isMounted) {
+          setBookedTimes(new Set());
+          setAvailableTimeSlots([]);
+        }
       } finally {
         if (isMounted) setIsLoadingSlots(false);
       }
@@ -272,7 +314,7 @@ export function BookingForm({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, selectedDate]);
+  }, [isOpen, selectedDate, clinicHours, slotDuration]);
 
   // Deselect time if it becomes booked after a reload
   useEffect(() => {
@@ -674,25 +716,42 @@ export function BookingForm({
                 <Clock className="w-3.5 h-3.5" />
                 اختر الوقت
               </label>
-              <input type="hidden" name="time" value={selectedTime} />
+              <input 
+                type="hidden" 
+                name="time" 
+                value={selectedTime ? parseArabicTime(selectedTime) : ""} 
+              />
 
               {!selectedDate && (
                 <p className="text-[11px] text-amber-500 font-medium mb-2">
                   اختر التاريخ أولًا لعرض الأوقات المتاحة.
                 </p>
               )}
+
+              {selectedDate && clinicHours.length > 0 && !isDayOpen(new Date(selectedDate), clinicHours) && (
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 mb-3">
+                  <p className="text-[12px] text-red-600 dark:text-red-400 font-medium text-center">
+                    العيادة مغلقة في هذا اليوم ({getDayNameFromDate(new Date(selectedDate))})
+                  </p>
+                </div>
+              )}
+
               {isLoadingSlots && (
                 <p className="text-[11px] text-slate-500 font-medium mb-2">
                   جاري تحميل الأوقات المتاحة...
                 </p>
               )}
 
+              {!isLoadingSlots && selectedDate && availableTimeSlots.length === 0 && clinicHours.length > 0 && isDayOpen(new Date(selectedDate), clinicHours) && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium mb-2">
+                  لا توجد أوقات متاحة في هذا اليوم
+                </p>
+              )}
+
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {TIME_SLOTS.map((slot) => {
+                {availableTimeSlots.map((slot) => {
                   const isSelected = selectedTime === slot;
-                  const isBooked = bookedTimes.has(slot);
-                  const isDisabled =
-                    isPending || !selectedDate || isLoadingSlots || isBooked;
+                  const isDisabled = isPending || isLoadingSlots;
                   return (
                     <button
                       key={slot}
@@ -701,11 +760,9 @@ export function BookingForm({
                       onClick={() => setSelectedTime(slot)}
                       className={cn(
                         "py-2 px-1 rounded-lg text-[12px] font-bold transition-all border",
-                        isBooked
-                          ? "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed line-through"
-                          : isSelected
-                            ? "bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/25"
-                            : "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-500 cursor-pointer",
+                        isSelected
+                          ? "bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-500/25"
+                          : "bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-500 cursor-pointer",
                       )}
                     >
                       {slot}
@@ -752,6 +809,14 @@ export function BookingForm({
             </div>
 
             {/* ── Error / Success feedback ── */}
+            {selectedDate && clinicHours.length > 0 && !isDayOpen(new Date(selectedDate), clinicHours) && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p className="text-[12.5px] text-amber-600 dark:text-amber-400 text-center font-medium">
+                  لا يمكن الحجز في يوم {getDayNameFromDate(new Date(selectedDate))} - العيادة مغلقة
+                </p>
+              </div>
+            )}
+
             {state.errors?.form && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                 <p className="text-[12.5px] text-red-400 text-center font-medium">
@@ -772,11 +837,11 @@ export function BookingForm({
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || Boolean(selectedDate && clinicHours.length > 0 && !isDayOpen(new Date(selectedDate), clinicHours))}
                 className={cn(
                   "flex-1 py-3 rounded-xl font-bold text-[14px] transition-all duration-200",
                   "flex items-center justify-center gap-2",
-                  isPending
+                  isPending || Boolean(selectedDate && clinicHours.length > 0 && !isDayOpen(new Date(selectedDate), clinicHours))
                     ? "bg-blue-500/30 text-blue-200 cursor-not-allowed"
                     : "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40",
                 )}

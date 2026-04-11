@@ -44,7 +44,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
               
               {/* Label */}
               <span className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter dark:text-slate-500 group-hover:text-blue-500 transition-colors">
-                {t(item.month)}
+                {item.month}
               </span>
             </div>
           );

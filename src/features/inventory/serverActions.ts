@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { InventoryItem, InventoryCategory } from "./types";
@@ -19,8 +20,8 @@ async function getClinicId(): Promise<string> {
 
 export async function getInventoryItemsAction() {
   const clinicId = await getClinicId();
-  
-  const items = await prisma.inventoryItem.findMany({
+
+  const items = await prisma.inventory_items.findMany({
     where: { clinicId },
     orderBy: { name: "asc" }
   });
@@ -42,9 +43,10 @@ export async function getInventoryItemsAction() {
 
 export async function createInventoryItemAction(payload: Omit<InventoryItem, "id">) {
   const clinicId = await getClinicId();
-  
-  const item = await prisma.inventoryItem.create({
+
+  const item = await prisma.inventory_items.create({
     data: {
+      id: crypto.randomUUID(),
       clinicId,
       name: payload.name,
       category: payload.category,
@@ -56,7 +58,11 @@ export async function createInventoryItemAction(payload: Omit<InventoryItem, "id
       expiryDate: payload.expiryDate ? new Date(payload.expiryDate) : null,
       location: payload.location,
       notes: payload.notes,
-      code: `INV-${Date.now().toString().slice(-6)}` // Required by schema
+      isActive: true,
+      nameAr: null,
+      code: `INV-${Date.now().toString().slice(-6)}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
   });
 
@@ -66,8 +72,8 @@ export async function createInventoryItemAction(payload: Omit<InventoryItem, "id
 
 export async function updateInventoryQuantityAction(id: string, newQuantity: number) {
   const clinicId = await getClinicId();
-  
-  const item = await prisma.inventoryItem.update({
+
+  const item = await prisma.inventory_items.update({
     where: { id, clinicId },
     data: { quantity: newQuantity }
   });
@@ -78,8 +84,8 @@ export async function updateInventoryQuantityAction(id: string, newQuantity: num
 
 export async function deleteInventoryItemAction(id: string) {
   const clinicId = await getClinicId();
-  
-  await prisma.inventoryItem.delete({
+
+  await prisma.inventory_items.delete({
     where: { id, clinicId }
   });
 

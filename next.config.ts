@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
     protocol: "https",
     hostname: "i.pravatar.cc",
    },
+   {
+    protocol: "https",
+    hostname: "raw.githubusercontent.com",
+   },
+   {
+    protocol: "https",
+    hostname: "wqvrsvscfsqnezlabmvb.supabase.co",
+   },
   ],
  },
 };

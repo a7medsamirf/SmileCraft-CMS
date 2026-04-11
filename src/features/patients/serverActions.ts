@@ -21,6 +21,7 @@ import {
   ISODateString,
   ISODateTimeString,
   Allergy,
+  VisitType,
 } from "./types/index";
 
 // ---------------------------------------------------------------------------
@@ -133,7 +134,16 @@ function mapRowToPatient(row: Record<string, unknown>): Patient {
     },
 
     xrayCount: 0,
-    visits: [],
+    visits: Array.isArray(row.treatmentHistory)
+      ? (row.treatmentHistory as any[]).map((rec: any) => ({
+          id: rec.id || Math.random().toString(),
+          visitDate: rec.timestamp || new Date().toISOString(),
+          type: VisitType.TREATMENT,
+          dentistName: "طبيب العيادة", // Placeholder until doctor assignment is tracked in records
+          chiefComplaint: `${rec.procedure} (سن رقم ${rec.toothId})`,
+          isPaid: true,
+        }))
+      : [],
 
     status:
       row.isActive === true ? PatientStatus.ACTIVE : PatientStatus.INACTIVE,

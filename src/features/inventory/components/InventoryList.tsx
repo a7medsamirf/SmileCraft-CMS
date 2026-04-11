@@ -107,8 +107,8 @@ export function InventoryList({ onEdit, onAdd }: InventoryListProps) {
     }
   };
 
-  const totalValue = inventoryService.getInventoryValue();
-  const lowStockCount = inventoryService.getLowStockItems().length;
+  const totalValue = inventoryService.getInventoryValue(items);
+  const lowStockCount = inventoryService.getLowStockItems(items).length;
 
   return (
     <div className="space-y-6">
@@ -154,7 +154,7 @@ export function InventoryList({ onEdit, onAdd }: InventoryListProps) {
             </div>
             <div>
               <p className="text-xs text-slate-500">{t("stats.expiring")}</p>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">{inventoryService.getExpiringItems().length}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">{inventoryService.getExpiringItems(items).length}</p>
             </div>
           </div>
         </div>

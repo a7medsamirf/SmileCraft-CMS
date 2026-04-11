@@ -1,19 +1,29 @@
 "use client";
 
 import React, { createContext, useContext, useState, useOptimistic, useTransition, ReactNode } from "react";
-import { 
-  DentalService, 
-  BusinessDay, 
-  ClinicInfo, 
-  NotificationSettings, 
-  InitialSettingsData 
+import {
+  DentalService,
+  BusinessDay,
+  ClinicInfo,
+  NotificationSettings,
+  InitialSettingsData
 } from "../types";
-import { 
-  updateServiceAction, 
-  saveBusinessHoursAction, 
-  updateClinicInfoAction, 
-  saveNotificationSettingsAction 
+import {
+  updateServiceAction,
+  saveBusinessHoursAction,
+  updateClinicInfoAction,
+  saveNotificationSettingsAction
 } from "../serverActions";
+
+const DEFAULT_HOURS: BusinessDay[] = [
+  { day: "saturday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "sunday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "monday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "tuesday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "wednesday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "thursday", isOpen: true, start: "09:00", end: "14:00" },
+  { day: "friday", isOpen: false, start: "09:00", end: "17:00" },
+];
 
 interface SettingsContextType {
   services: DentalService[];
@@ -29,15 +39,17 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-export function SettingsProvider({ 
-  children, 
-  initialData 
-}: { 
-  children: ReactNode; 
+export function SettingsProvider({
+  children,
+  initialData
+}: {
+  children: ReactNode;
   initialData: InitialSettingsData;
 }) {
   const [services, setServices] = useState<DentalService[]>(initialData.services);
-  const [hours, setHours] = useState<BusinessDay[]>(initialData.hours);
+  const [hours, setHours] = useState<BusinessDay[]>(
+    initialData.hours.length > 0 ? initialData.hours : DEFAULT_HOURS
+  );
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo | null>(initialData.clinicInfo);
   const [notifications, setNotifications] = useState<NotificationSettings>(initialData.notifications);
 

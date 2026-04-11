@@ -29,7 +29,7 @@ export default function AppointmentsPage() {
               {t("title")}
             </h1>
             <p className="mt-2 text-slate-500 dark:text-slate-400">
-              قائمة المواعيد اليومية، متابعة الحجوزات، وإدارة وقت العيادة.
+              {t("description")}
             </p>
           </div>
 
@@ -37,7 +37,7 @@ export default function AppointmentsPage() {
             {/* Live Queue Link */}
             <Link
               href="/appointments/queue"
-              className="flex items-center gap-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-sm px-5 py-3 rounded-xl transition-all border border-blue-100 shadow-sm"
+              className="flex items-center gap-2 bg-white text-blue-600 hover:bg-blue-100 font-bold text-sm px-5 py-3 rounded-xl transition-all border border-blue-100 relative"
             >
               <Activity className="w-5 h-5" />
               {t("queueTitle")}
@@ -46,7 +46,7 @@ export default function AppointmentsPage() {
             {/* Book Appointment Button */}
             <button
               onClick={() => setIsBookingOpen(true)}
-              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-3 rounded-xl shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5 relative"
             >
               <Plus className="w-5 h-5" />
               {t("bookAppointment")}
@@ -61,7 +61,7 @@ export default function AppointmentsPage() {
 
           <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
             <p className="text-slate-500 dark:text-slate-400 font-medium">
-              قريباً: عرض أسبوعي وشهري للمواعيد وفلترة متقدمة حسب الطبيب.
+              {t("comingSoonDesc")}
             </p>
           </div>
         </div>

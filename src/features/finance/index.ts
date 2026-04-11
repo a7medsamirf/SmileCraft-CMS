@@ -5,3 +5,4 @@
 
 export * from "./types";
 export { PaymentTracker } from "./components/PaymentTracker";
+export { InvoiceHistoryTable } from "./components/InvoiceHistoryTable";

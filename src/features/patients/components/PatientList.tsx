@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Plus, Filter, Users } from "lucide-react";
+import { Search, Plus, Filter, Users, Loader2 } from "lucide-react";
 import { PatientCard } from "./PatientCard";
 import { usePatients } from "../hooks/usePatients";
 import { Input } from "@/components/ui/Input";
@@ -16,12 +16,27 @@ import { toast } from "react-hot-toast";
 export function PatientList() {
   const t = useTranslations("Patients");
   const router = useRouter();
-  const { patients, isLoading, total, filters, setFilters, refresh } =
-    usePatients();
+  const { patients, isLoading, total, setFilters, refresh } = usePatients();
+  const [searchInput, setSearchInput] = React.useState("");
+  const [isSearching, setIsSearching] = React.useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [editingPatient, setEditingPatient] = React.useState<Patient | null>(
     null,
   );
+
+  React.useEffect(() => {
+    if (!searchInput) {
+      setIsSearching(false);
+      setFilters({ search: "" });
+      return;
+    }
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      setFilters({ search: searchInput });
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, setFilters]);
 
   const handleDelete = async (patient: Patient) => {
     if (confirm(t("deleteConfirm") || "هل أنت متأكد من حذف هذا المريض؟")) {
@@ -52,7 +67,7 @@ export function PatientList() {
         </div>
         <Button
           onClick={() => setIsAddModalOpen(true)}
-          className="shrink-0 rounded-2xl shadow-blue-500/20 shadow-lg px-6"
+          className="shrink-0 rounded-2xl shadow-blue-500/20 shadow-lg px-6 relative"
         >
           <Plus className="me-2 h-5 w-5" />
           {t("addPatient")}
@@ -83,10 +98,10 @@ export function PatientList() {
         <div className="relative w-full sm:max-w-md">
           <Input
             placeholder={t("searchPlaceholder")}
-            icon={<Search className="h-5 w-5" />}
+            icon={isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
             className="rounded-2xl border-slate-200/80 bg-white/80 dark:bg-slate-900/40 dark:border-slate-800"
-            value={filters.search || ""}
-            onChange={(e) => setFilters({ search: e.target.value })}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
 
@@ -139,7 +154,10 @@ export function PatientList() {
           <Button
             variant="outline"
             className="mt-6 rounded-2xl dark:border-slate-800"
-            onClick={() => setFilters({ search: "" })}
+            onClick={() => {
+              setSearchInput("");
+              setFilters({ search: "" });
+            }}
           >
             {t("clearSearch")}
           </Button>

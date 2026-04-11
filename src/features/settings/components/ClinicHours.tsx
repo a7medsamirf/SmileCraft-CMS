@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Clock, CalendarOff, Save, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { z } from "zod";
@@ -8,6 +8,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/Button";
 import { useClinicSettings } from "../hooks/useClinicSettings";
+import { BusinessDay } from "../types";
+
+const DEFAULT_HOURS: BusinessDay[] = [
+  { day: "saturday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "sunday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "monday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "tuesday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "wednesday", isOpen: true, start: "09:00", end: "17:00" },
+  { day: "thursday", isOpen: true, start: "09:00", end: "14:00" },
+  { day: "friday", isOpen: false, start: "09:00", end: "17:00" },
+];
 
 const scheduleSchema = z.object({
   days: z
@@ -40,11 +51,19 @@ export function ClinicHours() {
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors, isDirty },
   } = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: { days: hours },
+    defaultValues: { days: hours.length > 0 ? hours : DEFAULT_HOURS },
   });
+
+  // Sync form with DB data when it loads
+  useEffect(() => {
+    if (hours.length > 0) {
+      reset({ days: hours });
+    }
+  }, [hours, reset]);
 
   const onSubmit = (data: ScheduleFormValues) => {
     updateBusinessHours(data.days);
@@ -92,9 +111,9 @@ export function ClinicHours() {
               >
                 <Clock className="h-6 w-6" />
               </div>
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-slate-900 dark:text-white capitalize">
-                  {day.day}
+                  {t(`days.${day.day}`)}
                 </span>
                 {!day.isOpen && (
                   <span className="ml-3 text-xs font-semibold text-red-500 uppercase tracking-wider">
@@ -139,10 +158,10 @@ export function ClinicHours() {
               >
                 {day.isOpen ? (
                   <>
-                    <CalendarOff className="h-4 w-4 mr-2" /> {t("offDay")}
+                    <CalendarOff className="h-4 w-4 me-2" /> {t("offDay")}
                   </>
                 ) : (
-                  <span className="capitalize">{day.day}</span>
+                  <span className="capitalize">{t(`days.${day.day}`)}</span>
                 )}
               </Button>
             </div>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import Logo from "@/components/SharesComponent/Logo";
+import { Logo } from "@/components/SharesComponent/Logo";
 
 const NAV_LINKS = [
   { label: "المميزات", href: "#features" },
@@ -34,7 +34,7 @@ export function LandingNavbar() {
       {/* Logo */}
       <div className="flex items-center gap-2.5">
 
-            <Logo />
+            <Logo className="w-32 sm:w-40 md:w-44 lg:w-60 h-auto object-contain" />
         
        {/*  <span className="text-xl font-black text-white tracking-tight">
           <span className="text-[#2563EB]">Smile</span>Craft

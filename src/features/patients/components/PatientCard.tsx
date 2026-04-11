@@ -11,6 +11,7 @@ import {
   Activity,
   Pencil,
   Trash2,
+  Droplets,
 } from "lucide-react";
 
 import { useTranslations } from "next-intl";
@@ -88,12 +89,21 @@ export function PatientCard({ patient, onClick, onEdit, onDelete }: PatientCardP
             {patient.age} {t("age")}
           </span>
         </div>
-        <div className="col-span-2 flex items-center gap-2 text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
           <Activity className="h-4 w-4 shrink-0 text-slate-400" />
           <span className="truncate">
             {t("lastVisit")}:{" "}
             <span className="font-semibold text-slate-900 dark:text-slate-200">
               {formatDate(patient.lastVisit)}
+            </span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+          <Droplets className="h-4 w-4 shrink-0 text-red-500/70" />
+          <span className="truncate">
+            {t("bloodGroup")}:{" "}
+            <span className="font-semibold text-slate-900 dark:text-slate-200">
+              {patient.medicalHistory.bloodGroup || "---"}
             </span>
           </span>
         </div>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   StaffMember,
   StaffRole,
@@ -121,6 +122,9 @@ function mapStaffRow(row: Record<string, unknown>): StaffMember {
         : new Date().toISOString().slice(0, 10),
     salary: Number(row.salary ?? 0),
     isActive: row.isActive === true,
+    permissions: row.permissions
+      ? (row.permissions as Record<string, unknown>)
+      : undefined,
   };
 }
 
@@ -209,6 +213,51 @@ export async function createStaffMemberAction(
 
     const newId = crypto.randomUUID();
     const now = new Date().toISOString();
+
+    // If login account is requested, create Supabase Auth user first
+    let authUserId: string | null = null;
+    if (payload.createLoginAccount && payload.password) {
+      const supabaseAdmin = createAdminClient();
+      
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: payload.email,
+        password: payload.password,
+        email_confirm: true, // Skip email confirmation for staff
+        user_metadata: {
+          fullName: payload.fullName,
+          role: payload.role,
+        },
+      });
+
+      if (authError) {
+        // Check if email already exists
+        if (authError.message.toLowerCase().includes("already")) {
+          throw new Error("Email already has an account");
+        }
+        throw new Error(authError.message);
+      }
+
+      authUserId = authData.user?.id ?? null;
+
+      // Create user record in public.users table
+      const { error: userError } = await supabase.from("users").insert({
+        id: authUserId,
+        email: payload.email.toLowerCase(),
+        fullName: payload.fullName,
+        phone: payload.phone,
+        role: payload.role === "DOCTOR" ? "DOCTOR" : "RECEPTIONIST",
+        isActive: true,
+        clinicId,
+        updatedAt: now,
+      });
+
+      if (userError) {
+        console.error("[createStaffMember] Failed to create user record:", userError.message);
+        // Continue anyway - staff record will be created
+      }
+    }
+
+    // Create staff record
     const { data, error } = await supabase
       .from("staff")
       .insert({
@@ -224,7 +273,9 @@ export async function createStaffMemberAction(
         isActive: payload.isActive,
         role: payload.role,
         employeeCode: `STF-${Date.now().toString().slice(-6)}`,
-        updatedAt: now, // NOT NULL, no DB default — must be supplied explicitly
+        userId: authUserId, // Link to auth user if created
+        permissions: payload.permissions ?? {},
+        updatedAt: now,
       })
       .select()
       .single();

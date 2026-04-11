@@ -27,9 +27,12 @@ import {
   CalendarX2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { PatientOdontogramModal } from "@/features/clinical/components/PatientOdontogramModal";
 import { updateAppointmentStatusAction } from "../actions/updateStatusAction";
 import type { QueueAppointment, QueueStats } from "../services/queue";
 import type { AppointmentStatus } from "@/types/database.types";
+import { toast } from "react-hot-toast";
 
 // ---------------------------------------------------------------------------
 // Status Badge Configuration
@@ -95,6 +98,17 @@ export function TodayQueueUI({
   const t = useTranslations("Appointments");
   const [isPending, startTransition] = useTransition();
 
+  // ── Odontogram Modal State ─────────────────────────────────────────────
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientName, setSelectedPatientName] = useState<string | null>(null);
+
+  const openMapModal = (patientId: string, patientName: string) => {
+    setSelectedPatientId(patientId);
+    setSelectedPatientName(patientName);
+    setIsMapModalOpen(true);
+  };
+
   // ── Status change handler ───────────────────────────────────────────────
   function handleStatusChange(id: string, newStatus: AppointmentStatus) {
     startTransition(async () => {
@@ -102,6 +116,25 @@ export function TodayQueueUI({
       if (!result.success) {
         // Non-blocking — the Realtime listener will keep the UI in sync.
         console.error("[TodayQueueUI] Status update failed:", result.error);
+        toast.error(t("queueError") || "Status update failed");
+      } else {
+        // Show localized success notification
+        if (newStatus === "CONFIRMED") {
+          toast.success(t("notificationStarted"), {
+            icon: "🏥",
+            className: "font-bold",
+          });
+        } else if (newStatus === "COMPLETED") {
+          toast.success(t("notificationCompleted"), {
+            icon: "✅",
+            className: "font-bold",
+          });
+        } else if (newStatus === "CANCELLED") {
+          toast.error(t("notificationCancelled"), {
+            icon: "🚫",
+            className: "font-bold border-red-100",
+          });
+        }
       }
       // No need to call router.refresh() here — the RealtimeAppointmentHandler
       // will receive the DB change event and call router.refresh() automatically.
@@ -272,14 +305,15 @@ export function TodayQueueUI({
 
                           {/* View Patient MouthMap → Clinical module */}
                           {!isTerminal && (
-                            <Link
-                              href={`/${locale}/dashboard/clinical?patientId=${apt.patientId}`}
+                            <button
+                              type="button"
+                              onClick={() => openMapModal(apt.patientId, apt.patientName)}
                               className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-600 transition-colors hover:bg-violet-500/20 dark:text-violet-400"
                               title="عرض خريطة الأسنان في الوحدة السريرية"
                             >
                               <Stethoscope className="h-3.5 w-3.5" />
                               {t("queueViewMap")}
-                            </Link>
+                            </button>
                           )}
                         </div>
                       </td>
@@ -291,6 +325,13 @@ export function TodayQueueUI({
           </table>
         </div>
       </div>
+
+      <PatientOdontogramModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        patientId={selectedPatientId}
+        patientName={selectedPatientName}
+      />
     </div>
   );
 }

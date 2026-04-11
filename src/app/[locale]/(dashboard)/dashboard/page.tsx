@@ -1,5 +1,5 @@
 import { StatsGrid } from "@/features/dashboard/components/StatsGrid";
-import { WeeklyRevenueChart } from "@/features/dashboard/components/WeeklyRevenueChart";
+import { WeeklyRevenueChartServer } from "@/features/dashboard/components/WeeklyRevenueChartServer";
 import { ProceduresBreakdown } from "@/features/dashboard/components/ProceduresBreakdown";
 import { QuickActions } from "@/features/dashboard/components/QuickActions";
 import { InventoryAlerts } from "@/features/dashboard/components/InventoryAlerts";
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
           <QuickActions />
           </div>
           <div>
-          <WeeklyRevenueChart />
+          <WeeklyRevenueChartServer />
           </div>
            <div className="lg:col-span-1 ">
                   <ProceduresBreakdown />

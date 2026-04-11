@@ -1,16 +1,16 @@
 "use client";
 
+import { Logo } from "@/components/SharesComponent/Logo";
+
 export function LandingFooter() {
   return (
     <footer className="bg-[#0B1525] border-t border-[rgba(37,99,235,0.12)] py-8 px-[5vw]" dir="rtl">
       <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
         {/* Logo */}
         <div className="flex flex-col items-center md:items-start gap-2">
-          <span className="text-lg font-black text-white tracking-tight">
-            <span className="text-[#2563EB]">Smile</span>Craft
-          </span>
+         <Logo className="w-32 sm:w-40 md:w-44 lg:w-60 h-auto object-contain" />
           <p className="text-[12.5px] text-[#6B849E] font-medium text-center md:text-right">
-            نظام إدارة عيادات الأسنان 
+            نظام إدارة عيادات الأسنان
           </p>
         </div>
 

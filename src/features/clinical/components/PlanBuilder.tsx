@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useActionState, useMemo, useState, startTransition } from "react";
+import React, { useActionState, useMemo, useState, startTransition, useEffect } from "react";
 import {
   PlanItem,
   TreatmentStatus,
@@ -19,8 +19,11 @@ import {
   Clock,
   X,
   History,
+  Printer,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
+import { PrintableInvoice } from "./PrintableInvoice";
+import { getPatientAction } from "../serverActions";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -30,6 +33,7 @@ interface PlanBuilderProps {
   plan: PlanItem[];
   onStatusChange: (itemId: string, newStatus: TreatmentStatus) => void;
   completionHistory: CompletionRecord[];
+  patientId: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +102,7 @@ interface InvoiceModeDialogProps {
   formAction: (formData: FormData) => void;
   isPending: boolean;
   t: ReturnType<typeof useTranslations>;
+  patientId: string;
 }
 
 function InvoiceModeDialog({
@@ -110,12 +115,13 @@ function InvoiceModeDialog({
   formAction,
   isPending,
   t,
+  patientId,
 }: InvoiceModeDialogProps) {
   if (!isOpen) return null;
 
   const handleSubmit = (mode: "ALL" | "COMPLETED_ONLY") => {
     const formData = new FormData();
-    formData.set("patientId", "demo-patient-123");
+    formData.set("patientId", patientId);
     formData.set("invoiceMode", mode);
     startTransition(() => formAction(formData));
     onClose();
@@ -219,16 +225,33 @@ export function PlanBuilder({
   plan,
   onStatusChange,
   completionHistory,
+  patientId,
 }: PlanBuilderProps) {
   const t = useTranslations("Clinical");
   const locale = useLocale();
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showPrintableInvoice, setShowPrintableInvoice] = useState(false);
+  const [patientInfo, setPatientInfo] = useState<{ firstName: string; lastName: string; phone: string } | null>(null);
 
   // Use React 19's useActionState for invoice form handling
   const [invoiceState, formAction, isPending] = useActionState(submitInvoiceAction, {
     success: null,
     message: "",
   });
+
+  // Fetch patient info when invoice is successfully created
+  useEffect(() => {
+    if (invoiceState.success && invoiceState.invoiceId) {
+      const fetchPatient = async () => {
+        const patient = await getPatientAction(patientId);
+        if (patient) {
+          setPatientInfo(patient);
+          setShowPrintableInvoice(true);
+        }
+      };
+      fetchPatient();
+    }
+  }, [invoiceState.success, invoiceState.invoiceId, patientId]);
 
   // Derived computations
   const totalCost = useMemo(
@@ -250,6 +273,11 @@ export function PlanBuilder({
   );
 
   const progressPercent = plan.length > 0 ? (completedCount / plan.length) * 100 : 0;
+
+  // Invoice items (for printable invoice)
+  const invoiceItems = useMemo(() => {
+    return plan.filter((item) => item.status === TreatmentStatus.COMPLETED);
+  }, [plan]);
 
   // Cycle through statuses: PLANNED → IN_PROGRESS → COMPLETED → PLANNED
   const handleToggleStatus = (item: PlanItem) => {
@@ -402,20 +430,31 @@ export function PlanBuilder({
       {/* Invoice State Message */}
       {invoiceState.message && (
         <div
-          className={`flex items-center gap-2 rounded-xl p-3 text-sm font-semibold ${
+          className={`flex flex-col gap-2 rounded-xl p-3 text-sm font-semibold ${
             invoiceState.success
               ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50"
               : "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:border-red-900/50"
           }`}
         >
-          {invoiceState.success ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            {invoiceState.success ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <span>
+              {invoiceState.success && invoiceState.invoiceId
+                ? t(invoiceState.message, { invoiceId: invoiceState.invoiceId })
+                : t(invoiceState.message)}
+            </span>
+          </div>
+          {invoiceState.success && invoiceState.invoiceId && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-mono bg-emerald-100 dark:bg-emerald-900/50 px-2 py-1 rounded">
+                {invoiceState.invoiceId}
+              </span>
+            </div>
           )}
-          {invoiceState.success
-            ? t(invoiceState.message, { invoiceId: invoiceState.invoiceId ?? "" })
-            : t(invoiceState.message)}
         </div>
       )}
 
@@ -447,7 +486,23 @@ export function PlanBuilder({
         formAction={formAction}
         isPending={isPending}
         t={t}
+        patientId={patientId}
       />
+
+      {/* Printable Invoice Modal */}
+      {showPrintableInvoice && invoiceState.invoiceId && patientInfo && (
+        <PrintableInvoice
+          isOpen={showPrintableInvoice}
+          onClose={() => setShowPrintableInvoice(false)}
+          invoiceId={invoiceState.invoiceNumber || invoiceState.invoiceId}
+          patientName={`${patientInfo.firstName} ${patientInfo.lastName}`}
+          patientPhone={patientInfo.phone}
+          items={invoiceItems}
+          total={completedCost}
+          mode="COMPLETED_ONLY"
+          createdAt={new Date()}
+        />
+      )}
 
       {/* Recent Activity (Mini Timeline) */}
       {recentHistory.length > 0 && (

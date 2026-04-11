@@ -25,9 +25,12 @@ import {
   Loader2,
   CalendarCheck,
   User,
+  Package,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/[locale]/(auth)/logoutAction";
+import { Logo } from "@/components/SharesComponent/Logo";
 
 function LogoutButton() {
   const t = useTranslations("Sidebar");
@@ -49,15 +52,23 @@ function LogoutButton() {
   );
 }
 
-export function Sidebar({ 
+export function Sidebar({
   userName,
+  userSpecialty,
+  userRole,
   clinicName,
-  clinicLogo
-}: { 
+  clinicLogo,
+  logoUrlDark
+}: {
   userName?: string | null;
+  userSpecialty?: string | null;
+  userRole?: string | null;
   clinicName?: string;
   clinicLogo?: string;
-}) {
+  logoUrlDark?: string;
+}
+
+) {
   const t = useTranslations("Sidebar");
 
   const NAV_LINKS = [
@@ -66,7 +77,9 @@ export function Sidebar({
     { name: t("appointments"), href: "/appointments", icon: CalendarCheck },
     { name: t("calendar"), href: "/calendar", icon: Calendar },
     { name: t("clinical"), href: "/clinical", icon: Stethoscope },
+    { name: t("smartAssistant"), href: "/assistant", icon: Sparkles },
     { name: t("staff"), href: "/staff", icon: UserCheck },
+    { name: t("inventory"), href: "/inventory", icon: Package },
     { name: t("finance"), href: "/billing", icon: Wallet },
     { name: t("settings"), href: "/settings", icon: Settings },
   ] as const;
@@ -98,11 +111,12 @@ export function Sidebar({
       {/* Mobile Top Header */}
       <div className="md:hidden sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200/50 bg-white/80 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
         <Link href="/" className="flex items-center gap-2">
-          {clinicLogo ? (
-            <img src={clinicLogo} alt="Logo" className="h-6 w-6 object-contain" />
-          ) : (
-            <Dna className="h-6 w-6 text-blue-600" />
-          )}
+          <Logo 
+            logoUrl={clinicLogo} 
+            logoUrlDark={logoUrlDark} 
+            width={32} 
+            height={32} 
+          />
           <span className="font-bold text-slate-900 dark:text-white">
             {clinicName || t("shortAppName")}
           </span>
@@ -143,16 +157,15 @@ export function Sidebar({
         <div>
           {/* Logo Area */}
           <Link href="/" className="flex h-20 items-center gap-3 border-b border-slate-100 px-6 dark:border-slate-800/50">
-            <div className="flex w-50 items-center justify-center rounded-xl  overflow-hidden">
-              {clinicLogo ? (
-                <img src={clinicLogo} alt="Logo" className="h-full w-full object-cover" />
-              ) : (
-                 <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                 {clinicName || t("appName")}
-            </span> 
-              )}
+            <div className="flex w-full items-center justify-center rounded-xl overflow-hidden">
+              <Logo 
+                logoUrl={clinicLogo} 
+                logoUrlDark={logoUrlDark} 
+                width={120} 
+                height={40} 
+                className="w-full h-full flex justify-center"
+              />
             </div>
-          
           </Link>
 
           <div className="flex w-full flex-col gap-2 px-3 py-4">
@@ -174,7 +187,7 @@ export function Sidebar({
                   {isActive && (
                     <motion.div
                       layoutId="active-indicator"
-                      className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20 ltr:border-l-4 rtl:border-r-4 border-blue-600"
+                      className="absolute inset-0 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border-s-4 border-blue-600"
                       initial={false}
                       transition={{
                         type: "spring",
@@ -230,7 +243,26 @@ export function Sidebar({
               <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
                 {t("drName", { name: userName || "Doctor" })}
               </span>
-              <span className="text-xs text-slate-500">{t("drTitle")}</span>
+              <span className="text-xs text-slate-500">
+                {(() => {
+                  // If specialty exists, it's a doctor - show specialty directly
+                  if (userSpecialty) {
+                    return userSpecialty;
+                  }
+                  // If role exists, translate the role
+                  if (userRole) {
+                    const roleKey = userRole.toLowerCase();
+                    // Try to translate the role, fallback to drTitle
+                    try {
+                      return t(`roles.${roleKey}`) || t("drTitle");
+                    } catch {
+                      return t("drTitle");
+                    }
+                  }
+                  // Fallback to generic title
+                  return t("drTitle");
+                })()}
+              </span>
             </div>
           </Link>
 

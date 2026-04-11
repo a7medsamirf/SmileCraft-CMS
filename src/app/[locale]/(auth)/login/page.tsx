@@ -6,6 +6,7 @@ import { Mail, Lock, Eye, EyeOff, User, ArrowLeft } from "lucide-react";
 import { loginAction, type LoginState } from "./loginAction";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Logo } from "@/components/SharesComponent/Logo";
 
 function AuthStyles() {
   return (
@@ -43,7 +44,7 @@ export default function LoginPage() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[400px] rounded-full pointer-events-none" style={{ background: "radial-gradient(rgba(37,99,235,0.08) 0%,transparent 65%)" }} />
         <div className="absolute top-0 inset-x-0 h-[2px]" style={{ background: "linear-gradient(90deg,transparent,#2563EB,transparent)" }} />
         <div className="relative z-10">
-          <span className="text-xl font-black text-white tracking-tight"><span className="text-blue-500">Smile</span>Craft</span>
+          <Logo className="w-32 sm:w-40 md:w-44 lg:w-60 h-auto object-contain" />
         </div>
         <div className="relative z-10 space-y-8">
           <div>
@@ -73,7 +74,7 @@ export default function LoginPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-32 opacity-30 pointer-events-none" style={{ background: "radial-gradient(rgba(37,99,235,0.15) 0%,transparent 70%)" }} />
         <div className="w-full max-w-[420px] relative z-10">
           <div className="lg:hidden mb-6 text-center">
-            <span className="text-2xl font-black text-white tracking-tight"><span className="text-blue-500">Smile</span>Craft</span>
+              <Logo className="w-52 sm:w-44 md:w-44 lg:w-60 h-auto object-contain" />
           </div>
 
           <div className="auth-fade-up bg-[#0B1525] border border-white/[0.06] rounded-2xl p-7 sm:p-8 shadow-2xl shadow-black/40">

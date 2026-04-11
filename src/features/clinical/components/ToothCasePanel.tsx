@@ -31,6 +31,23 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import type { AppointmentTooth } from "@/features/appointments/serverActions";
+import { PROCEDURE_BY_KEY } from "@/features/appointments/constants/procedures";
+import { getServicesAction } from "@/features/settings/serverActions";
+import type { DentalService, ProcedureType } from "@/features/settings/types";
+
+// Procedure type labels
+const PROCEDURE_TYPE_LABELS: Record<ProcedureType, { ar: string; en: string }> = {
+  TEETH_CLEANING: { ar: "تنظيف أسنان", en: "Teeth Cleaning" },
+  FILLING: { ar: "حشو", en: "Filling" },
+  EXTRACTION: { ar: "خلع", en: "Extraction" },
+  ROOT_CANAL: { ar: "علاج عصب", en: "Root Canal" },
+  CROWN: { ar: "تاج", en: "Crown" },
+  BRACES: { ar: "تقويم", en: "Braces" },
+  BLEACHING: { ar: "تبييض", en: "Bleaching" },
+  EXAMINATION: { ar: "فحص", en: "Examination" },
+  XRAY: { ar: "أشعة", en: "X-Ray" },
+  OTHER: { ar: "أخرى", en: "Other" },
+};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface ToothCasePanelProps {
@@ -60,18 +77,70 @@ function emptyForm(
   tooth: Tooth,
   existingCase?: ClinicalCase,
   appointmentCtx?: AppointmentTooth,
+  services?: DentalService[],
 ): CaseFormState {
+  // Resolve procedure and cost from appointment context
+  const procedureFromApt = appointmentCtx?.procedure ?? "";
+  const procedureKeyFromApt = appointmentCtx?.procedureKey ?? "";
+  
+  // Try to find price from services database first
+  let costFromServices = 0;
+  if (services && procedureKeyFromApt) {
+    // Map procedureKey to procedureType (e.g., "procedureRootCanal" -> "ROOT_CANAL")
+    const procedureDef = PROCEDURE_BY_KEY[procedureKeyFromApt];
+    if (procedureDef) {
+      // Try to match by procedureType - need to map the key to ProcedureType enum
+      const procedureTypeMap: Record<string, string> = {
+        procedureCleaning: "TEETH_CLEANING",
+        procedureReview: "FILLING",
+        procedureRootCanal: "ROOT_CANAL",
+        procedureCrown: "CROWN",
+        procedureExtraction: "EXTRACTION",
+        procedureWisdomExtraction: "EXTRACTION",
+        procedureScaling: "TEETH_CLEANING",
+        procedureCheckup: "EXAMINATION",
+        procedureXray: "XRAY",
+        procedureFluoride: "TEETH_CLEANING",
+        procedureBraces: "BRACES",
+        procedureWhitening: "BLEACHING",
+        procedureVeneer: "CROWN",
+        procedureImplant: "OTHER",
+        procedureBridge: "OTHER",
+        procedureDenture: "OTHER",
+        procedureGumTreatment: "OTHER",
+      };
+      
+      const procedureType = procedureTypeMap[procedureKeyFromApt];
+      if (procedureType) {
+        const matchingService = services.find(
+          (s) => s.procedureType === procedureType
+        );
+        if (matchingService) {
+          costFromServices = matchingService.price;
+        }
+      }
+    }
+  }
+  
+  // Fall back to hardcoded cost from PROCEDURE_DEFINITIONS
+  const costFromHardcoded = procedureKeyFromApt && PROCEDURE_BY_KEY[procedureKeyFromApt]
+    ? PROCEDURE_BY_KEY[procedureKeyFromApt].estimatedCost
+    : 0;
+  
+  // Use services price if available, otherwise hardcoded, otherwise 0
+  const autoCost = costFromServices || costFromHardcoded;
+
   return {
     diagnosis: existingCase?.diagnosis ?? "",
-    procedure: existingCase?.procedure ?? appointmentCtx?.procedure ?? "",
+    procedure: existingCase?.procedure ?? procedureFromApt,
     procedureKey:
-      existingCase?.procedureKey ?? appointmentCtx?.procedureKey ?? "",
+      existingCase?.procedureKey ?? procedureKeyFromApt,
     notes:
       existingCase?.notes ??
       (appointmentCtx
         ? `موعد محجوز: ${appointmentCtx.procedure} — ${appointmentCtx.date}`
         : ""),
-    estimatedCost: existingCase?.estimatedCost ?? 0,
+    estimatedCost: existingCase?.estimatedCost ?? autoCost,
     status: existingCase?.status ?? TreatmentStatus.PLANNED,
     sessionDate:
       existingCase?.sessionDate ??
@@ -93,7 +162,7 @@ const STATUS_COLOR: Record<TreatmentStatus, string> = {
 
 // ─── Shared input / label class helpers ──────────────────────────────────────
 const INPUT_CLS =
-  "w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400 transition-colors";
+  "relative w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-400 transition-colors";
 
 const LABEL_CLS =
   "block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5";
@@ -112,6 +181,7 @@ export function ToothCasePanel({
   const locale = useLocale();
 
   const [cases, setCases] = useState<ClinicalCase[]>([]);
+  const [availableServices, setAvailableServices] = useState<DentalService[]>([]);
   // `loadedForTooth` tracks the last tooth.id for which data finished loading.
   // Deriving `isLoading` from it means it becomes true the instant tooth.id
   // changes — without any synchronous setState call inside the effect.
@@ -134,6 +204,23 @@ export function ToothCasePanel({
     aptCtxRef.current = appointmentContext;
   });
 
+  // Load available services once on mount for pricing lookup
+  React.useEffect(() => {
+    let cancelled = false;
+    getServicesAction()
+      .then((services) => {
+        if (!cancelled && services) {
+          setAvailableServices(services);
+        }
+      })
+      .catch(() => {
+        // Silently fail — will fall back to hardcoded costs
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ── Load existing cases on mount / tooth change ──────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -145,8 +232,8 @@ export function ToothCasePanel({
         setSaveMsg(null);
         setForm(
           data.length > 0
-            ? emptyForm(tooth, data[0])
-            : emptyForm(tooth, undefined, aptCtxRef.current),
+            ? emptyForm(tooth, data[0], undefined, availableServices)
+            : emptyForm(tooth, undefined, aptCtxRef.current, availableServices),
         );
         setLoadedForTooth(tooth.id);
       })
@@ -160,7 +247,7 @@ export function ToothCasePanel({
     return () => {
       cancelled = true;
     };
-  }, [patientId, tooth.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [patientId, tooth.id, availableServices]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Generic field updater ────────────────────────────────────────────────
   function field<K extends keyof CaseFormState>(
@@ -224,7 +311,7 @@ export function ToothCasePanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="glass-card overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl"
+      className="glass-card overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800"
     >
       {/* ─── Panel Header ──────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 border-b border-slate-100 dark:border-slate-800 px-6 py-4 bg-slate-50/60 dark:bg-slate-800/40">
@@ -330,7 +417,64 @@ export function ToothCasePanel({
                 />
               </div>
 
-              {/* Procedure */}
+              {/* Procedure Type Dropdown */}
+              <div>
+                <label className={LABEL_CLS}>{t("procedureType")}</label>
+                <select
+                  value={form.procedureKey}
+                  onChange={(e) => {
+                    const selectedKey = e.target.value;
+                    const procDef = PROCEDURE_BY_KEY[selectedKey];
+                    if (procDef) {
+                      // Update procedure name and key
+                      field("procedureKey", selectedKey);
+                      field("procedure", locale === "ar" ? procDef.labelAr : procDef.labelEn);
+                      
+                      // Auto-update cost from services or hardcoded value
+                      const serviceMatch = availableServices.find(
+                        (s) => {
+                          const procedureTypeMap: Record<string, string> = {
+                            procedureCleaning: "TEETH_CLEANING",
+                            procedureReview: "FILLING",
+                            procedureRootCanal: "ROOT_CANAL",
+                            procedureCrown: "CROWN",
+                            procedureExtraction: "EXTRACTION",
+                            procedureWisdomExtraction: "EXTRACTION",
+                            procedureScaling: "TEETH_CLEANING",
+                            procedureCheckup: "EXAMINATION",
+                            procedureXray: "XRAY",
+                            procedureFluoride: "TEETH_CLEANING",
+                            procedureBraces: "BRACES",
+                            procedureWhitening: "BLEACHING",
+                            procedureVeneer: "CROWN",
+                            procedureImplant: "OTHER",
+                            procedureBridge: "OTHER",
+                            procedureDenture: "OTHER",
+                            procedureGumTreatment: "OTHER",
+                          };
+                          return s.procedureType === procedureTypeMap[selectedKey];
+                        }
+                      );
+                      
+                      if (serviceMatch) {
+                        field("estimatedCost", serviceMatch.price);
+                      } else if (procDef) {
+                        field("estimatedCost", procDef.estimatedCost);
+                      }
+                    }
+                  }}
+                  className={INPUT_CLS}
+                >
+                  <option value="">{t("selectProcedure")}</option>
+                  {Object.values(PROCEDURE_BY_KEY).map((proc) => (
+                    <option key={proc.key} value={proc.key}>
+                      {locale === "ar" ? proc.labelAr : proc.labelEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Procedure Name (auto-filled) */}
               <div>
                 <label className={LABEL_CLS}>{t("caseProcedure")}</label>
                 <input
@@ -338,7 +482,8 @@ export function ToothCasePanel({
                   value={form.procedure}
                   onChange={(e) => field("procedure", e.target.value)}
                   placeholder={t("caseProcedurePlaceholder")}
-                  className={INPUT_CLS}
+                  className={`${INPUT_CLS} bg-slate-100 dark:bg-slate-800`}
+                  readOnly={!!form.procedureKey} // Read-only if auto-filled
                 />
               </div>
 

@@ -113,6 +113,43 @@ export async function resolveUserFullName(): Promise<string | null> {
 }
 
 /**
+ * Returns the authenticated user's staff information (specialty and role).
+ * Used to display appropriate title in the sidebar.
+ */
+export async function resolveUserStaffInfo(): Promise<{ specialty?: string | null; role?: string | null } | null> {
+  const user = await getAuthenticatedUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  
+  // First get the user's userId to find their staff record
+  const { data: userData } = await supabase
+    .from("users")
+    .select("id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!userData) return null;
+
+  const userRole = (userData as { role?: string }).role;
+
+  // Then find the staff record linked to this user
+  const { data: staffData } = await supabase
+    .from("staff")
+    .select("specialty, role")
+    .eq("userId", userData.id)
+    .maybeSingle();
+
+  if (staffData) {
+    const { specialty, role } = staffData as { specialty?: string | null; role?: string };
+    return { specialty, role };
+  }
+  
+  // If no staff record, return the user role from users table
+  return { specialty: null, role: userRole };
+}
+
+/**
  * Throws if the user is not authenticated.
  */
 export async function requireAuth() {
